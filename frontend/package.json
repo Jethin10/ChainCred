@@ -1,0 +1,20 @@
+{
+  "name": "paykit-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "PayKit landing page: a 1:1 clone of andreas.vision with PayKit copy. CTAs open the PayKit app (web/).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint copy vite.config.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "oxlint": "^1.89.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.5"
+  }
+}

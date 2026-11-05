@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PayKit, gasless USDT checkout for Whitechain</title>
+    <meta name="description" content="PayKit is an npm SDK and payment service for Whitechain. Customers pay in USDT with one signature and never need WBT for gas, and merchants get paid straight to a verified wallet." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PayKit" />
+    <meta property="og:title" content="PayKit, gasless USDT checkout for Whitechain" />
+    <meta property="og:description" content="PayKit is an npm SDK and payment service for Whitechain. Customers pay in USDT with one signature and never need WBT for gas, and merchants get paid straight to a verified wallet." />
+    <meta property="og:image" content="/og/home.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"PayKit","applicationCategory":"DeveloperApplication","description":"An npm SDK and payment service for Whitechain. Customers pay in USDT with one signature and never need WBT for gas."}</script>
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      html, body, #root { height: 100%; margin: 0; }
+      html { background: #fff; }
+    </style>
+    <script>
+      // Links to /app/<page> (and any route of the reference site other than the landing page)
+      // open the PayKit app. Runs in the capture phase, before the page's own router sees the click.
+      ;(function () {
+        var APP = '__PAYKIT_APP_URL__'
+        var PAGES = { shops: 1, invoice: 1, me: 1, merchant: 1 }
+        function target(href) {
+          var u
+          try { u = new URL(href, location.href) } catch (e) { return null }
+          if (u.origin !== location.origin) return null
+          var p = u.pathname
+          if (p.indexOf('/app/') === 0) {
+            var page = p.slice(5).replace(/\/.*$/, '')
+            return APP + '/#' + (PAGES[page] ? page : 'shops')
+          }
+          if (/^\/(about|notes|play|work|studio)(\/|$)/.test(p)) return APP + '/#shops'
+          return null
+        }
+        var here = target(location.href)
+        if (here) location.replace(here)
+        document.addEventListener('click', function (e) {
+          if (e.defaultPrevented || e.button !== 0) return
+          var a = e.target && e.target.closest && e.target.closest('a[href]')
+          var t = a && target(a.getAttribute('href'))
+          if (!t) return
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          if (e.metaKey || e.ctrlKey || a.target === '_blank') window.open(t, '_blank', 'noopener')
+          else location.assign(t)
+        }, true)
+      })()
+    </script>
+    <script type="module" crossorigin src="/assets/site-Dg9eCcF_.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/site-DP47Tj4v.css">
+    <!-- The hero's two fonts and the landing page's module graph, fetched in parallel with site.js
+         instead of after it runs. Same files the page loads anyway, just sooner. -->
+    <link rel="preload" as="font" type="font/woff" crossorigin href="/assets/trjn-davinci-italic-BIBUPCRW.woff">
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/geist-latin-wght-normal-BgDaEnEv.woff2">
+    <link rel="modulepreload" crossorigin href="/assets/landing-v73-iTotTP7r.js">
+    <link rel="modulepreload" crossorigin href="/assets/variant-c-v13-J5Qfn8TG.js">
+    <link rel="modulepreload" crossorigin href="/assets/breakpoints-SSnuvaoo.js">
+    <link rel="modulepreload" crossorigin href="/assets/variant-a-v2-Dmg3yc2O.js">
+    <link rel="modulepreload" crossorigin href="/assets/CheckSmall-0qgsQKsx.js">
+    <link rel="modulepreload" crossorigin href="/assets/Sub-DeIb32jX.js">
+    <link rel="modulepreload" crossorigin href="/assets/Sky-WzjW9JnK.js">
+    <link rel="modulepreload" crossorigin href="/assets/nav-DNMzDr7r.js">
+    <link rel="modulepreload" crossorigin href="/assets/leave-Bibdy01e.js">
+    <link rel="modulepreload" crossorigin href="/assets/spread-LUUylR44.js">
+    <link rel="modulepreload" crossorigin href="/assets/squareFlags-D23kPNlV.js">
+    <link rel="modulepreload" crossorigin href="/assets/Cover-DFWfJMPG.js">
+    <link rel="modulepreload" crossorigin href="/assets/LabelChip-D_jL_Q3a.js">
+    <link rel="modulepreload" crossorigin href="/assets/cardHover-B9pKjScF.js">
+    <link rel="modulepreload" crossorigin href="/assets/Close-85Oo5fWc.js">
+    <link rel="modulepreload" crossorigin href="/assets/Recording-BNU7wLJL.js">
+    <link rel="modulepreload" crossorigin href="/assets/AskPanel-B56q9v-_.js">
+    <link rel="modulepreload" crossorigin href="/assets/use-spring-DxdH7bEq.js">
+    <link rel="modulepreload" crossorigin href="/assets/FieldStamp-WjoJZ0I3.js">
+    <link rel="modulepreload" crossorigin href="/assets/Popup-DYx9dekJ.js">
+  </head>
+  <body>
+    <div id="root"><div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"><h1>PayKit, gasless USDT checkout for Whitechain</h1><p>PayKit lets any shop take USDT on Whitechain in a few lines of React. Customers sign once, never need WBT for gas, and you get paid straight to your wallet.</p><h2>Product</h2><ul><li><a href="/app/shops">Checkout, carts and receipts added to any shop in twenty lines</a><p>@paykit/react, drop-in commerce components.</p></li><li><a href="/app/merchant">One dashboard for sales, refunds and installment plans</a><p>The PayKit merchant dashboard.</p></li></ul><nav><ul><li><a href="/app/shops">Shops</a></li><li><a href="/app/me">Payments</a></li><li><a href="/app/merchant">Merchant</a></li><li><a href="/app/invoice">Invoice</a></li></ul></nav></div></div>
+  </body>
+</html>

@@ -1,0 +1,1 @@
+import{r}from"./site-Dg9eCcF_.js";let t={on:!1,save:null,dirty:()=>!1,head:null};const s=new Set;function c(e){t={...t,...e},s.forEach(a=>a())}const n=()=>t,o=e=>(s.add(e),()=>s.delete(e)),l=()=>r.useSyncExternalStore(o,n,n);export{n as e,c as s,l as u};

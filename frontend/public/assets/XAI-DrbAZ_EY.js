@@ -1,0 +1,1 @@
+var L={viewBox:"0 0 14 14",nodes:[{tag:"path",attrs:{d:"M 10.976 4.511 L 11.217 14.01 L 13.155 14.01 L 13.397 1.053 Z M 13.397 -0.003 L 10.441 -0.003 L 5.802 6.622 L 7.28 8.733 Z M 0.629 14.01 L 3.585 14.01 L 5.063 11.9 L 3.585 9.789 Z M 0.629 4.511 L 7.28 14.01 L 10.236 14.01 L 3.585 4.511 Z",fill:"currentColor"},children:[]}],animated:!1};export{L as default};
