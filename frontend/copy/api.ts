@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
 /**
- * Local stand-ins for the reference site's `/api/*` endpoints, so the landing page's
+ * Local stand-ins for the page's `/api/*` endpoints, so the landing page's
  * location line, view counts and "ask the cloud" panel work without a backend.
  * The ask endpoint streams a canned PayKit answer, then `§`, then follow-up questions split by `|`.
  */

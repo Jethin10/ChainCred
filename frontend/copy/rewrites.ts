@@ -1,11 +1,10 @@
 /**
- * PayKit copy for the cloned landing page.
+ * PayKit copy for the landing page.
  *
- * The page runs on the reference site's original production bundles (in `public/assets`),
- * so layout, motion and interactions stay identical. Only the words, links and brand change,
- * and every change lives here. The Vite plugin in `vite.config.ts` applies these replacements
+ * The page runs on prebuilt production bundles (in `public/assets`). Every word, link and
+ * brand change lives here. The Vite plugin in `vite.config.ts` applies these replacements
  * when it serves or builds the bundles, and fails loudly if a `from` string is missing, so a
- * re-mirrored bundle can't silently drop our copy.
+ * rebuilt bundle can't silently drop our copy.
  *
  * Paths starting with `/app/` are routed into the PayKit app by the script in `index.html`
  * (`/app/shops` opens the app's Shops page, and so on).
@@ -207,7 +206,7 @@ export const rewrites: Rewrite[] = [
     to: `tired:${q("The cloud is dizzy. Open the app and try a payment, it explains itself.")},keyless:${q("The cloud has no key yet, so it can't think. Open the app and try a payment instead.")}`,
   },
 
-  // ── Square flags for the globe route (the reference set has no India or UAE) ──
+  // ── Square flags for the globe route (the built-in set has no India or UAE) ──
   {
     file: "squareFlags-D23kPNlV.js",
     from: "ft={be:it,",
@@ -235,7 +234,7 @@ export const rewrites: Rewrite[] = [
   { file: ASK, from: `nt={city:"Seoul",country:"KR"}`, to: `nt={city:"Mumbai",country:"IN"}` },
 ]
 
-/** A 1:1 flag in the same shape as the reference's flag-icons set, as a data URL. */
+/** A square flag in the same shape as the built-in flag-icons set, as a data URL. */
 function svgFlag(body: string): string {
   return "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'>${body}</svg>`).replace(/%20/g, " ")
 }

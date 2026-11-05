@@ -15,7 +15,7 @@ const distDir = path.join(root, 'dist')
 const allRewrites: Rewrite[] = [...rewrites, ...perf]
 const rewrittenFiles = [...new Set(allRewrites.map((r) => r.file))]
 
-/** Applies the copy and performance rewrites to an original bundle. Throws if one no longer matches. */
+/** Applies the copy and performance rewrites to a bundle. Throws if one no longer matches. */
 function rewriteFile(file: string): string {
   let text = fs.readFileSync(path.join(publicDir, 'assets', file), 'utf8')
   for (const r of allRewrites.filter((x) => x.file === file)) {
@@ -168,7 +168,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [paykit(appUrl)],
     build: {
-      // The reference bundles already live in public/assets; keep Vite's own output apart.
+      // The prebuilt bundles live in public/assets; keep Vite's own output apart.
       assetsDir: '_paykit',
       modulePreload: { polyfill: false },
       chunkSizeWarningLimit: 4096,

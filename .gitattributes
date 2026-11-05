@@ -1,5 +1,5 @@
 # Source files use LF everywhere.
 * text=auto eol=lf
 
-# The mirrored reference site is stored byte-for-byte: copy/rewrites.ts matches it exactly.
+# Prebuilt assets are stored byte-for-byte: copy/rewrites.ts matches them exactly.
 frontend/public/** -text
