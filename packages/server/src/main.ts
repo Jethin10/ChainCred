@@ -41,6 +41,9 @@ const network = resolveNetwork((env.NETWORK ?? "whitechain-testnet") as NetworkK
   router: address("ROUTER_ADDRESS", !demo) ?? getAddress(`0x${"f0a7".padStart(40, "0")}`),
   registry: address("REGISTRY_ADDRESS", !demo) ?? getAddress(`0x${"e915".padStart(40, "0")}`),
   treasury: address("TREASURY_ADDRESS", false),
+  // PayKitPoints (loyalty). In demo mode a fake address turns points on with the simulated chain.
+  points: address("POINTS_ADDRESS", false) ?? (demo ? getAddress(`0x${"9017".padStart(40, "0")}`) : undefined),
+  routerVersion: env.ROUTER_VERSION === "1" ? "1" : "2",
 });
 
 const relayer = privateKeyToAccount(demo ? key("RELAYER_KEY", generatePrivateKey()) : key("RELAYER_KEY"));

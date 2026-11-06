@@ -382,6 +382,8 @@ export const zRegistrationRequest = z.object({
   pendingPayout: z.object({ address: zAddress, executableAt: zTime }).nullable().optional(),
   maxFeeBps: z.number().int(),
   metadataHash: zHex32,
+  /** Signed as part of RegisterMerchant, so it is fixed before the owner signs. */
+  metadataURI: z.string().default(""),
   nonce: z.string().regex(/^\d+$/),
   deadline: z.string().regex(/^\d+$/),
   registry: zAddress,
@@ -497,7 +499,15 @@ export type PlatformStatus = z.infer<typeof zPlatformStatus>;
 export const zPublicConfig = z.object({
   network: z.enum(["whitechain-testnet", "whitechain-mainnet"]),
   chainId: z.number().int(),
-  contracts: z.object({ registry: zAddress, router: zAddress, treasury: zAddress }),
+  contracts: z.object({
+    registry: zAddress,
+    router: zAddress,
+    treasury: zAddress,
+    /** PayKitPoints, when the router is V2. */
+    points: zAddress.optional(),
+    /** EIP-712 domain version of the router ("2" = PaymentRouterV2). */
+    routerVersion: z.enum(["1", "2"]).optional(),
+  }),
   usdt: zAddress,
   feeSchedule: z.object({ bps: z.number().int(), minFee: zAmount, maxFee: zAmount }),
 });

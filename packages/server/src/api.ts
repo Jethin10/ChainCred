@@ -43,6 +43,7 @@ import {
   refundTermsFromWire,
   refundTermsTypedData,
   registerMerchantTypedData,
+  routerVersionOf,
   requireContract,
   routes,
   setSignerTypedData,
@@ -82,6 +83,7 @@ interface RegistrationDraft {
   payout: Address;
   maxFeeBps: number;
   metadataHash: Hex;
+  metadataURI?: string;
   nonce: string;
   deadline: string;
   registry: Address;
@@ -470,7 +472,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
     if (!isAddressEqual(recovered, payer)) throw httpError(400, "signature_invalid", "Payer signature does not match");
     if (BigInt(s.quote.validUntil) < nowSeconds()) throw httpError(409, "quote_expired", "This payment offer expired. Start again.");
     const payment: Payment = {
-      paymentId: s.quote.paymentId,
+      paymentId: await keys.payment(s.quote.merchantId as Hex, s.quote.paymentId as Hex),
       merchantSlug: s.merchant.slug,
       merchantName: s.merchant.name,
       invoiceId: s.invoice.id,
@@ -672,7 +674,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
     const firstDueMs = Number(s.terms.firstDue) * 1000;
     const plan: Plan = {
       id: uid("plan"),
-      planId: s.terms.planId,
+      planId: await keys.plan(s.terms.merchantId as Hex, s.terms.planId as Hex),
       merchantSlug: s.merchant.slug,
       merchantName: s.merchant.name,
       payer,
@@ -720,8 +722,8 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
     return plan;
   }
 
-  function planPayment(plan: Plan, gross: string, fee: string, index: number, hash: Hex, receipt: { blockNumber: bigint; blockHash?: Hex; transactionHash?: Hex }) {
-    const paymentId = installmentPaymentId(plan.planId as Hex, index);
+  async function planPayment(plan: Plan, gross: string, fee: string, index: number, hash: Hex, receipt: { blockNumber: bigint; blockHash?: Hex; transactionHash?: Hex }) {
+    const paymentId = await keys.installment(plan.planId as Hex, index);
     const existing = db.payments.find((p) => p.paymentId === paymentId);
     if (existing) return existing;
     const inv = db.invoices.find((i) => i.id === db.planInvoices[plan.planId]);
@@ -744,7 +746,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       if (!job.txHash) {
         if (job.kind === "plan") {
           const permit = job.body.permit as { value: string; deadline: string; signature: Hex };
-          job.txHash = await chain.createPlan({ terms: planTermsFromWire(terms), merchantSignature: terms.merchantSignature as Hex, consentSignature: job.body.consentSignature as Hex, permit: { value: BigInt(permit.value), deadline: BigInt(permit.deadline), signature: permit.signature } });
+          job.txHash = await chain.createPlan({ terms: planTermsFromWire(terms), merchantSignature: terms.merchantSignature as Hex, consentSignature: job.body.consentSignature as Hex, consentDeadline: BigInt(String(job.body.consentDeadline ?? "0")), permit: { value: BigInt(permit.value), deadline: BigInt(permit.deadline), signature: permit.signature } });
         } else if (job.kind === "cancel") {
           job.txHash = await chain.cancelPlan({ message: { planId: plan.planId as Hex, signer: getAddress(String(job.body.signer)), deadline: BigInt(String(job.body.deadline)) }, signature: job.body.signature as Hex });
         } else job.txHash = await chain.collectInstallment(plan.planId as Hex, job.index);
@@ -761,7 +763,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       }
       if (job.kind === "plan") {
         plan.status = "active";
-        if (BigInt(plan.downPayment) > 0n) planPayment(plan, plan.downPayment, terms.downPaymentFee, DOWN_PAYMENT_INDEX, job.txHash, receipt);
+        if (BigInt(plan.downPayment) > 0n) await planPayment(plan, plan.downPayment, terms.downPaymentFee, DOWN_PAYMENT_INDEX, job.txHash, receipt);
         emit("plan.created", plan.merchantSlug, plan.planId, plan);
       } else if (job.kind === "cancel") {
         plan.status = "cancelled";
@@ -769,7 +771,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
         emit("plan.cancelled", plan.merchantSlug, plan.planId, plan);
       } else {
         const inst = plan.installments[job.index!]!;
-        const payment = planPayment(plan, inst.amount, terms.feePerInstallment, inst.index, job.txHash, receipt);
+        const payment = await planPayment(plan, inst.amount, terms.feePerInstallment, inst.index, job.txHash, receipt);
         inst.status = "collected";
         inst.paymentId = payment.paymentId;
         plan.collected = Math.max(plan.collected, inst.index + 1);
@@ -964,6 +966,13 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
     save();
   }
 
+  /** Canonical onchain IDs (router keys), or the local IDs on the simulated chain. */
+  const keys = chain.keys ?? {
+    payment: async (_merchantId: Hex, localPaymentId: Hex) => localPaymentId,
+    plan: async (_merchantId: Hex, localPlanId: Hex) => localPlanId,
+    installment: async (planKey: Hex, index: number) => installmentPaymentId(planKey, index),
+  };
+
   /** Observe finalized public events, including payments submitted outside this API. */
   async function observe() {
     if (!chain.observe || options.observerStartBlock === undefined) return;
@@ -983,7 +992,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
         const planId = /^0x0+$/.test(String(a.planId)) ? null : String(a.planId);
         let payment = db.payments.find((p) => p.paymentId.toLowerCase() === String(a.paymentId).toLowerCase());
         if (!payment) {
-          payment = { paymentId: a.paymentId as Hex, merchantSlug: merchant.slug, merchantName: merchant.name, invoiceId: inv?.id ?? null, planId, kind: planId ? (installmentPaymentId(planId as Hex, DOWN_PAYMENT_INDEX).toLowerCase() === String(a.paymentId).toLowerCase() ? "down_payment" : "installment") : "one_time", payer: getAddress(String(a.payer)), refundTo: getAddress(String(a.refundTo)), token: "USDT", gross: String(a.gross), fee: String(a.fee), net: String(a.net), refunded: "0", status: "submitted", txHash: event.transactionHash, blockNumber: null, explorerUrl: explorerTxUrl(network, event.transactionHash), error: null, createdAt: iso(), settledAt: null, externalOrderId: inv?.externalOrderId ?? null, metadata: inv?.metadata ?? {} };
+          payment = { paymentId: a.paymentId as Hex, merchantSlug: merchant.slug, merchantName: merchant.name, invoiceId: inv?.id ?? null, planId, kind: planId ? ((await keys.installment(planId as Hex, DOWN_PAYMENT_INDEX)).toLowerCase() === String(a.paymentId).toLowerCase() ? "down_payment" : "installment") : "one_time", payer: getAddress(String(a.payer)), refundTo: getAddress(String(a.refundTo)), token: "USDT", gross: String(a.gross), fee: String(a.fee), net: String(a.net), refunded: "0", status: "submitted", txHash: event.transactionHash, blockNumber: null, explorerUrl: explorerTxUrl(network, event.transactionHash), error: null, createdAt: iso(), settledAt: null, externalOrderId: inv?.externalOrderId ?? null, metadata: inv?.metadata ?? {} };
           db.payments.unshift(payment);
         }
         payment.gross = String(a.gross); payment.fee = String(a.fee); payment.net = String(a.net);
@@ -1052,7 +1061,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       return {
         network: network.key,
         chainId: network.chain.id,
-        contracts: { registry, router, treasury: network.contracts.treasury ?? zeroAddress },
+        contracts: { registry, router, treasury: network.contracts.treasury ?? zeroAddress, ...(network.contracts.points ? { points: network.contracts.points } : {}), routerVersion: routerVersionOf(network) },
         usdt,
         feeSchedule: { bps: fees.bps, minFee: fees.minFee.toString(), maxFee: fees.maxFee.toString() },
       };
@@ -1169,6 +1178,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
         payout,
         maxFeeBps: Number(body.maxFeeBps ?? 300),
         metadataHash: invoiceDigest({ name: body.name, slug, website: body.website, category: body.category ?? null }),
+        metadataURI: options.publicUrl ? `${options.publicUrl.replace(/\/$/, "")}/v1/merchants/${slug}` : "",
         nonce: (await chain.ownerNonce(address)).toString(),
         deadline: (nowSeconds() + 3600n).toString(),
         registry,
@@ -1184,7 +1194,8 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       const draft = db.drafts[arg(mm)];
       if (!draft) throw httpError(404, "not_found", "Registration draft not found");
       const r = draft.request;
-      const message = { owner: r.owner, payout: r.payout, maxFeeBps: r.maxFeeBps, metadataHash: r.metadataHash, nonce: BigInt(r.nonce), deadline: BigInt(r.deadline) };
+      const metadataURI = r.metadataURI ?? "";
+      const message = { owner: r.owner, payout: r.payout, maxFeeBps: r.maxFeeBps, metadataHash: r.metadataHash, metadataURI, nonce: BigInt(r.nonce), deadline: BigInt(r.deadline) };
       const recovered = await recoverTypedDataAddress({ ...registerMerchantTypedData(network, message), signature: body.signature as Hex });
       if (!isAddressEqual(recovered, who.address)) throw httpError(400, "signature_invalid", "Registration signature does not match the owner");
       if (r.payoutProofMessage) {
@@ -1193,8 +1204,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       }
       const input = draft.input;
       const slug = String(input.slug);
-      const metadataURI = options.publicUrl ? `${options.publicUrl.replace(/\/$/, "")}/v1/merchants/${slug}` : "";
-      const receipt = await chain.waitForReceipt(await chain.registerMerchant({ message, metadataURI, signature: body.signature as Hex }));
+      const receipt = await chain.waitForReceipt(await chain.registerMerchant({ message, signature: body.signature as Hex }));
       if (!receipt.success) throw httpError(400, "server_error", receipt.error ?? "Registration failed onchain");
       const m: Merchant = {
         slug,

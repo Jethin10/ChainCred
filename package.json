@@ -26,7 +26,8 @@
     "sdk:registry": "node scripts/build-ui-registry.mjs",
     "sdk:consumer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-sdk-consumer.ps1",
     "ui:add": "node packages/react/bin/add.mjs",
-    "ui:test": "node --test scripts/test-ui-installer.mjs"
+    "ui:test": "node --test scripts/test-ui-installer.mjs",
+    "contracts:check": "node --conditions=source scripts/check-contracts.ts"
   },
   "engines": {
     "node": ">=24 <25"

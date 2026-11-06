@@ -544,6 +544,7 @@ export class PayKitClient {
           payout: getAddress(request.payout),
           maxFeeBps: request.maxFeeBps,
           metadataHash: request.metadataHash as Hex,
+          metadataURI: request.metadataURI,
           nonce: BigInt(request.nonce),
           deadline: BigInt(request.deadline),
         }),
