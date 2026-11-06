@@ -4,7 +4,6 @@ import {
   DomainSettings,
   fromEip1193,
   fromLocalAccount,
-  InstallmentPlanPicker,
   InvoiceCreator,
   LoyaltySettings,
   MerchantGate,
@@ -18,7 +17,6 @@ import {
   SignerSettings,
   SplitSettings,
   useMerchantInvoices,
-  useProducts,
   WebhookSettings,
   type WalletSigner,
 } from '@paykit/react'
@@ -29,7 +27,7 @@ import { Mark, PixelSky, PixelWipe } from './theme/pixels'
 import { useBackend, type Backend } from './theme/backend'
 import { PayPage, SubscribePage } from './live/PayPage'
 import { WalletPage } from './live/DesktopWalletPage'
-import { FeaturedShops, DemoShops } from './live/DesktopShops'
+import { ShopsDirectory } from './live/DesktopShops'
 import { MerchantLive } from './live/Onboarding'
 import { MobileChrome } from './mobile/Mobile'
 
@@ -44,8 +42,8 @@ type Page = 'components' | 'shops' | 'wallet' | 'merchant' | 'pay'
 
 const PAGES: Array<{ key: Page; label: string; eyebrow: string; title: string; lead: string }> = [
   { key: 'components', label: 'SDK', eyebrow: '@paykit/react', title: 'Components you own', lead: 'Copy the view, keep the payment logic in the SDK. Every preview runs a real checkout flow on simulated funds.' },
-  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Companies with PayKit at checkout. Pay with one signature, never need gas, and earn points you can spend at any of them.' },
-  { key: 'wallet', label: 'Wallet', eyebrow: 'Your invoices', title: 'One wallet, every shop', lead: 'Invoices, receipts and points from every company that takes PayKit. Real test USDT on Whitechain.' },
+  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Open a shop, build a cart and pay with one signature. No gas, and points you can spend at every shop.' },
+  { key: 'wallet', label: 'Wallet', eyebrow: 'Your wallet', title: 'One wallet, every shop', lead: 'Invoices, receipts and points in one place. Real test USDT on Whitechain.' },
   { key: 'merchant', label: 'Merchant', eyebrow: 'For businesses', title: 'Get paid in USDT, your way', lead: 'Sign up in two minutes, brand your checkout, join the points network, and start sending invoices.' },
 ]
 
@@ -90,7 +88,7 @@ export default function DesktopApp() {
       <div className={`app app--${page}`}>
         <TopBar page={page} backend={backend} />
         {backend.testMode && page !== 'pay' && <TestModeNotice />}
-        <header className={page === 'components' ? 'hero hero--short' : 'hero'}>
+        <header className={page === 'components' || page === 'shops' || page === 'wallet' ? 'hero hero--short' : 'hero'}>
           <PixelSky seed={page === 'pay' ? 7 : PAGES.findIndex((p) => p.key === page)} />
           <div className="hero__copy" key={page}>
             <p className="eyebrow"><span className="eyebrow__dot" />{meta.eyebrow}</p>
@@ -214,36 +212,7 @@ function Footer() {
 }
 
 function ShopsPage() {
-  return (
-    <section className="page">
-      <FeaturedShops />
-      <DemoShops />
-      <PlanDemo />
-    </section>
-  )
-}
-
-function PlanDemo() {
-  const products = useProducts('chai-co')
-  const box = products.data?.find((p) => p.name.includes('subscription'))
-  if (!box) return null
-  return (
-    <section className="page__section desktop-plan-preview">
-      <p className="eyebrow eyebrow--ink">Installments</p>
-      <h2>Spread a bigger order over time</h2>
-      <p className="page__lead">{box.name} from Mumbai Chai Co., paid in installments. Try the complete installment checkout below.</p>
-      <div className="narrow">
-        <InstallmentPlanPicker
-          input={{ merchant: 'chai-co', items: [{ productId: box.id, quantity: 1 }] }}
-          total={box.price}
-          options={[
-            { count: 3, periodSeconds: 30 * 86_400 },
-            { count: 3, periodSeconds: 120, downPaymentPercent: 10 },
-          ]}
-        />
-      </div>
-    </section>
-  )
+  return <section className="page"><ShopsDirectory /></section>
 }
 
 function MerchantPage() {
