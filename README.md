@@ -333,18 +333,6 @@ cd ../frontend && VITE_PAYKIT_APP_URL=/app npm run build && node scripts/vercel-
 cd .. && node scripts/redirect-old-app.mjs && cd web && vercel deploy --prebuilt --prod
 ```
 
-## Current limitations
-
-- **Testnet only.** Whitechain Sepolia (1874) with test USDT and WBT. There is no audit, and no mainnet deployment yet.
-- **Hosted keys.** PayKit's server holds the relayer key and each merchant's quote-signer key, encrypted with `MASTER_KEY`. Funds never pass through PayKit: USDT goes straight from the customer to the merchant's payout wallet, and refunds are funded by the merchant. But a server compromise could sign quotes for registered merchants until their signer is rotated.
-- **The merchant console doesn't do everything the API does yet.** Refunds, CSV export and subscription plans are in the API and the contracts. The console has invoices, campaigns and rewards, keys and wallet sign-in, but no refund button, export button or plan editor yet. The refund in the table above was made with [`paykit-contracts/scripts/refund.js`](paykit-contracts/scripts/refund.js).
-- **No reminders.** Invoices with a due date show as `overdue`, but PayKit doesn't email or notify the payer.
-- **Two simulated areas, both labelled "test mode".** The React component gallery and the merchant "Demo dashboard" tab run on simulated settlement. Real payments happen in the shop checkouts and on `#pay/<invoiceId>` links.
-- **Settlement is detected after the fact.** On Vercel there's no long-running listener. The observer catches up after each request and on a daily cron, so a webhook can arrive a few seconds after the transaction confirms.
-- **Small payments have a floor.** The protocol's 0.05 USDT minimum fee, under a merchant's 3% fee cap, sets the smallest invoice at about 1.67 USDT.
-- **Wallets.** The checkout is built and tested for MetaMask (EIP-6963), desktop and mobile. Other EIP-1193 wallets may work but haven't been tested.
-- **Arkiv points backend is optional.** With `POINTS_BACKEND=arkiv`, points are mirrored to Arkiv. Its queries sometimes stall, and the server then falls back to Postgres ([details](paykit-server/ARKIV.md)). The deployment uses the on-chain `PayKitPoints` backend.
-
 ## More docs
 
 - [Whitechain feedback](WHITECHAIN_FEEDBACK.md): what worked, where we got stuck, and what the docs were missing
