@@ -166,6 +166,7 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
   app.post("/v1/public/subscriptions/:id/authorize", wrap(async (req, res) => res.status(202).json(await subscriptions.authorize(req.params.id, req.body || {}))));
   app.post("/v1/public/subscriptions/:id/cancel-request", wrap(async (req, res) => res.json(await subscriptions.cancelRequest(req.params.id))));
   app.post("/v1/public/subscriptions/:id/cancel", wrap(async (req, res) => res.status(202).json(await subscriptions.cancelByPayer(req.params.id, req.body || {}))));
+  app.get("/v1/public/wallets/:address/activity", wrap(async (req, res) => res.json(await payments.walletActivity(req.params.address))));
   app.get("/v1/public/receipts/:paymentId", wrap(async (req, res) => res.json(await payments.getReceipt(req.params.paymentId))));
 
   // ───────────── errors ─────────────

@@ -7,3 +7,4 @@ exports
 .vercel
 .env*
 .demo-merchant.json
+.demo-stores.json
