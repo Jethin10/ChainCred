@@ -2,7 +2,17 @@
 // signs quotes, and the merchant's own wallet is the payout (and funds refunds).
 const { ethers, registry, adminWallet, txUrl } = require("../chain");
 const config = require("../config");
+const crypto = require("crypto");
 const { HttpError, randomToken, sha256, encrypt, decrypt, parseAddress } = require("../util");
+
+// Wallet sign-in sessions: stateless HMAC tokens "ms_<payload>.<sig>". The key comes from
+// SESSION_SECRET, or is derived from MASTER_KEY so no extra configuration is needed.
+const SESSION_TTL_SEC = Number(process.env.SESSION_TTL_SEC || 7 * 24 * 3600);
+const sessionKey = process.env.SESSION_SECRET
+  ? Buffer.from(process.env.SESSION_SECRET, "utf8")
+  : crypto.createHmac("sha256", config.masterKey).update("paykit:merchant-session:v1").digest();
+const b64 = (buf) => Buffer.from(buf).toString("base64url");
+const hmac = (data) => b64(crypto.createHmac("sha256", sessionKey).update(data).digest());
 
 function publicMerchant(m) {
   return {
@@ -42,7 +52,72 @@ Time: ${time}
 I control this wallet and want PayKit to send my sales to it.`;
 }
 
+/** The exact text the payout wallet signs to open the merchant console (personal_sign). */
+function loginMessage(payout, time) {
+  return `PayKit merchant sign-in
+
+Wallet: ${payout}
+Time: ${time}
+
+Sign in to my PayKit merchant console. This is free and moves no money.`;
+}
+
 function createMerchantService(store, relayer, webhooks) {
+  /** Issues a session for a merchant. `sv` lets a key rotation or sign-out-everywhere revoke old ones. */
+  function issueSession(m) {
+    const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SEC;
+    const payload = b64(JSON.stringify({ m: m.id, a: m.payoutAddress, sv: m.sessionVersion || 0, exp }));
+    return { token: `ms_${payload}.${hmac(payload)}`, expiresAt: new Date(exp * 1000).toISOString(), address: m.payoutAddress };
+  }
+
+  /** Returns the merchant for a valid session token, else null. */
+  async function bySession(token) {
+    if (!token || !token.startsWith("ms_")) return null;
+    const [payload, sig] = token.slice(3).split(".");
+    if (!payload || !sig) return null;
+    const want = hmac(payload);
+    if (want.length !== sig.length || !crypto.timingSafeEqual(Buffer.from(want), Buffer.from(sig))) return null;
+    let p;
+    try { p = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")); } catch { return null; }
+    if (!p || typeof p.exp !== "number" || p.exp * 1000 < Date.now()) return null;
+    const m = await store.get("merchants", p.m);
+    if (!m || m.payoutAddress !== p.a || (m.sessionVersion || 0) !== p.sv) return null;
+    return m;
+  }
+
+  /** Is this wallet a merchant? Public, used to pick sign-in vs sign-up. */
+  async function lookupWallet(address) {
+    const payout = parseAddress(address, "address");
+    const m = await store.findOne("merchants", { payoutAddress: payout });
+    return m ? { merchant: true, name: m.name, accent: m.profile?.accent || null } : { merchant: false };
+  }
+
+  /** Wallet sign-in: the payout wallet signs a fresh, timestamped message. */
+  async function login(body) {
+    const payout = parseAddress(body.address, "address");
+    const at = Date.parse(body.time);
+    if (!Number.isFinite(at) || Math.abs(Date.now() - at) > 10 * 60_000) throw new HttpError(400, "stale_signature", "Signature expired, sign again");
+    let signer;
+    try { signer = ethers.verifyMessage(loginMessage(payout, body.time), String(body.signature || "")); } catch { signer = null; }
+    if (!signer || signer !== payout) throw new HttpError(401, "invalid_signature", "The signature must come from this wallet");
+    const m = await store.findOne("merchants", { payoutAddress: payout });
+    if (!m) throw new HttpError(404, "not_a_merchant", "This wallet has no PayKit merchant account yet");
+    return { merchant: publicMerchant(m), session: issueSession(m) };
+  }
+
+  /** New API key; the old one stops working immediately. Session-only (see api.js). */
+  async function rotateApiKey(merchant) {
+    const apiKey = randomToken("pk_test");
+    await store.update("merchants", merchant.id, { apiKeyHash: sha256(apiKey) });
+    return { apiKey };
+  }
+
+  /** Ends every session of this merchant (all devices). */
+  async function signOutEverywhere(merchant) {
+    await store.update("merchants", merchant.id, { sessionVersion: (merchant.sessionVersion || 0) + 1 });
+    return { ok: true };
+  }
+
   async function create({ name, payoutAddress, webhookUrl, profile }) {
     if (!name || typeof name !== "string") throw new HttpError(400, "invalid_name", "name is required");
     profile = cleanProfile(profile);
@@ -101,7 +176,7 @@ function createMerchantService(store, relayer, webhooks) {
       registerTx: txUrl(reg.hash),
       setSignerTx: txUrl(ss.hash),
     });
-    return { merchant: publicMerchant(m), apiKey, webhookSecret };
+    return { merchant: publicMerchant(m), apiKey, webhookSecret, session: issueSession(m) };
   }
 
   async function byApiKey(apiKey) {
@@ -149,7 +224,10 @@ function createMerchantService(store, relayer, webhooks) {
     return create({ name, payoutAddress: payout, webhookUrl: body.webhookUrl, profile: body.profile });
   }
 
-  return { create, onboard, byApiKey, update, signerOf, publicMerchant, sendTestWebhook };
+  return {
+    create, onboard, byApiKey, update, signerOf, publicMerchant, sendTestWebhook,
+    login, lookupWallet, bySession, issueSession, rotateApiKey, signOutEverywhere,
+  };
 }
 
-module.exports = { onboardingMessage, createMerchantService };
+module.exports = { onboardingMessage, loginMessage, createMerchantService };

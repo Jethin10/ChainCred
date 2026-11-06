@@ -23,12 +23,23 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
     if (bearer(req) !== config.adminToken) return next(new HttpError(401, "unauthorized", "Admin token required"));
     next();
   };
+  // A merchant authenticates with an API key (servers) or a wallet sign-in session (the console).
   const requireMerchant = wrap(async (req, res, next) => {
-    const m = await merchants.byApiKey(bearer(req));
-    if (!m) throw new HttpError(401, "unauthorized", "Valid merchant API key required (Authorization: Bearer pk_test_...)");
+    const token = bearer(req);
+    const session = token.startsWith("ms_") ? await merchants.bySession(token) : null;
+    const m = session || (token.startsWith("ms_") ? null : await merchants.byApiKey(token));
+    if (!m) {
+      if (token.startsWith("ms_")) throw new HttpError(401, "session_expired", "Your sign-in expired, sign in with your wallet again");
+      throw new HttpError(401, "unauthorized", "Valid merchant API key required (Authorization: Bearer pk_test_...)");
+    }
     req.merchant = m;
+    req.viaSession = !!session;
     next();
   });
+  const requireSession = (req, res, next) => {
+    if (!req.viaSession) return next(new HttpError(403, "session_required", "Sign in with your wallet to do this"));
+    next();
+  };
 
   // ───────────── health ─────────────
   app.get(
@@ -73,6 +84,8 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
   // ───────────── merchant (API key) ─────────────
   app.get("/v1/merchants/me", requireMerchant, (req, res) => res.json(merchants.publicMerchant(req.merchant)));
   app.patch("/v1/merchants/me", requireMerchant, wrap(async (req, res) => res.json(await merchants.update(req.merchant, req.body || {}))));
+  app.post("/v1/merchants/me/api-key", requireMerchant, requireSession, wrap(async (req, res) => res.status(201).json(await merchants.rotateApiKey(req.merchant))));
+  app.post("/v1/merchants/me/sign-out-everywhere", requireMerchant, requireSession, wrap(async (req, res) => res.json(await merchants.signOutEverywhere(req.merchant))));
 
   app.post("/v1/invoices", requireMerchant, wrap(async (req, res) => res.status(201).json(await payments.createInvoice(req.merchant, req.body || {}))));
   app.get("/v1/invoices", requireMerchant, wrap(async (req, res) => res.json({ data: await payments.listInvoices(req.merchant) })));
@@ -182,6 +195,9 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
     }
     res.status(201).json({ ...created, ...extras });
   }));
+  // Wallet sign-in for the merchant console.
+  app.get("/v1/public/merchants/by-wallet/:address", wrap(async (req, res) => res.json(await merchants.lookupWallet(req.params.address))));
+  app.post("/v1/public/merchants/login", wrap(async (req, res) => res.json(await merchants.login(req.body || {}))));
   app.get("/v1/public/wallets/:address/activity", wrap(async (req, res) => res.json(await payments.walletActivity(req.params.address))));
   app.get("/v1/public/receipts/:paymentId", wrap(async (req, res) => res.json(await payments.getReceipt(req.params.paymentId))));
 

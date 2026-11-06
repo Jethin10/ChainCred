@@ -79,7 +79,11 @@ export type Subscription = { id: string; status: string; amount: string; charges
 
 // ── browser wallet (EIP-1193) ──
 
-type Eip1193 = { request(args: { method: string; params?: unknown[] }): Promise<unknown> }
+type Eip1193 = {
+  request(args: { method: string; params?: unknown[] }): Promise<unknown>
+  on?(event: string, fn: (...args: unknown[]) => void): void
+  removeListener?(event: string, fn: (...args: unknown[]) => void): void
+}
 type Announced = { info: { rdns?: string; name?: string }; provider: Eip1193 }
 
 // EIP-6963: wallets announce themselves, so we can pick MetaMask even when another extension
@@ -100,6 +104,15 @@ const provider = (): Eip1193 | null => {
 }
 
 export const hasWallet = () => provider() !== null
+
+/** Calls `fn` with the new account (or null) whenever the wallet switches or disconnects. Returns an unsubscribe. */
+export function onAccountsChanged(fn: (account: string | null) => void): () => void {
+  const eth = provider()
+  if (!eth?.on) return () => {}
+  const handler = (...args: unknown[]) => fn(((args[0] as string[] | undefined) ?? [])[0] ?? null)
+  eth.on('accountsChanged', handler)
+  return () => eth.removeListener?.('accountsChanged', handler)
+}
 export const isMobileWallet = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
@@ -282,10 +295,47 @@ export const COMPANIES = [
 
 // ── merchant onboarding + console ──
 export type Merchant = { id: string; name: string; payoutAddress: string; webhookUrl: string | null; profile: MerchantProfile | null; registerTx: string | null; createdAt: string }
-export type Onboarded = { merchant: Merchant; apiKey: string; webhookSecret: string; campaign: { id: string } | null; reward: { id: string } | null; warnings: string[] }
+export type Session = { token: string; expiresAt: string; address: string }
+export type Onboarded = { merchant: Merchant; apiKey: string; webhookSecret: string; session?: Session; campaign: { id: string } | null; reward: { id: string } | null; warnings: string[] }
+export type SignedIn = { merchant: Merchant; session: Session }
+export type WalletLookup = { merchant: boolean; name?: string; accent?: string | null }
 export type MerchantInvoice = Invoice & { payUrl: string; createdAt: string; amountDue: string }
-export type Campaign = { id: string; name: string; pointsPerUsdt: number; issued: number; status?: string }
-export type Reward = { id: string; name: string; label: string; pointsCost: number; redeemed: number; status?: string }
+export type ItemStatus = 'active' | 'paused' | 'archived'
+export type AppliesTo = 'all' | 'payments' | 'subscriptions'
+/** Earn side: customers get points when they pay. */
+export type Campaign = {
+  id: string; name: string; description: string | null
+  pointsPerUsdt: number; minSpend: string | null; maxPointsPerOrder: number | null
+  budget: number | null; issued: number; remainingBudget: number | null; wallets: number
+  firstPurchaseOnly: boolean; appliesTo: AppliesTo
+  startsAt: string | null; endsAt: string | null; status: ItemStatus; live: boolean; createdAt: string
+}
+/** Spend side: customers spend points for a discount. */
+export type Reward = {
+  id: string; name: string; description: string | null; label: string
+  pointsCost: number; type: 'fixed_off' | 'percent_off'; value: string | number
+  maxDiscount: string | null; minSpend: string | null
+  perWalletLimit: number | null; totalLimit: number | null; remaining: number | null
+  redeemed: number; pointsRedeemed: number; discountGiven: string
+  startsAt: string | null; endsAt: string | null; status: ItemStatus; createdAt: string
+}
+export type PointsSummary = {
+  issued: { points: number; customers: number }
+  reversedByRefunds: number
+  redeemedAtYou: { points: number; redemptions: number; customers: number; discountGiven: string; newCustomersViaPoints: number }
+  yourCustomersSpentElsewhere: Array<{ shop: string; points: number }>
+  activeCampaigns: number
+  activeRewards: number
+}
+
+/** The exact text the payout wallet signs to open the console (must match paykit-server's loginMessage). */
+export const loginMessage = (payout: string, time: string) =>
+  `PayKit merchant sign-in
+
+Wallet: ${payout}
+Time: ${time}
+
+Sign in to my PayKit merchant console. This is free and moves no money.`
 
 /** The exact text the payout wallet signs (must match paykit-server's onboardingMessage). */
 export const onboardingMessage = (name: string, payout: string, time: string) =>
