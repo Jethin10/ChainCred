@@ -78,17 +78,49 @@ export type Subscription = { id: string; status: string; amount: string; charges
 // ── browser wallet (EIP-1193) ──
 
 type Eip1193 = { request(args: { method: string; params?: unknown[] }): Promise<unknown> }
-const provider = (): Eip1193 | null => (window as { ethereum?: Eip1193 }).ethereum ?? null
+type Announced = { info: { rdns?: string; name?: string }; provider: Eip1193 }
+
+// EIP-6963: wallets announce themselves, so we can pick MetaMask even when another extension
+// (or a browser's built-in wallet) has taken window.ethereum.
+const announced: Announced[] = []
+if (typeof window !== 'undefined') {
+  window.addEventListener('eip6963:announceProvider', (e) => {
+    const d = (e as CustomEvent<Announced>).detail
+    if (d?.provider && !announced.some((a) => a.provider === d.provider)) announced.push(d)
+  })
+  window.dispatchEvent(new Event('eip6963:requestProvider'))
+}
+let chosen: Eip1193 | null = null
+const provider = (): Eip1193 | null => {
+  if (chosen) return chosen
+  const mm = announced.find((a) => a.info.rdns === 'io.metamask') ?? announced[0]
+  return mm?.provider ?? (window as { ethereum?: Eip1193 }).ethereum ?? null
+}
 
 export const hasWallet = () => provider() !== null
 
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
+
 export async function connectWallet(): Promise<string> {
+  window.dispatchEvent(new Event('eip6963:requestProvider'))
   const eth = provider()
   if (!eth) throw new ServerError('No browser wallet found. Install MetaMask (or another wallet) to pay with USDT on Whitechain.')
+  chosen = eth
   const [account] = (await eth.request({ method: 'eth_requestAccounts' })) as string[]
   if (!account) throw new ServerError('The wallet did not share an account.')
   await switchToWhitechain(eth)
   return account
+}
+
+/** Makes sure this site may use `account` right now (MetaMask answers 4100 otherwise). */
+async function authorize(eth: Eip1193, account: string, force = false) {
+  const allowed = force ? [] : ((await eth.request({ method: 'eth_accounts' })) as string[])
+  if (allowed.some((a) => same(a, account))) return
+  if (force) await eth.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] })
+  const granted = (await eth.request({ method: 'eth_requestAccounts' })) as string[]
+  if (!granted.some((a) => same(a, account))) {
+    throw new ServerError(`Your wallet is now on ${granted[0] ?? 'another account'}. Reload the page and connect the account you want to pay from.`)
+  }
 }
 
 async function switchToWhitechain(eth: Eip1193) {
@@ -108,10 +140,17 @@ const DOMAIN_FIELDS: Array<[string, string]> = [['name', 'string'], ['version', 
 export async function signTypedData(account: string, data: TypedData): Promise<string> {
   const eth = provider()
   if (!eth) throw new ServerError('No browser wallet found.')
+  await authorize(eth, account)
   await switchToWhitechain(eth)
   const EIP712Domain = DOMAIN_FIELDS.filter(([name]) => data.domain[name] !== undefined).map(([name, type]) => ({ name, type }))
-  const payload = { ...data, types: { EIP712Domain, ...data.types } }
-  return (await eth.request({ method: 'eth_signTypedData_v4', params: [account, JSON.stringify(payload)] })) as string
+  const params = [account.toLowerCase(), JSON.stringify({ ...data, types: { EIP712Domain, ...data.types } })]
+  try {
+    return (await eth.request({ method: 'eth_signTypedData_v4', params })) as string
+  } catch (e) {
+    if ((e as { code?: number }).code !== 4100) throw e
+    await authorize(eth, account, true) // permission was lost: ask again, then retry once
+    return (await eth.request({ method: 'eth_signTypedData_v4', params })) as string
+  }
 }
 
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
@@ -121,5 +160,11 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 export function errorText(e: unknown): string {
   const code = (e as { code?: number }).code
   if (code === 4001) return 'You declined the request in your wallet. Nothing was signed.'
-  return e instanceof Error ? e.message : String(e)
+  console.error('[paykit] payment error', e)
+  if (e instanceof Error) return e.message
+  // Wallets reject with plain objects: { code, message, data }.
+  const o = e as { message?: unknown; data?: { message?: unknown }; error?: { message?: unknown } } | null
+  const msg = o?.message ?? o?.data?.message ?? o?.error?.message
+  if (typeof msg === 'string' && msg) return code !== undefined ? `${msg} (wallet error ${code})` : msg
+  try { return JSON.stringify(e) } catch { return String(e) }
 }
