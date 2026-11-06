@@ -1,0 +1,8 @@
+node_modules
+.env
+.env.*
+.demo.json
+.demo-points.json
+exports
+scripts/demo*.js
+scripts/webhook-receiver.js

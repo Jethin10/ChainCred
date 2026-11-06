@@ -144,7 +144,37 @@ function createObserver(store, payments, subscriptions, pointsService) {
     }
   }
 
+  // Serverless (Vercel): no long-running loop, so each invocation catches up for a bounded time.
+  let rewound = false;
+  async function catchUp(budgetMs = 8000) {
+    if (!rewound) {
+      rewound = true;
+      try {
+        await rewindForV2();
+      } catch (e) {
+        console.error("[observer] rewind:", e.message);
+      }
+    }
+    const until = Date.now() + budgetMs;
+    let total = 0;
+    while (Date.now() < until) {
+      let scanned = 0;
+      try {
+        scanned = await step();
+        lastError = null;
+      } catch (e) {
+        lastError = e.shortMessage || e.message;
+        console.error("[observer]", lastError);
+        break;
+      }
+      total += scanned;
+      if (scanned < config.observerChunk) break;
+    }
+    return total;
+  }
+
   return {
+    catchUp,
     start() {
       loop();
     },

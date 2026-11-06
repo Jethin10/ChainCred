@@ -3,3 +3,6 @@ node_modules
 .demo.json
 .demo-points.json
 exports
+
+.vercel
+.env*
