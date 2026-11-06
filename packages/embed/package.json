@@ -1,0 +1,20 @@
+{
+  "name": "@paykit/embed",
+  "version": "0.1.0",
+  "description": "PayKit checkout inside any website: connect MetaMask, spend points, pay an invoice in USDT on Whitechain with one gasless signature. No redirect, no framework.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.6"
+  },
+  "license": "MIT"
+}

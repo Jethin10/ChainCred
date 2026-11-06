@@ -1,7 +1,7 @@
 // POST /api/checkout — the store's own backend (a Vercel function).
 // Prices the cart from the catalog, then creates a PayKit invoice with this store's merchant key
-// (STORE_API_KEY, set in the Vercel project, never sent to the browser). The shopper is sent to the
-// invoice on the PayKit site to pay, and comes back to this store's order page.
+// (STORE_API_KEY, set in the Vercel project, never sent to the browser). The browser pays the
+// returned invoice through @paykit/embed without leaving the store's order page.
 import { STORES, priceCart } from "./catalog.mjs";
 
 const PAYKIT = (process.env.PAYKIT_SERVER_URL || "https://paykit-server.vercel.app").replace(/\/$/, "");
