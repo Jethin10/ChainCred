@@ -42,7 +42,7 @@ type Page = 'components' | 'shops' | 'wallet' | 'merchant' | 'pay'
 
 const PAGES: Array<{ key: Page; label: string; eyebrow: string; title: string; lead: string }> = [
   { key: 'components', label: 'SDK', eyebrow: '@paykit/react', title: 'Components you own', lead: 'Copy the view, keep the payment logic in the SDK. Every preview runs a real checkout flow on simulated funds.' },
-  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Open a shop, build a cart and pay with one signature. No gas, and points you can spend at every shop.' },
+  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Every shop that takes PayKit. Pay on their sites with one signature, and your invoices and points show up here.' },
   { key: 'wallet', label: 'Wallet', eyebrow: 'Your wallet', title: 'One wallet, every shop', lead: 'Invoices, receipts and points in one place. Real test USDT on Whitechain.' },
   { key: 'merchant', label: 'Merchant', eyebrow: 'For businesses', title: 'Get paid in USDT, your way', lead: 'Sign up in two minutes, brand your checkout, join the points network, and start sending invoices.' },
 ]

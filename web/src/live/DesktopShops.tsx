@@ -10,7 +10,7 @@ type Tab = 'overview' | 'invoices' | 'details'
 const TABS: Array<[Tab, string]> = [['overview', 'Overview'], ['invoices', 'Your invoices'], ['details', 'Details']]
 
 const shopId = (s: Shop) => s.name.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-')
-// Screenshots of each shop's real, deployed website (public/shops/<id>.jpg).
+// Photos of each shop (public/shops/<id>.jpg): public-domain stock, no watermarks.
 const shotOf = (s: Shop) => `/shops/${shopId(s)}.jpg`
 const hashPart = (i: number) => decodeURIComponent(location.hash.split('/')[i] ?? '')
 const tabFromHash = (): Tab => TABS.find(([t]) => t === hashPart(2))?.[0] ?? 'overview'
@@ -79,7 +79,7 @@ function AllShops({ shops, rewardOf, invoicesOf }: { shops: Shop[]; rewardOf: (s
       {shops.map((s) => {
         const count = invoicesOf(s).length
         return <a key={s.name} className="shop-card" href={`#shops/${shopId(s)}`}>
-          <span className="shop-card__shot"><img src={shotOf(s)} alt={`${s.name} website`} loading="lazy" /><span className="shop-card__kind">{s.kind}</span></span>
+          <span className="shop-card__shot"><img src={shotOf(s)} alt={`Inside ${s.name}`} loading="lazy" /><span className="shop-card__kind">{s.kind}</span></span>
           <span className="shop-card__body">
             <span className="shop-card__title"><ShopEmblem name={s.name} /><b>{s.name}</b></span>
             <span className="shop-card__blurb">{s.blurb}</span>
@@ -111,8 +111,7 @@ function ShopDetail({ shop, tab, reward, invoices, address, loaded }: { shop: Sh
       <div className="docs-demo-bar"><span><i /> Live store · real test USDT</span><span>{host}</span></div>
       <div className="docs-stage shop-shot-stage">
         <a className="partner-window" href={shop.url} target="_blank" rel="noreferrer" aria-label={`Open ${shop.name}`}>
-          <span className="partner-window__bar"><i /><i /><i /><span>{host}</span></span>
-          <img src={shotOf(shop)} alt={`${shop.name} storefront`} />
+          <img src={shotOf(shop)} alt={`Inside ${shop.name}`} />
         </a>
       </div>
       <ol className="partner-steps">
