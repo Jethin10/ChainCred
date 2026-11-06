@@ -6,11 +6,16 @@ USDT commerce SDK for Whitechain. Merchants keep their existing website and orde
 
 ### Mobile PWA
 
+**Android installer:** download **PayKit-Android.apk** from
+[GitHub Releases](https://github.com/Jethin10/PayKit/releases/latest), open it
+on your phone, allow installation from that download source when Android asks,
+then tap **Install**. It adds PayKit to your home screen and runs the live PWA.
+
 The PayKit mobile app is in [`web/`](web/), with a home-screen app manifest,
 offline app shell, fingerprint/face/device-PIN unlock, and a QR scanner.
 It shares the website's pixel artwork and typography.
 
-After publishing this build to the [PayKit app](https://paykit-app.vercel.app/#wallet):
+You can also install directly from the [PayKit app](https://paykit-app.vercel.app/#settings):
 
 | Device | Install PayKit |
 |---|---|
@@ -22,9 +27,9 @@ In the installed app, use **Settings → Enable device unlock** for fingerprint,
 face, or device-PIN unlock. Tap **Scan** to scan a payment QR, upload a QR image,
 or paste an invoice link. You review the invoice before approving payment.
 
-This repository contains the PWA source; it is installed from its HTTPS website,
-rather than as an APK. Camera access and device unlock need a supported device
-and a secure origin. [Mobile setup and implementation details](web/MOBILE.md).
+The Android APK is a launcher for the hosted PWA, using Android's browser engine.
+Camera access and device unlock need a supported device and a secure origin.
+[Mobile setup](web/MOBILE.md) · [Android installer source and build](android/README.md).
 
 ### Run the PWA locally
 

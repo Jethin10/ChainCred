@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.paykit.mobile",
+      "sha256_cert_fingerprints": ["3B:44:7E:C1:B1:BD:D2:4C:30:4D:10:7B:25:C0:C3:6E:62:6F:BD:09:72:3C:25:7B:10:F7:E9:D1:69:06:8D:B8"]
+    }
+  }
+]

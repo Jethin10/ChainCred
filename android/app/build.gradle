@@ -1,0 +1,29 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.paykit.mobile'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'app.paykit.mobile'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '0.2.0'
+    }
+    buildTypes {
+        // Sideloadable demo distribution. Uses the local Android development signing identity.
+        // Keep the same keystore for future updates; never commit the private keystore.
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
+}

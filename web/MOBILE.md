@@ -6,6 +6,10 @@ QR scanning, installation controls, and a device privacy lock under Settings.
 
 ## Install and run
 
+For Android, a downloadable APK wrapping this PWA is published in
+[GitHub Releases](https://github.com/Jethin10/PayKit/releases/latest).
+The Android project and rebuild steps are in [`android/`](../android/README.md).
+
 Build with `npm run build -w web`. Serve `web/dist` over HTTPS with the app at
 the origin root. The existing app deployment can serve these files; there is
 no separate mobile backend. For local testing, use
