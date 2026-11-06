@@ -1,4 +1,4 @@
-// `npx paykit init`: one command that sets a project up for PayKit and for whichever coding agents
+// `npx usepaykit init`: one command that sets a project up for PayKit and for whichever coding agents
 // it uses. It installs the package, adds the guide (PAYKIT.md + AGENTS.md pointer), installs a
 // PayKit skill/rule per agent, registers the PayKit MCP server, and adds env placeholders.
 // Never writes secrets: the MCP server reads PAYKIT_API_KEY from the project's .env at runtime.
@@ -11,11 +11,11 @@ import { ONBOARDING_URL, DEFAULT_SERVER_URL } from "./index.js";
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const guide = () => fs.readFileSync(path.join(here, "..", "AGENTS.md"), "utf8");
 
-export const MCP_COMMAND = { command: "npx", args: ["-y", "paykit@latest", "mcp"] };
+export const MCP_COMMAND = { command: "npx", args: ["-y", "usepaykit@latest", "mcp"] };
 const SKILL_DESCRIPTION =
   "Add PayKit payments (USDT on Whitechain, paid in MetaMask) to this app: server-created invoices, in-page checkout, signed webhooks, loyalty points, subscriptions and refunds. Use when building or changing checkout, payments, invoices or PayKit webhooks.";
 const POINTER =
-  "## Payments (PayKit)\n\nThis project takes payments with PayKit (`paykit` on npm). Before touching checkout, payments or webhooks, read `PAYKIT.md` and follow it. The `paykit` MCP server (if available) can create test invoices and check payments.\n";
+  "## Payments (PayKit)\n\nThis project takes payments with PayKit (`usepaykit` on npm). Before touching checkout, payments or webhooks, read `PAYKIT.md` and follow it. The `paykit` MCP server (if available) can create test invoices and check payments.\n";
 
 export const AGENTS = {
   claude: { label: "Claude Code", detect: [".claude", "CLAUDE.md", ".mcp.json"] },
@@ -67,10 +67,10 @@ function mergeJson(dir, rel, key, server, log) {
 const skill = () => `---\nname: paykit\ndescription: ${SKILL_DESCRIPTION}\n---\n\n${guide()}`;
 
 function packageManager(dir) {
-  if (fs.existsSync(path.join(dir, "pnpm-lock.yaml"))) return ["pnpm", ["add", "paykit"]];
-  if (fs.existsSync(path.join(dir, "yarn.lock"))) return ["yarn", ["add", "paykit"]];
-  if (fs.existsSync(path.join(dir, "bun.lockb")) || fs.existsSync(path.join(dir, "bun.lock"))) return ["bun", ["add", "paykit"]];
-  return ["npm", ["install", "paykit"]];
+  if (fs.existsSync(path.join(dir, "pnpm-lock.yaml"))) return ["pnpm", ["add", "usepaykit"]];
+  if (fs.existsSync(path.join(dir, "yarn.lock"))) return ["yarn", ["add", "usepaykit"]];
+  if (fs.existsSync(path.join(dir, "bun.lockb")) || fs.existsSync(path.join(dir, "bun.lock"))) return ["bun", ["add", "usepaykit"]];
+  return ["npm", ["install", "usepaykit"]];
 }
 
 /**
@@ -91,12 +91,16 @@ export function setup(opts = {}) {
   let installed = "no package.json";
   if (fs.existsSync(pkgFile)) {
     const pkg = JSON.parse(fs.readFileSync(pkgFile, "utf8"));
-    if (pkg.dependencies?.paykit || pkg.devDependencies?.paykit || pkg.name === "paykit") installed = "already a dependency";
+    if (pkg.dependencies?.usepaykit || pkg.devDependencies?.usepaykit || pkg.name === "usepaykit") installed = "already a dependency";
     else if (opts.install === false) installed = "skipped (--no-install)";
     else {
       const [cmd, args] = packageManager(dir);
-      if (!opts.quiet) console.log(`Installing paykit with ${cmd}…`);
-      const r = spawnSync(cmd, args, { cwd: dir, stdio: opts.quiet ? "ignore" : "inherit", shell: process.platform === "win32" });
+      if (!opts.quiet) console.log(`Installing usepaykit with ${cmd}…`);
+      // Windows needs a shell to run npm.cmd; the command is a fixed string, so pass it whole.
+      const win = process.platform === "win32";
+      const r = win
+        ? spawnSync(`${cmd} ${args.join(" ")}`, { cwd: dir, stdio: opts.quiet ? "ignore" : "inherit", shell: true })
+        : spawnSync(cmd, args, { cwd: dir, stdio: opts.quiet ? "ignore" : "inherit" });
       installed = r.status === 0 ? `installed with ${cmd}` : `failed, run: ${cmd} ${args.join(" ")}`;
     }
   }
@@ -157,7 +161,7 @@ export function printSetup(r) {
     "Next:",
     r.hasKey ? "  1. Keys found." : `  1. Get your keys (2 min, one MetaMask signature): ${ONBOARDING_URL}\n     Put PAYKIT_API_KEY and PAYKIT_WEBHOOK_SECRET in .env`,
     '  2. Restart your agent, then ask it: "Add PayKit checkout to this app."',
-    "  3. Check anytime: npx paykit doctor\n"
+    "  3. Check anytime: npx usepaykit doctor\n"
   );
   console.log(lines.join("\n"));
 }

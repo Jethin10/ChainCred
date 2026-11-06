@@ -1,4 +1,4 @@
-// `npx paykit mcp`: a Model Context Protocol server (stdio, no dependencies) so coding agents can
+// `npx usepaykit mcp`: a Model Context Protocol server (stdio, no dependencies) so coding agents can
 // read the PayKit guide and use your merchant account: create test invoices, check payments,
 // set the webhook. Reads PAYKIT_API_KEY from the environment or the project's .env / .env.local.
 import fs from "node:fs";

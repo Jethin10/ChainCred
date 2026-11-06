@@ -7,18 +7,18 @@ USDT commerce SDK for Whitechain. Merchants keep their existing website and orde
 ### Add PayKit to your app (one command)
 
 ```sh
-npx paykit@latest init
+npx usepaykit@latest init
 ```
 
 This command:
 
-- Installs the [`paykit`](packages/paykit/README.md) npm package.
+- Installs the [`usepaykit`](packages/paykit/README.md) npm package.
 - Finds your coding agents: Claude Code, Cursor, VS Code/Copilot, Codex, Windsurf, Gemini CLI.
 - Installs a PayKit skill or rule for each agent.
 - Registers the PayKit MCP server.
 - Adds `PAYKIT_*` placeholders to `.env.example`.
 
-Then ask your agent: *"Add PayKit checkout to this app."* The agent guide is [`packages/paykit/AGENTS.md`](packages/paykit/AGENTS.md): drag it into any chat, or run `npx paykit agents`.
+Then ask your agent: *"Add PayKit checkout to this app."* The agent guide is [`packages/paykit/AGENTS.md`](packages/paykit/AGENTS.md): drag it into any chat, or run `npx usepaykit agents`.
 
 ### Mobile PWA
 

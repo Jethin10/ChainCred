@@ -84,7 +84,7 @@ test("setup installs guide, skills, rules and MCP config for detected agents, id
   assert.ok(claude.startsWith("# Mine\n\nKeep this.") && claude.includes("PAYKIT.md"));
   const mcp = JSON.parse(fs.readFileSync(path.join(dir, ".mcp.json"), "utf8"));
   assert.equal(mcp.mcpServers.other.command, "x");
-  assert.deepEqual(mcp.mcpServers.paykit.args, ["-y", "paykit@latest", "mcp"]);
+  assert.deepEqual(mcp.mcpServers.paykit.args, ["-y", "usepaykit@latest", "mcp"]);
   assert.match(fs.readFileSync(path.join(dir, ".claude/skills/paykit/SKILL.md"), "utf8"), /^---\nname: paykit\ndescription: .+\n---\n/);
   const env = fs.readFileSync(path.join(dir, ".env.example"), "utf8");
   assert.match(env, /^PAYKIT_API_KEY=$/m);

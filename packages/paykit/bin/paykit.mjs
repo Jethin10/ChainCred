@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// npx paykit <command>: set up PayKit in a project and talk to your merchant account.
+// npx usepaykit <command>: set up PayKit in a project and talk to your merchant account.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,12 +10,12 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const GUIDE = path.join(here, "..", "AGENTS.md");
 const VERSION = JSON.parse(fs.readFileSync(path.join(here, "..", "package.json"), "utf8")).version;
 
-const HELP = `paykit ${VERSION}: USDT checkout on Whitechain
+const HELP = `usepaykit ${VERSION}: USDT checkout on Whitechain
 
-Usage: npx paykit <command>
+Usage: npx usepaykit <command>
 
 Setup (one command does everything)
-  init                         Install paykit, add the agent guide, install the PayKit skill/rules
+  init                         Install usepaykit, add the agent guide, install the PayKit skill/rules
                                for every coding agent it finds, register the PayKit MCP server,
                                and add PAYKIT_* placeholders to .env.example
        --agents <list|all>     ${Object.keys(AGENTS).join(",")} (default: detected)
@@ -109,7 +109,7 @@ async function main() {
         try {
           const m = await pk.merchant.get();
           checks.push([true, `API key works: ${m.name} (payout ${m.payoutAddress})`]);
-          checks.push([m.webhookUrl ? true : null, m.webhookUrl ? `Webhook: ${m.webhookUrl}` : "No webhook URL set (npx paykit webhook set <url>)"]);
+          checks.push([m.webhookUrl ? true : null, m.webhookUrl ? `Webhook: ${m.webhookUrl}` : "No webhook URL set (npx usepaykit webhook set <url>)"]);
         } catch (e) {
           checks.push([false, `API key: ${e.message}`]);
         }
@@ -162,7 +162,7 @@ async function main() {
       throw new PayKitError("Usage: paykit webhook <set|test>");
     }
     default:
-      throw new PayKitError(`Unknown command "${cmd}". Run: npx paykit help`);
+      throw new PayKitError(`Unknown command "${cmd}". Run: npx usepaykit help`);
   }
 }
 

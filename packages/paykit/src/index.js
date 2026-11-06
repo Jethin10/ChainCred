@@ -1,7 +1,7 @@
 // paykit: accept USDT on Whitechain from your server. No dependencies; runs on Node 18+, Bun, Deno,
-// Vercel/Cloudflare edge. The browser half is `paykit/checkout`.
+// Vercel/Cloudflare edge. The browser half is `usepaykit/checkout`.
 //
-//   import { PayKit } from "paykit";
+//   import { PayKit } from "usepaykit";
 //   const paykit = new PayKit({ apiKey: process.env.PAYKIT_API_KEY });
 //   const invoice = await paykit.invoices.create({ amount: "12.50", reference: order.id });
 //   // send invoice.id to the browser, then openCheckout({ invoiceId }) there

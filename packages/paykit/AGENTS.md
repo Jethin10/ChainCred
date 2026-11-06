@@ -2,7 +2,7 @@
 
 Use this file to add PayKit payments to an existing app: USDT on Whitechain, paid in MetaMask with one gasless signature, with PayKit loyalty points. Follow these steps in order. Do not invent other endpoints, packages or options.
 
-Package: `paykit` on npm. It has no dependencies, needs Node 18+, and also runs on edge runtimes.
+Package: `usepaykit` on npm. It has no dependencies, needs Node 18+, and also runs on edge runtimes.
 Server: `https://paykit-server.vercel.app`. This is a testnet: Whitechain Testnet, chain 1874, test USDT.
 
 ## 0. What the human must provide
@@ -15,11 +15,11 @@ Server: `https://paykit-server.vercel.app`. This is a testnet: Whitechain Testne
 ## 1. Install
 
 ```sh
-npx paykit@latest init   # installs paykit, adds this guide, skills/rules and the PayKit MCP server
-npx paykit doctor        # checks the server and, if PAYKIT_API_KEY is set, the key
+npx usepaykit@latest init   # installs paykit, adds this guide, skills/rules and the PayKit MCP server
+npx usepaykit doctor        # checks the server and, if PAYKIT_API_KEY is set, the key
 ```
 
-(`npm install paykit` on its own also works.)
+(`npm install usepaykit` on its own also works.)
 
 If the `paykit` MCP server is connected, you can test with its tools: `paykit_doctor`, `paykit_create_invoice`, `paykit_get_invoice` and `paykit_set_webhook`. Use them for testing only. App code uses the package.
 
@@ -28,7 +28,7 @@ If the `paykit` MCP server is connected, you can test with its tools: `paykit_do
 The price must come from your server's own order data, never from the browser.
 
 ```js
-import { PayKit } from "paykit";
+import { PayKit } from "usepaykit";
 const paykit = new PayKit(); // reads PAYKIT_API_KEY (and optional PAYKIT_SERVER_URL)
 
 // inside your existing authenticated "place order" handler:
@@ -45,7 +45,7 @@ const invoice = await paykit.invoices.create({
 Next.js route handler example (`app/api/checkout/route.ts`):
 
 ```ts
-import { PayKit } from "paykit";
+import { PayKit } from "usepaykit";
 const paykit = new PayKit();
 export async function POST(req: Request) {
   const order = await createOrderFromCart(await req.json()); // your code: prices from your DB
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 ## 3. Browser: pay on your own page (no redirect)
 
 ```js
-import { openCheckout } from "paykit/checkout";
+import { openCheckout } from "usepaykit/checkout";
 
 const { invoiceId } = await (await fetch("/api/checkout", { method: "POST", body: JSON.stringify(cart) })).json();
 const result = await openCheckout({ invoiceId });   // modal: MetaMask → Whitechain → sign → settled
@@ -69,7 +69,7 @@ if (result.status === "paid") showThankYou(result.paymentId, result.txUrl);
 - The dialog connects MetaMask, switches it to Whitechain and offers points discounts. It asks for one `eth_signTypedData_v4` signature, then waits until the payment settles onchain. PayKit pays the gas.
 - Options: `accent` (hex colour), `server`, `walletUrl`, `onPaid(result)`.
 - Browser only. In React or Next, call it from an event handler (it touches `window`). Never at module top level during SSR.
-- Plain HTML, no bundler: `<script type="module">import { openCheckout } from "https://esm.sh/paykit/checkout";</script>`
+- Plain HTML, no bundler: `<script type="module">import { openCheckout } from "https://esm.sh/usepaykit/checkout";</script>`
 - No-code alternative: redirect the customer to `invoice.payUrl` (PayKit's hosted page).
 
 The browser result is for UI only. **Fulfil orders from the webhook (step 4) or a server-side check, never from the browser callback.**
@@ -79,7 +79,7 @@ The browser result is for UI only. **Fulfil orders from the webhook (step 4) or 
 Set your endpoint once:
 
 ```sh
-npx paykit webhook set https://yourshop.com/api/paykit/webhook
+npx usepaykit webhook set https://yourshop.com/api/paykit/webhook
 ```
 
 or `await paykit.merchant.update({ webhookUrl })`.
@@ -87,7 +87,7 @@ or `await paykit.merchant.update({ webhookUrl })`.
 Every delivery is a `POST` with the header `PayKit-Signature: t=<unix>,v1=<hex hmac-sha256>`. Verify it against the **raw** body:
 
 ```ts
-import { verifyWebhook } from "paykit";
+import { verifyWebhook } from "usepaykit";
 
 export async function POST(req: Request) {             // Next.js app router
   const raw = await req.text();                        // raw body, before JSON.parse
@@ -112,7 +112,7 @@ Event types:
 - `refund.settled`.
 - `subscription.activated`, `subscription.charged`, `subscription.charge_failed`, `subscription.past_due`, `subscription.cancelled`, `subscription.completed`.
 
-Test the endpoint with `npx paykit webhook test`.
+Test the endpoint with `npx usepaykit webhook test`.
 
 No webhook endpoint? Poll on the server instead: `await paykit.invoices.waitForPaid(invoiceId)`, or `paykit.invoices.get(id)` and check `status === "paid"`.
 
@@ -136,10 +136,10 @@ Show `message` to developers, not customers.
 
 ## 7. Checklist before you finish
 
-- [ ] `paykit` is in dependencies. `PAYKIT_API_KEY` and `PAYKIT_WEBHOOK_SECRET` are in `.env.example` (empty) and in the real environment.
+- [ ] `usepaykit` is in dependencies. `PAYKIT_API_KEY` and `PAYKIT_WEBHOOK_SECRET` are in `.env.example` (empty) and in the real environment.
 - [ ] Invoices are created on the server, priced from server data. The API key never reaches the browser bundle.
 - [ ] Checkout calls `openCheckout({ invoiceId })` from a click handler.
 - [ ] The webhook verifies the signature on the raw body, dedupes `event.id`, and fulfils on `invoice.paid`.
-- [ ] `npx paykit doctor` passes.
+- [ ] `npx usepaykit doctor` passes.
 
-CLI reference: `npx paykit help`.
+CLI reference: `npx usepaykit help`.

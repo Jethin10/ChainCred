@@ -1,6 +1,6 @@
 {
-  "name": "paykit",
-  "version": "0.1.0",
+  "name": "usepaykit",
+  "version": "0.1.1",
   "description": "Accept USDT on Whitechain: server SDK, in-page MetaMask checkout, webhooks, loyalty points, and an agent guide (AGENTS.md). No dependencies.",
   "type": "module",
   "sideEffects": false,
@@ -19,6 +19,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
+    "usepaykit": "./bin/paykit.mjs",
     "paykit": "./bin/paykit.mjs"
   },
   "files": [
