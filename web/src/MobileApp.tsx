@@ -18,26 +18,24 @@ import {
   WebhookSettings,
   type WalletSigner,
 } from '@paykit/react'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ComponentsPage from './docs/Components'
 import { InstallCta } from './docs/InstallCta'
 import { privateKeyToAccount } from 'viem/accounts'
-import { Mark, PixelSky, PixelWipe } from './theme/pixels'
+import { Mark, PixelSky } from './theme/pixels'
 import { useBackend } from './theme/backend'
 import { PayPage, SubscribePage } from './live/PayPage'
-import { WalletPage } from './live/WalletPage'
-import { ShopsPage } from './live/ShopsPage'
-import { useMobile } from './mobile/context'
+import { Home } from './mobile/Home'
+import { Shops } from './mobile/Shops'
 import { Icon } from './mobile/icons'
 import './live/customer.css'
+import './mobile/app.css'
 import { MerchantLive } from './live/Onboarding'
 import { MobileChrome } from './mobile/Mobile'
 
 // Public test keys. Never fund them. The merchant key owns the demo shop on the mock and on `npm run server:demo`.
 const MERCHANT_KEY = '0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba'
 const CUSTOMER_KEY = '0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e'
-const SITE_URL = (import.meta.env.VITE_PAYKIT_SITE_URL as string | undefined) ?? 'http://127.0.0.1:5176'
-const REPO_URL = 'https://github.com/Jethin10/PayKit'
 
 type Page = 'components' | 'shops' | 'wallet' | 'merchant' | 'pay'
 
@@ -70,15 +68,18 @@ export default function MobileApp() {
   const [hash, setHash] = useState(window.location.hash)
   useEffect(() => { const follow = () => { setPage(pageFromHash()); setHash(window.location.hash) }; window.addEventListener('hashchange', follow); return () => window.removeEventListener('hashchange', follow) }, [])
   useEffect(() => { window.scrollTo({ top: 0 }) }, [page])
+  // Pixel theme for everything the phone app shows, including sheets rendered outside this tree.
+  useEffect(() => { document.body.classList.add('m-app'); return () => document.body.classList.remove('m-app') }, [])
   const wallet = useMemo<WalletSigner>(() => fromLocalAccount(privateKeyToAccount(hash.startsWith('#merchant/demo') ? MERCHANT_KEY : CUSTOMER_KEY), 1874), [hash])
   const meta = page === 'pay' ? PAY_META : PAGES.find((p) => p.key === page)!
   const target = page === 'pay' ? payTarget() : null
 
+  const title = page === 'wallet' ? 'Home' : page === 'merchant' ? 'Business' : page === 'pay' ? (target?.kind === 'plan' ? 'Subscribe' : 'Pay') : meta.label
+
   return (
     <PayKitProvider client={backend.client} wallet={wallet} theme="light">
-      {page === 'components' && <PixelWipe trigger={page} />}
-      <div className={`app app--${page}`}>
-        <TopBar page={page} />
+      <div className={`app app--${page} m-app`}>
+        <AppBar title={title} back={page === 'pay' || page === 'components'} />
         {backend.testMode && page === 'components' && <TestModeNotice />}
         {page === 'components' && <header className="hero hero--short">
           <PixelSky seed={0} />
@@ -89,50 +90,29 @@ export default function MobileApp() {
             <InstallCta />
           </div>
         </header>}
-        <main className="app__main" key={`${page}:${target?.id ?? ''}`}>
+        <main className="m-main" key={`${page}:${target?.id ?? ''}`}>
           {page === 'components' && <ComponentsPage liveClient={backend.source === 'live' ? backend.client : null} />}
-          {page === 'shops' && <ShopsPage />}
-          {page === 'wallet' && <WalletPage />}
+          {page === 'shops' && <Shops />}
+          {page === 'wallet' && <Home />}
           {page === 'merchant' && <MerchantPage />}
-          {target?.kind === 'invoice' && <><div className="checkout-heading"><a href="#wallet">Your wallet</a><Icon name="chevron" size={12} /><span>Invoice checkout</span></div><PayPage invoiceId={target.id} /></>}
+          {target?.kind === 'invoice' && <PayPage invoiceId={target.id} />}
           {target?.kind === 'plan' && <SubscribePage planId={target.id} />}
         </main>
-        <Footer />
         <MobileChrome page={page} />
       </div>
     </PayKitProvider>
   )
 }
 
-function TopBar({ page }: { page: Page }) {
-  const nav = useRef<HTMLElement>(null)
-  const [pill, setPill] = useState<{ left: number; width: number } | null>(null)
-  useLayoutEffect(() => {
-    const place = () => {
-      const on = nav.current?.querySelector<HTMLElement>('[aria-current="page"]')
-      if (on) setPill({ left: on.offsetLeft, width: on.offsetWidth })
-      else setPill(null)
-    }
-    place()
-    window.addEventListener('resize', place)
-    void document.fonts?.ready.then(place)
-    return () => window.removeEventListener('resize', place)
-  }, [page])
-  const mobile = useMobile()
+function AppBar({ title, back }: { title: string; back: boolean }) {
   return (
-    <div className="topbar">
-      <nav className="navpill" ref={nav} aria-label="Pages">
-        <a className="navpill__brand" href="#wallet" aria-label="PayKit home"><Mark /><span>PayKit</span></a>
-        {pill && <span className="navpill__glide" style={{ transform: `translateX(${pill.left}px)`, width: pill.width }} aria-hidden="true" />}
-        {[PAGES[2], PAGES[1], PAGES[3], PAGES[0]].map((p) => (
-          <a key={p.key} href={`#${p.key}`} className="navpill__link" aria-current={page === p.key ? 'page' : undefined}>{p.label}</a>
-        ))}
-      </nav>
-      <div className="topbar__end">
-        <span className="network-label"><i />Whitechain</span>
-        <button className="account-button" onClick={mobile.settings} aria-label="Open app settings"><Icon name="fingerprint" size={22} /></button>
-      </div>
-    </div>
+    <header className="m-bar">
+      {back
+        ? <a className="m-bar__back" href="#wallet" aria-label="Back to home"><Icon name="chevron" size={18} /></a>
+        : <a className="m-bar__mark" href="#wallet" aria-label="PayKit home"><Mark /></a>}
+      <h1>{title}</h1>
+      <span className="m-bar__net"><i />Whitechain</span>
+    </header>
   )
 }
 
@@ -156,15 +136,10 @@ function TestModeNotice() {
   )
 }
 
-function Footer() {
-  return <footer className="customer-footer"><span><Mark /> PayKit</span><p>Your wallet. In good company.</p><nav aria-label="Footer"><a href={SITE_URL}>About PayKit</a><a href="#components">Developers</a><a href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a></nav></footer>
-}
-
 function MerchantPage() {
   const demo = window.location.hash.startsWith('#merchant/demo')
   return (
-    <section className="page">
-      <header className="customer-heading"><div><p className="customer-greeting">For the businesses we love.</p><h1>Good business starts here.</h1></div></header>
+    <section className="m-business">
       {demo ? (
         <MerchantGate>
           <MerchantDashboard />

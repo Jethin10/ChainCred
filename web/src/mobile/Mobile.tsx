@@ -121,7 +121,7 @@ export function MobileChrome({ page }: { page: string }) {
     route(); window.addEventListener('hashchange', route)
     return () => window.removeEventListener('hashchange', route)
   }, [scan, settings])
-  const nav: Array<{ page: string; label: string; icon: IconName }> = [{ page: 'wallet', label: 'Wallet', icon: 'wallet' }, { page: 'shops', label: 'Shops', icon: 'shops' }]
+  const nav: Array<{ page: string; label: string; icon: IconName }> = [{ page: 'wallet', label: 'Home', icon: 'wallet' }, { page: 'shops', label: 'Shops', icon: 'shops' }]
   return <>
     <div className="mobile-desktop-tools"><button onClick={mobile.scan}><Icon name="scan" size={18} /> Scan QR</button><button onClick={mobile.settings}><Icon name="settings" size={18} /> App & device</button></div>
     <nav className="mobile-nav" aria-label="Mobile navigation">
