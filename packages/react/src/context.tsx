@@ -85,6 +85,8 @@ export interface PayKitProviderProps {
   wallet?: WalletSigner | null;
   /** Called when a component needs a wallet and `wallet` is controlled (e.g. open your connect modal). */
   onConnectRequest?: () => void | Promise<void>;
+  /** Clear a controlled wallet in your connector when disconnect is requested. */
+  onDisconnectRequest?: () => void;
   /** Force light or dark. Default follows the system. */
   theme?: "light" | "dark" | "system";
   children: ReactNode;
@@ -98,7 +100,7 @@ function injectedProvider(): EIP1193Provider | undefined {
   return (globalThis as { ethereum?: EIP1193Provider }).ethereum;
 }
 
-export function PayKitProvider({ network = "whitechain-testnet", wallet: controlled, onConnectRequest, theme = "system", children, className, style, ...props }: PayKitProviderProps) {
+export function PayKitProvider({ network = "whitechain-testnet", wallet: controlled, onConnectRequest, onDisconnectRequest, theme = "system", children, className, style, ...props }: PayKitProviderProps) {
   const client = useMemo(() => {
     if (props.client) return props.client;
     if (!props.publishableKey) throw new Error("[paykit] <PayKitProvider> needs `publishableKey` (pk_…) or a `client`.");
@@ -195,7 +197,8 @@ export function PayKitProvider({ network = "whitechain-testnet", wallet: control
     setOwn({ signer: null, address: null, chainId: null, status: "disconnected", wrongNetwork: false });
     setSession(null);
     void client.auth.logout();
-  }, [client]);
+    onDisconnectRequest?.();
+  }, [client, onDisconnectRequest]);
 
   const switchNetwork = useCallback(async () => {
     const signer = wallet.signer;

@@ -29,7 +29,8 @@ import {
   type WalletSigner,
 } from '@paykit/react'
 import { createMockApi } from '@paykit/testing'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import ComponentsPage from './docs/Components'
 import { privateKeyToAccount } from 'viem/accounts'
 
 // Preview only: a fake API and two public test keys. Never fund these keys.
@@ -43,9 +44,10 @@ const MERCHANT_KEY = '0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e8720
 const CUSTOMER_KEY = '0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e'
 
 type WalletChoice = 'customer' | 'merchant' | 'browser' | 'none'
-type Page = 'shops' | 'invoice' | 'me' | 'merchant'
+type Page = 'components' | 'shops' | 'invoice' | 'me' | 'merchant'
 
 const PAGES: Array<{ key: Page; label: string }> = [
+  { key: 'components', label: 'Components' },
   { key: 'shops', label: 'Shops' },
   { key: 'invoice', label: 'Invoice link' },
   { key: 'me', label: 'My payments' },
@@ -53,11 +55,12 @@ const PAGES: Array<{ key: Page; label: string }> = [
 ]
 
 // The landing page (frontend/) links here as /#shops, /#invoice, /#me or /#merchant.
-const pageFromHash = (): Page => PAGES.find((p) => `#${p.key}` === window.location.hash)?.key ?? 'shops'
+const pageFromHash = (): Page => PAGES.find((p) => `#${p.key}` === window.location.hash.split('/')[0])?.key ?? 'components'
 
 export default function App() {
   const [choice, setChoice] = useState<WalletChoice>(mock ? 'customer' : 'browser')
   const [page, setPage] = useState<Page>(pageFromHash)
+  useEffect(() => { const follow = () => setPage(pageFromHash()); window.addEventListener('hashchange', follow); return () => window.removeEventListener('hashchange', follow) }, [])
   const wallet = useMemo<WalletSigner | null>(() => {
     if (choice === 'customer') return fromLocalAccount(privateKeyToAccount(CUSTOMER_KEY), 1874)
     if (choice === 'merchant') return fromLocalAccount(privateKeyToAccount(MERCHANT_KEY), 1874)
@@ -69,7 +72,7 @@ export default function App() {
   }, [choice])
 
   return (
-    <PayKitProvider client={client} wallet={wallet} onConnectRequest={() => setChoice('customer')}>
+    <PayKitProvider client={client} wallet={wallet} onConnectRequest={() => setChoice('customer')} onDisconnectRequest={() => setChoice('none')}>
       <div className="app">
         <header className="app__bar">
           <div className="app__brand">
@@ -78,12 +81,12 @@ export default function App() {
           </div>
           <nav className="app__nav" aria-label="Pages">
             {PAGES.map((p) => (
-              <button key={p.key} type="button" className={page === p.key ? 'app__navlink app__navlink--on' : 'app__navlink'} onClick={() => setPage(p.key)}>
+              <button key={p.key} type="button" className={page === p.key ? 'app__navlink app__navlink--on' : 'app__navlink'} onClick={() => { setPage(p.key); window.location.hash = p.key }}>
                 {p.label}
               </button>
             ))}
           </nav>
-          <div className="app__wallet">
+          {page !== 'components' && <div className="app__wallet">
             <label className="app__select">
               <span>Preview wallet</span>
               <select value={choice} onChange={(e) => setChoice(e.target.value as WalletChoice)}>
@@ -94,10 +97,11 @@ export default function App() {
               </select>
             </label>
             <ConnectWallet />
-          </div>
+          </div>}
         </header>
-        <p className="app__note">{mock ? 'Preview with a mock API. Payments here are simulated and nothing touches a chain.' : `Live: ${apiUrl} on Whitechain Sepolia.`}</p>
+        <p className="app__note">{page === 'components' ? 'Interactive previews use isolated simulated data. No real funds or wallet extension required.' : mock ? 'Preview with a mock API. Payments here are simulated and nothing touches a chain.' : `Live: ${apiUrl} on Whitechain Sepolia.`}</p>
         <main className="app__main">
+          {page === 'components' && <ComponentsPage />}
           {page === 'shops' && <ShopsPage />}
           {page === 'invoice' && <InvoicePage />}
           {page === 'me' && <MyPage />}

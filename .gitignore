@@ -27,3 +27,4 @@ reference/
 *.sqlite.lock
 .next/
 *.tsbuildinfo
+.playwright-cli/

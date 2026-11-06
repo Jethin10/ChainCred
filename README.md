@@ -25,7 +25,7 @@ The demo uses simulated payments until configured with a real API. `npm run dev`
 
 Create a session on your backend with `@paykit/node`, render `PayKitProvider` and `CheckoutButton` from `@paykit/react`, and fulfill orders from verified `payment.finalized` webhooks. Server-derived prices, order references and stable operation keys keep retries tied to the same order.
 
-React components are optional. Headless APIs and hooks support custom UI. Styles are opt-in and can be themed with CSS variables. Copyable UI templates are under `packages/react/registry`.
+React components are optional. Headless APIs and hooks support custom UI. Styles are opt-in and can be themed with CSS variables. The Components tab has live previews, source/style copy buttons, prop references and install instructions. Run `npm run ui:add -- checkout --cwd "../your-store"` to install local SDK packages and copy a complete customizable component. [Copy-and-paste guide](packages/react/registry/README.md).
 
 ## Scope and validation
 

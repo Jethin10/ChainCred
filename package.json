@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace web",
-    "build": "npm run build --workspace web",
+    "build": "npm run sdk:registry && npm run build --workspace web",
     "lint": "npm run lint --workspace web",
     "chain": "anvil --host 127.0.0.1 --port 8545 --silent",
     "contracts:build": "npm --prefix contracts run build",
@@ -24,7 +24,9 @@
     "frontend": "npm run dev --workspace paykit-frontend",
     "frontend:build": "npm run build --workspace paykit-frontend",
     "sdk:registry": "node scripts/build-ui-registry.mjs",
-    "sdk:consumer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-sdk-consumer.ps1"
+    "sdk:consumer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-sdk-consumer.ps1",
+    "ui:add": "node packages/react/bin/add.mjs",
+    "ui:test": "node --test scripts/test-ui-installer.mjs"
   },
   "engines": {
     "node": ">=24 <25"

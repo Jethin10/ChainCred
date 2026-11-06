@@ -82,3 +82,17 @@ it("keeps polling when the viewed payment changes after a terminal result", asyn
   assert.ok(ui.text().includes("finalized"));
   await ui.unmount();
 });
+it("controlled wallet disconnect requests update the connector and allow reconnect", async () => {
+  const { client, wallet } = setup();
+  function ControlledWallet() {
+    const [connected, setConnected] = PK_TEST_USE_STATE(true);
+    return h(PK.PayKitProvider, { client, wallet: connected ? wallet : null, onConnectRequest: () => setConnected(true), onDisconnectRequest: () => setConnected(false) }, h(PK.ConnectWallet));
+  }
+  const ui = await mount(h(ControlledWallet));
+  await ui.until(() => !!ui.button("Disconnect"));
+  await ui.click(ui.button("Disconnect"));
+  await ui.until(() => !!ui.button("Connect wallet"));
+  await ui.click(ui.button("Connect wallet"));
+  await ui.until(() => !!ui.button("Disconnect"));
+  await ui.unmount();
+});

@@ -65,7 +65,16 @@ For installments pass the displayed total and selected schedule to `plans.author
 
 Wallet adapters are `fromEip1193(provider)`, `fromWalletClient(viemWalletClient)` and `fromSignerLike(thirdwebAccount)`. Pass the adapter as `wallet` to the provider, or omit it to use an injected browser wallet. A controlled disconnected wallet should be `null` and supply `onConnectRequest`.
 
-Copyable UI sources are in `packages/react/registry`. Run `npm run sdk:registry` to build the local shadcn-compatible files served from the web app's `/r/checkout.json` and `/r/payment-status.json`. They copy only presentation code; hooks remain imported from the SDK. No registry is published by this command.
+Open the **Components** tab in `npm run dev` for six interactive previews with source, CSS, usage and installation tabs. Search components, edit checkout labels, and test themes without connecting a real wallet.
+
+```sh
+# From this PayKit checkout; installs local packages before npm publication.
+npm run ui:add -- checkout --cwd "../your-store"
+```
+
+The installer copies complete presentation files and their shared stylesheet, preserves customized files, and keeps payment logic in SDK hooks. The packaged `paykit-ui` binary works after installing the React SDK too. See [copyable components](react/registry/README.md) for all components, installer flags and the manual copy flow.
+
+`npm run sdk:registry` builds shadcn-compatible registry files for all six components. Each includes source and styles. Registry URLs are local assets until explicitly hosted, and SDK packages remain unpublished. Use the local installer for a working first setup rather than expecting unpublished npm dependencies to resolve.
 
 ## Payments, deposits and refunds
 

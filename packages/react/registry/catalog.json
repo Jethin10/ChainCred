@@ -1,0 +1,164 @@
+[
+  {
+    "id": "checkout",
+    "title": "Checkout",
+    "category": "Payments",
+    "exportName": "CustomCheckout",
+    "hook": "useCheckout",
+    "description": "A checkout card for an existing order session, with amount checks, progress and recoverable errors.",
+    "props": [
+      {
+        "name": "sessionId",
+        "type": "string",
+        "description": "Session created by your merchant backend.",
+        "required": true
+      },
+      {
+        "name": "amount",
+        "type": "string",
+        "description": "Displayed total in USDT base units. A changed quote is rejected.",
+        "required": true
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "description": "Button text. Defaults to Pay with USDT.",
+        "required": false
+      },
+      {
+        "name": "onPaid",
+        "type": "(paymentId: string) => void",
+        "description": "Updates your interface after inclusion. Fulfill from webhooks.",
+        "required": false
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "description": "Optional wrapper class for your site.",
+        "required": false
+      }
+    ],
+    "usage": "<CustomCheckout sessionId={session.id} amount=\"10000000\" label=\"Pay for my order\" />"
+  },
+  {
+    "id": "payment-status",
+    "title": "Payment status",
+    "category": "Payments",
+    "exportName": "CustomPaymentStatus",
+    "hook": "usePayment",
+    "description": "Watch a payment move through submitted, included, safe and finalized RPC observations.",
+    "props": [
+      {
+        "name": "paymentId",
+        "type": "string",
+        "description": "Payment identifier returned by checkout.",
+        "required": true
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "description": "Optional wrapper class for your site.",
+        "required": false
+      }
+    ],
+    "usage": "<CustomPaymentStatus paymentId={payment.paymentId} />"
+  },
+  {
+    "id": "wallet-button",
+    "title": "Wallet button",
+    "category": "Wallet",
+    "exportName": "WalletButton",
+    "hook": "useWallet",
+    "description": "Connect, disconnect and switch networks with your injected or controlled wallet adapter.",
+    "props": [
+      {
+        "name": "className",
+        "type": "string",
+        "description": "Optional wrapper class for your site.",
+        "required": false
+      }
+    ],
+    "usage": "<WalletButton />"
+  },
+  {
+    "id": "product-card",
+    "title": "Product card",
+    "category": "Commerce",
+    "exportName": "CustomProductCard",
+    "hook": "useCart",
+    "description": "A product card with server-priced amounts and an add-to-cart action. Your catalogue remains optional.",
+    "props": [
+      {
+        "name": "product",
+        "type": "Product",
+        "description": "A product returned by client.merchants.products or your PayKit catalogue.",
+        "required": true
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "description": "Optional wrapper class for your site.",
+        "required": false
+      }
+    ],
+    "usage": "<CustomProductCard product={product} />"
+  },
+  {
+    "id": "receipt",
+    "title": "Receipt",
+    "category": "Payments",
+    "exportName": "PaymentReceipt",
+    "hook": "usePayment",
+    "description": "An order receipt with paid and refunded totals. It appears after inclusion and keeps tracking finality.",
+    "props": [
+      {
+        "name": "paymentId",
+        "type": "string",
+        "description": "A payment identifier returned by checkout.",
+        "required": true
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "description": "Optional wrapper class for your site.",
+        "required": false
+      }
+    ],
+    "usage": "<PaymentReceipt paymentId={payment.paymentId} />"
+  },
+  {
+    "id": "installment-plan",
+    "title": "Installment plan",
+    "category": "Commerce",
+    "exportName": "CustomInstallmentPlan",
+    "hook": "usePlanCheckout",
+    "description": "A bounded installment offer that checks the displayed total and selected schedule before signing.",
+    "props": [
+      {
+        "name": "input",
+        "type": "CheckoutInput",
+        "description": "Your existing invoice, session or server-priced cart.",
+        "required": true
+      },
+      {
+        "name": "total",
+        "type": "string",
+        "description": "Displayed total in USDT base units.",
+        "required": true
+      },
+      {
+        "name": "option",
+        "type": "PlanOption",
+        "description": "Count, periodSeconds and optional downPaymentPercent.",
+        "required": true
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "description": "Optional wrapper class for your site.",
+        "required": false
+      }
+    ],
+    "usage": "<CustomInstallmentPlan input={{ invoiceId: invoice.id }} total=\"30000000\" option={{ count: 3, periodSeconds: 2592000 }} />"
+  }
+]

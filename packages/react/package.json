@@ -16,7 +16,9 @@
   },
   "files": [
     "dist",
-    "src/styles.css"
+    "src/styles.css",
+    "registry",
+    "bin"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -34,5 +36,8 @@
   "devDependencies": {
     "happy-dom": "^20.14.6",
     "@paykit/testing": "0.1.0"
+  },
+  "bin": {
+    "paykit-ui": "./bin/add.mjs"
   }
 }

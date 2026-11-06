@@ -1,6 +1,6 @@
 # PayKit implementation status
 
-The SDK implementation follows `plan.md` only. Contracts were not changed. No push, deployment or package publication was performed.
+The SDK implementation follows `plan.md` only. Contracts were not changed. The SDK and component work are published on the `sdk/merchant-integration` branch in [PR #1](https://github.com/Jethin10/PayKit/pull/1). No deployment or npm publication was performed.
 
 ## Merchant integration
 
@@ -10,7 +10,7 @@ The supported existing-store path is:
 2. Your React page mounts `PayKitProvider` and `CheckoutButton input={{ sessionId }} amount={displayedTotal}`.
 3. Your backend verifies `payment.finalized` webhooks and fulfills the existing order transactionally once.
 
-The same hooks support fully custom UI. Styles are optional; the provider accepts themes, class names and typed CSS variables. Local copyable checkout/payment-status templates and shadcn-compatible registry JSON are included. Merchant catalogue, cart and dashboards are optional helpers.
+The same hooks support fully custom UI. Styles are optional; the provider accepts themes, class names and typed CSS variables. Six copyable components, complete shared styles, and shadcn-compatible registry JSON are included. The Components tab has live previews, source/style copy buttons, usage and installation tabs. Merchant catalogue, cart and dashboards are optional helpers.
 
 See [the integration guide](../packages/README.md) and [the Next.js example](../examples/next-store/README.md).
 
@@ -32,8 +32,10 @@ See [the integration guide](../packages/README.md) and [the Next.js example](../
 
 ## Verification
 
-- All eight SDK packages passed typechecking and ESM builds. The full regression suite passed 118 tests with zero failures.
+- All eight SDK packages passed typechecking and ESM builds. The full regression suite passed 119 tests with zero failures. Five additional installer tests cover dry runs, copying, overwrite protection, custom styles and output paths.
 - Vite store build, website lint/build and Next.js App Router example build.
+- Real-browser checks passed checkout-to-receipt, clipboard/source/style tabs, search, controlled wallet reconnect, cart updates, installment creation and mobile layout.
+- The local installer bootstrapped a separate merchant app from no SDK dependencies; all six copied components typechecked and built. The packaged CLI also copied components without access to the source checkout. Browser dependencies exclude the API server and testing package.
 - Clean Next.js consumer installed from local SDK tarballs outside the workspace. It compiles the copyable UI sources and confirms production installation excludes `@paykit/server` and `@paykit/testing`.
 - Normal demo-service smoke through HTTP: existing-order checkout, stable retry, customer authorization, signed finality webhook, funded refund and process restart with persisted results.
 - Local JSON-RPC fixture verifies persistence before broadcasting, same-nonce replacements, recovery of a mined original and reorg reset.
