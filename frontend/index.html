@@ -28,7 +28,7 @@
       // open the PayKit app. Runs in the capture phase, before the page's own router sees the click.
       ;(function () {
         var APP = '__PAYKIT_APP_URL__'
-        var PAGES = { shops: 1, invoice: 1, me: 1, merchant: 1 }
+        var PAGES = { components: 1, shops: 1, invoice: 1, me: 1, merchant: 1 }
         function target(href) {
           var u
           try { u = new URL(href, location.href) } catch (e) { return null }
@@ -83,6 +83,6 @@
     <link rel="modulepreload" crossorigin href="/assets/Popup-DYx9dekJ.js">
   </head>
   <body>
-    <div id="root"><div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"><h1>PayKit, gasless USDT checkout for Whitechain</h1><p>PayKit lets any shop take USDT on Whitechain in a few lines of React. Customers sign once, never need WBT for gas, and you get paid straight to your wallet.</p><h2>Product</h2><ul><li><a href="/app/shops">Checkout, carts and receipts added to any shop in twenty lines</a><p>@paykit/react, drop-in commerce components.</p></li><li><a href="/app/merchant">One dashboard for sales, refunds and installment plans</a><p>The PayKit merchant dashboard.</p></li></ul><nav><ul><li><a href="/app/shops">Shops</a></li><li><a href="/app/me">Payments</a></li><li><a href="/app/merchant">Merchant</a></li><li><a href="/app/invoice">Invoice</a></li></ul></nav></div></div>
+    <div id="root"><div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"><h1>PayKit, gasless USDT checkout for Whitechain</h1><p>PayKit lets any shop take USDT on Whitechain in a few lines of React. Customers sign once, never need WBT for gas, and you get paid straight to your wallet.</p><h2>Product</h2><ul><li><a href="/app/shops">Checkout, carts and receipts added to any shop in twenty lines</a><p>@paykit/react, drop-in commerce components.</p></li><li><a href="/app/merchant">One dashboard for sales, refunds and installment plans</a><p>The PayKit merchant dashboard.</p></li></ul><nav><ul><li><a href="/app/components">SDK</a></li><li><a href="/app/shops">Shops</a></li><li><a href="/app/me">Payments</a></li><li><a href="/app/merchant">Merchant</a></li><li><a href="/app/invoice">Invoice</a></li></ul></nav></div></div>
   </body>
 </html>

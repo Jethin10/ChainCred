@@ -48,10 +48,10 @@ function CodeBlock({ source, label }: { source: string; label: string }) {
   const copied = copyState?.source === source && copyState.result === 'copied'
   const copyError = copyState?.source === source && copyState.result === 'error'
   return <div className="docs-code">
-    <div className="docs-code__bar"><span>{label}</span><button type="button" onClick={async () => {
+    <div className="docs-code__bar"><span>{label}</span><button type="button" data-copied={copied} onClick={async () => {
       try { await navigator.clipboard.writeText(source); setCopyState({ source, result: 'copied' }) }
       catch { setCopyState({ source, result: 'error' }) }
-    }}>{copied ? 'Copied' : 'Copy'}</button></div>
+    }}>{copied ? 'Copied ✓' : 'Copy'}</button></div>
     <pre tabIndex={0} aria-label={label}><code>{source}</code></pre>
     {copyError && <p role="alert">Clipboard access was blocked. Select the code above and copy it manually.</p>}
   </div>
@@ -63,7 +63,7 @@ function ComponentWorkbench({ client }: { client: PayKitClient }) {
   const [tab, setTab] = useState<'preview' | 'code' | 'install'>('preview')
   const [file, setFile] = useState<'component' | 'styles' | 'usage'>('component')
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
-  const [accent, setAccent] = useState('#0f4c45')
+  const [accent, setAccent] = useState('#0a0a0a')
   const [label, setLabel] = useState('Pay with USDT')
   const [reset, setReset] = useState(0)
   const [demo, setDemo] = useState<{ key: string; sessionId: string; product: Product; paymentId?: string } | null>(null)
