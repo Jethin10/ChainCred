@@ -166,6 +166,22 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
   app.post("/v1/public/subscriptions/:id/authorize", wrap(async (req, res) => res.status(202).json(await subscriptions.authorize(req.params.id, req.body || {}))));
   app.post("/v1/public/subscriptions/:id/cancel-request", wrap(async (req, res) => res.json(await subscriptions.cancelRequest(req.params.id))));
   app.post("/v1/public/subscriptions/:id/cancel", wrap(async (req, res) => res.status(202).json(await subscriptions.cancelByPayer(req.params.id, req.body || {}))));
+  // Self-serve merchant onboarding: signed by the payout wallet; also sets up points and a reward.
+  app.post("/v1/public/merchants/onboard", wrap(async (req, res) => {
+    const body = req.body || {};
+    const created = await merchants.onboard(body);
+    const m = await store.get("merchants", created.merchant.id);
+    const extras = { campaign: null, reward: null, warnings: [] };
+    if (body.campaign && Number(body.campaign.pointsPerUsdt) > 0) {
+      try { extras.campaign = await points.createCampaign(m, { name: body.campaign.name || `${m.name} points`, pointsPerUsdt: Number(body.campaign.pointsPerUsdt) }); }
+      catch (e) { extras.warnings.push(`Points campaign: ${e.message}`); }
+    }
+    if (body.reward && body.reward.name) {
+      try { extras.reward = await points.createReward(m, body.reward); }
+      catch (e) { extras.warnings.push(`Reward: ${e.message}`); }
+    }
+    res.status(201).json({ ...created, ...extras });
+  }));
   app.get("/v1/public/wallets/:address/activity", wrap(async (req, res) => res.json(await payments.walletActivity(req.params.address))));
   app.get("/v1/public/receipts/:paymentId", wrap(async (req, res) => res.json(await payments.getReceipt(req.params.paymentId))));
 

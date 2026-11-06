@@ -88,9 +88,13 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
 
   return (
     <Shell>
-      <section className="pk-panel livepay">
-        <div className="livepay__head">
-          <p className="eyebrow eyebrow--ink"><span className="eyebrow__dot" />Pay {invoice.merchant?.name ?? 'merchant'}</p>
+      <section className="pk-panel livepay livepay--branded" style={{ ['--brand' as string]: invoice.merchant?.profile?.accent ?? '#0a0a0a' }}>
+        <div className="livepay__merchant">
+          <span className="livepay__mark" aria-hidden="true">{(invoice.merchant?.name ?? 'P').slice(0, 1)}</span>
+          <div className="livepay__who">
+            <b>{invoice.merchant?.name ?? 'Merchant'}</b>
+            {invoice.merchant?.profile?.tagline && <span>{invoice.merchant.profile.tagline}</span>}
+          </div>
           <span className={`pk-tag ${invoice.status === 'paid' ? 'pk-tag--good' : 'pk-tag--progress'}`}>{invoice.status.replace('_', ' ')}</span>
         </div>
         <p className="livepay__amount"><span className="pk-num">{usdt(step === 'done' ? invoice.amount : payNow)}</span></p>
@@ -101,6 +105,7 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
           {Number(invoice.amountPaid) > 0 && <><dt>Already paid</dt><dd>{usdt(invoice.amountPaid)}</dd></>}
           {chosen && <><dt>Points discount</dt><dd className="pk-good">−{usdt(chosen.discount!)}</dd></>}
           <dt>Network fee</dt><dd>0 WBT, PayKit pays the gas</dd>
+          {invoice.merchant?.profile?.website && <><dt>Merchant</dt><dd><a className="pk-link" href={invoice.merchant.profile.website} target="_blank" rel="noreferrer">{invoice.merchant.profile.website.replace(/^https?:\/\//, '')}</a></dd></>}
         </dl>
 
         {step === 'done' && receipt ? (
