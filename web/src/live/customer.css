@@ -1,3 +1,5 @@
+/* The customer redesign applies only below the mobile breakpoint. */
+@media (max-width: 760px) {
 /* PayKit customer app: quiet surfaces, precise numbers, a little pixel sky. */
 .app:not(.app--components) { background: #f8fafc; min-height: 100dvh; }
 .app .topbar { max-width: 1180px; width: 100%; margin: 0 auto; padding: 22px 30px; gap: 20px; }
@@ -342,3 +344,5 @@
 .wallet-account--connect { background: #172634; border-color: #172634; color: #fff; }
 .wallet-account--connect .account-dot { background: #9ad8ff; }
 .customer-greeting, .section-kicker, .chart-column, .chart-guides, .chart-caption, .spending-total > span, .payment-row__main > span, .payment-row__main small, .partner-card__body > p, .wallet-facts span { color: #6d7e8d; }
+
+}
