@@ -43,18 +43,26 @@ async function createPgStore(url, unpooledUrl, tables) {
   unpooledUrl = normalizeUrl(unpooledUrl);
   const ssl = /sslmode=|neon\.tech/.test(url) ? { rejectUnauthorized: true } : undefined;
 
-  // one-time schema setup on a direct connection (Neon's pooler doesn't keep SET search_path)
-  const setup = new Pool({ connectionString: unpooledUrl || url, ssl, max: 1 });
-  const client = await setup.connect();
-  try {
-    await setupSchema(client, tables);
-  } finally {
-    client.release();
-    await setup.end();
-  }
-
   const pool = new Pool({ connectionString: url, ssl, max: 5 });
   pool.on("error", (e) => console.error("[store] pg pool error:", e.message));
+
+  // One query tells us whether the schema is complete; only then skip the (slow) setup. This keeps
+  // serverless cold starts fast, and a new or older database still gets migrated.
+  const { rows: ready } = await pool.query(
+    `SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema = $1 AND table_name = ANY($2)`,
+    [SCHEMA, tables]
+  );
+  if (ready[0].n < tables.length) {
+    // one-time schema setup on a direct connection (Neon's pooler doesn't keep SET search_path)
+    const setup = new Pool({ connectionString: unpooledUrl || url, ssl, max: 1 });
+    const client = await setup.connect();
+    try {
+      await setupSchema(client, tables);
+    } finally {
+      client.release();
+      await setup.end();
+    }
+  }
 
   // every query names the schema explicitly, so it works through the pooler too
   const tbl = (t) => {

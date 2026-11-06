@@ -21,12 +21,21 @@ function createRelayer(store) {
         err.simulation = true;
         throw err;
       }
+      // Serverless: several instances share one wallet, so never trust a cached nonce.
+      if (process.env.VERCEL) relayerSigner.reset();
       let tx;
       try {
         tx = await send();
       } catch (e) {
         relayerSigner.reset(); // re-read the nonce from the chain next time
-        throw new Error(reasonOf(e));
+        // Another instance used this nonce first: retry once with a fresh one.
+        if (!/nonce|replacement|already known/i.test(String(e && (e.shortMessage || e.message)))) throw new Error(reasonOf(e));
+        try {
+          tx = await send();
+        } catch (e2) {
+          relayerSigner.reset();
+          throw new Error(reasonOf(e2));
+        }
       }
       console.log(`[relayer] ${label} sent ${tx.hash}`);
       await store.insert("txs", {
