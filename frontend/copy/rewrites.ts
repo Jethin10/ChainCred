@@ -39,7 +39,7 @@ export const rewrites: Rewrite[] = [
   {
     file: VA,
     from: `y3={before:"Designer who ships with vision",after:{lead:"Design",rest:"Engineer who ships growth"},bio:"I'm Andreas, making precise, joyful interfaces and the tools to build them, from first sketch to production so that your team ships and your business grows."}`,
-    to: `y3={before:${q('Checkout that ships with USDT')},after:{lead:${q('Gasless')},rest:${q('USDT checkout for shops')}},bio:${q('PayKit lets any shop take USDT on Whitechain in a few lines of React. Customers sign once, never need WBT for gas, and you get paid straight to your wallet.')}}`,
+    to: `y3={before:${q('Loyalty that ships with checkout')},after:{lead:${q('Gasless')},rest:${q('USDT checkout for shops')}},bio:${q('PayKit lets any shop take USDT on Whitechain in a few lines of React. Customers sign once, never need WBT for gas, and you get paid straight to your wallet.')}}`,
   },
 
   // ── Nav, footer links and the main call to action ───────────────────────
