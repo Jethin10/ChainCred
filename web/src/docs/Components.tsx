@@ -30,6 +30,8 @@ const session = await paykit.checkout.createSession({
 });
 // Return session.id to the customer. Fulfill from verified payment.finalized webhooks.`
 
+const ACCENTS: Array<[string, string]> = [['Ink', '#0a0a0a'], ['Sky', '#0077d9'], ['Chai', '#a3541d'], ['Mint', '#0f7a5a'], ['Berry', '#b4235a']]
+
 function idFromHash() { return catalog.find((item) => item.id === location.hash.split('/')[1])?.id ?? 'checkout' }
 
 export default function ComponentsPage() {
@@ -107,7 +109,8 @@ function ComponentWorkbench({ client }: { client: PayKitClient }) {
   const filename = file === 'component' ? `${selected.id}.tsx` : file === 'styles' ? 'paykit-ui.css' : 'Usage.tsx'
   const displayedSource = file === 'usage' ? usage : sourceFor(filename)
   const installCommand = `npm run ui:add -- ${selected.id} --cwd "../your-store"`
-  const stageStyle = { '--pk-accent': accent, '--pk-accent-ink': '#ffffff' } as CSSProperties
+  const inverted = theme === 'dark' && accent === '#0a0a0a'
+  const stageStyle = { '--pk-accent': inverted ? '#ffffff' : accent, '--pk-accent-ink': inverted ? '#0a0a0a' : '#ffffff' } as CSSProperties
 
   return <div className="docs-shell">
     <aside className="docs-sidebar" aria-label="Component library">
@@ -142,8 +145,17 @@ function ComponentWorkbench({ client }: { client: PayKitClient }) {
           </div>
         </div>
         <div className="docs-controls">
-          <label>Theme<select value={theme} onChange={(event) => setTheme(event.target.value as 'light' | 'dark')}><option value="light">Light</option><option value="dark">Dark</option></select></label>
-          <label>Accent<input type="color" value={accent} onChange={(event) => setAccent(event.target.value)} /></label>
+          <div className="docs-control"><span>Theme</span>
+            <button type="button" role="switch" aria-checked={theme === 'dark'} aria-label="Dark theme" className="docs-switch" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              <span className="docs-switch__knob" aria-hidden="true">{theme === 'dark' ? '☾' : '☀'}</span>
+            </button>
+          </div>
+          <div className="docs-control"><span>Accent</span>
+            <div className="docs-swatches" role="radiogroup" aria-label="Accent colour">
+              {ACCENTS.map(([name, color]) => <button key={color} type="button" role="radio" aria-checked={accent === color} aria-label={name} title={name} style={{ '--c': color } as CSSProperties} onClick={() => setAccent(color)} />)}
+              <label className="docs-swatches__custom" title="Custom colour" data-on={!ACCENTS.some(([, c]) => c === accent)} style={{ '--c': accent } as CSSProperties}><span className="docs-sr">Custom accent</span><input type="color" value={accent} onChange={(event) => setAccent(event.target.value)} /></label>
+            </div>
+          </div>
           {selected.id === 'checkout' && <label className="docs-controls__label">Button label<input value={label} maxLength={60} onChange={(event) => setLabel(event.target.value)} /></label>}
           <button type="button" className="docs-link-button" onClick={() => { setFile('usage'); setTab('code') }}>View usage</button>
         </div>

@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { it } from 'node:test';
 const installer = resolve('packages/react/bin/add.mjs');
 const fixture = () => { const cwd = mkdtempSync(join(tmpdir(), 'paykit-ui-')); writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'merchant-fixture', private: true })); mkdirSync(join(cwd, 'src')); return cwd; };
+const lf = (text) => text.replace(/\r\n/g, '\n');
 const run = (...args) => spawnSync(process.execPath, [installer, ...args], { encoding: 'utf8', windowsHide: true });
 it('dry runs without changing the target and lists all six components', () => {
   const cwd = fixture();
@@ -41,7 +42,7 @@ it('generated registry items include source and style bytes matching the copyabl
   const catalog = JSON.parse(readFileSync('packages/react/registry/catalog.json', 'utf8'));
   for (const item of catalog) {
     const registry = JSON.parse(readFileSync(`web/public/r/${item.id}.json`, 'utf8'));
-    assert.equal(registry.files.length, 2); assert.equal(registry.files[0].content, readFileSync(`packages/react/registry/${item.id}.tsx`, 'utf8'));
-    assert.equal(registry.files[1].content, readFileSync('packages/react/registry/paykit-ui.css', 'utf8')); assert.ok(registry.files[1].target);
+    assert.equal(registry.files.length, 2); assert.equal(registry.files[0].content, lf(readFileSync(`packages/react/registry/${item.id}.tsx`, 'utf8')));
+    assert.equal(registry.files[1].content, lf(readFileSync('packages/react/registry/paykit-ui.css', 'utf8'))); assert.ok(registry.files[1].target);
   }
 });
