@@ -33,6 +33,7 @@ reference/
 research/*
 !research/SDK-IMPLEMENTATION-STATUS.md
 !research/SDK-READINESS-REVIEW.md
+!research/CONTRACTS-INTEGRATION.md
 plan.other.md
 scripts/install-proxy.py
 scripts/cache-windows-wheels.py

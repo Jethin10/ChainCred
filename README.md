@@ -31,6 +31,13 @@ The landing page's calls to action open the app. The app proxies `/v1` to the AP
 
 `backend/`, `contracts/` and `compose.yaml` are the generic local toolchain starter (FastAPI, Hardhat/Foundry, Postgres, Redis). `scripts/verify.ps1` checks it; see [SETUP_STATUS.md](SETUP_STATUS.md).
 
+## Contracts, loyalty points and MCP
+
+- The PayKit contracts are in [contracts/paykit](contracts/paykit/README.md). [Integration review](research/CONTRACTS-INTEGRATION.md): what was fixed, what is still missing (the `libraries/` and `interfaces/` files), and the go-live checklist.
+- `npm run contracts:check` compares the SDK with a deployment (read-only).
+- Universal loyalty points (PaymentRouterV2 + PayKitPoints): earn at any shop, spend as discounts at any other. Demo: Mumbai Chai Co. gives 10 PKP per USDT.
+- `npm run mcp` starts the [PayKit MCP server](packages/mcp/README.md) for AI agents.
+
 ## Merchant integration
 
 Create a session on your backend with `@paykit/node`, render `PayKitProvider` and `CheckoutButton` from `@paykit/react`, and fulfill orders from verified `payment.finalized` webhooks. Server-derived prices, order references and stable operation keys keep retries tied to the same order.
