@@ -1,0 +1,23 @@
+{
+  "id": "/",
+  "name": "PayKit · Your wallet, every shop",
+  "short_name": "PayKit",
+  "description": "Scan to pay. Find your invoices. Take your points to every PayKit shop.",
+  "lang": "en",
+  "start_url": "/#wallet",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#f3f9ff",
+  "theme_color": "#f3f9ff",
+  "categories": ["finance", "shopping"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Scan to pay", "url": "/#scan", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Your wallet", "url": "/#wallet", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

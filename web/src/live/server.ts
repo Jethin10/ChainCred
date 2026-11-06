@@ -99,6 +99,7 @@ const provider = (): Eip1193 | null => {
 }
 
 export const hasWallet = () => provider() !== null
+export const isMobileWallet = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 const MINUTE = 60_000
@@ -149,7 +150,14 @@ export async function knownAccount(): Promise<string | null> {
 export async function connectWallet(): Promise<string> {
   window.dispatchEvent(new Event('eip6963:requestProvider'))
   const eth = provider()
-  if (!eth) throw new ServerError('MetaMask not found. Install the MetaMask extension to pay with USDT on Whitechain.')
+  if (!eth) {
+    if (isMobileWallet()) {
+      window.location.href = `https://link.metamask.io/dapp/${location.host}${location.pathname}${location.search}${location.hash}`
+      throw new ServerError('Continue in MetaMask to connect your wallet, then return to PayKit when you are done.')
+    }
+    window.open('https://metamask.io/download/', '_blank', 'noopener,noreferrer')
+    throw new ServerError('Install MetaMask, then return here to connect your wallet.')
+  }
   chosen = eth
   let accounts = await ask<string[]>(eth, 'eth_accounts')
   if (!accounts.length) accounts = await grant(eth)

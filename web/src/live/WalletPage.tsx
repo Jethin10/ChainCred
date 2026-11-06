@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  api, COMPANIES, connectWallet, errorText, hasWallet, knownAccount, short,
+  api, COMPANIES, connectWallet, errorText, hasWallet, isMobileWallet, knownAccount, short,
   type Activity, type MarketReward, type PointsWallet,
 } from './server'
+import { WalletQuickActions } from '../mobile/Mobile'
+import { paymentTarget } from '../mobile/payment-link'
 
 const money = (v: string | number) => `${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '')
@@ -49,8 +51,7 @@ export function WalletPage() {
   }
   const openInvoice = (e: React.FormEvent) => {
     e.preventDefault()
-    const id = invoiceId.trim().replace(/^.*#pay\//, '')
-    if (id) location.hash = `pay/${encodeURIComponent(id)}`
+    try { location.hash = paymentTarget(invoiceId); setError(null) } catch (e) { setError(errorText(e)) }
   }
 
   const paidTotal = (activity ?? []).reduce((n, a) => n + Number(a.gross), 0)
@@ -58,6 +59,7 @@ export function WalletPage() {
 
   return (
     <section className="page wallet">
+      <WalletQuickActions />
       {!address ? (
         <div className="wallet__connect pk-panel">
           <div>
@@ -65,7 +67,7 @@ export function WalletPage() {
             <p className="pk-muted">Connect the wallet you pay with. You'll see each invoice and receipt from every company that uses PayKit, and the points you can spend anywhere.</p>
           </div>
           <div className="wallet__connect-actions">
-            <button type="button" className="pk-button pk-button--primary" onClick={connect}>{hasWallet() ? 'Connect MetaMask' : 'Install MetaMask'}</button>
+            <button type="button" className="pk-button pk-button--primary" onClick={connect}>{hasWallet() ? 'Connect MetaMask' : isMobileWallet() ? 'Open MetaMask' : 'Install MetaMask'}</button>
             <form className="wallet__lookup" onSubmit={(e) => { e.preventDefault(); if (isAddress(lookup)) setAddress(lookup.trim()) }}>
               <input aria-label="Look up a wallet address" placeholder="…or paste a wallet address (0x…)" value={lookup} onChange={(e) => setLookup(e.target.value)} />
               <button type="submit" className="pk-button pk-button--secondary" disabled={!isAddress(lookup)}>Look up</button>

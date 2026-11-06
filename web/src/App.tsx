@@ -31,6 +31,7 @@ import { useBackend, type Backend } from './theme/backend'
 import { PayPage, SubscribePage } from './live/PayPage'
 import { Companies, WalletPage } from './live/WalletPage'
 import { MerchantLive } from './live/Onboarding'
+import { MobileChrome } from './mobile/Mobile'
 
 // Public test keys. Never fund them. The merchant key owns the demo shop on the mock and on `npm run server:demo`.
 const MERCHANT_KEY = '0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba'
@@ -56,7 +57,8 @@ const pageFromHash = (): Page => {
   const head = window.location.hash.split('/')[0]
   if (head === '#pay') return 'pay'
   if (head === '#invoice' || head === '#me') return 'wallet'
-  return PAGES.find((p) => `#${p.key}` === head)?.key ?? 'components'
+  if (head === '#scan' || head === '#settings') return 'wallet'
+  return PAGES.find((p) => `#${p.key}` === head)?.key ?? (matchMedia('(max-width: 760px)').matches ? 'wallet' : 'components')
 }
 const payTarget = () => {
   const parts = window.location.hash.slice(1).split('/').slice(1).map(decodeURIComponent)
@@ -85,7 +87,7 @@ export default function App() {
   return (
     <PayKitProvider key={backend.source} client={backend.client} wallet={wallet} theme="light" onConnectRequest={() => setChoice('customer')} onDisconnectRequest={() => setChoice('none')}>
       <PixelWipe trigger={page} />
-      <div className="app">
+      <div className={`app app--${page}`}>
         <TopBar page={page} backend={backend} />
         {backend.testMode && page !== 'pay' && <TestModeNotice />}
         <header className={page === 'components' ? 'hero hero--short' : 'hero'}>
@@ -120,6 +122,7 @@ export default function App() {
           {target?.kind === 'plan' && <SubscribePage planId={target.id} />}
         </main>
         <Footer />
+        <MobileChrome page={page} />
       </div>
     </PayKitProvider>
   )

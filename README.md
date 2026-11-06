@@ -2,6 +2,44 @@
 
 USDT commerce SDK for Whitechain. Merchants keep their existing website and order system. Customers authorize payments without buying WBT for gas; the PayKit service submits transactions.
 
+## Installation
+
+### Mobile PWA
+
+The PayKit mobile app is in [`web/`](web/), with a home-screen app manifest,
+offline app shell, fingerprint/face/device-PIN unlock, and a QR scanner.
+It shares the website's pixel artwork and typography.
+
+After publishing this build to the [PayKit app](https://paykit-app.vercel.app/#wallet):
+
+| Device | Install PayKit |
+|---|---|
+| Android | Open the app in Chrome, then **Settings → Install PayKit**, or use Chrome's **Install app** menu. |
+| iPhone / iPad | Open the app in Safari, tap **Share → Add to Home Screen**. |
+| Desktop | Open the app in Chrome or Edge and choose **Install app** in the browser menu. |
+
+In the installed app, use **Settings → Enable device unlock** for fingerprint,
+face, or device-PIN unlock. Tap **Scan** to scan a payment QR, upload a QR image,
+or paste an invoice link. You review the invoice before approving payment.
+
+This repository contains the PWA source; it is installed from its HTTPS website,
+rather than as an APK. Camera access and device unlock need a supported device
+and a secure origin. [Mobile setup and implementation details](web/MOBILE.md).
+
+### Run the PWA locally
+
+Use Node 24 and run these commands from the repository root:
+
+```sh
+npm ci
+npm run build -w web
+npm run preview -w web -- --host 127.0.0.1 --port 4174
+```
+
+Open **http://localhost:4174/#wallet**. The production build includes the service
+worker; the development server does not register it. Use `localhost` for device
+unlock rather than a numeric IP address.
+
 ## Live
 
 | What | URL |
