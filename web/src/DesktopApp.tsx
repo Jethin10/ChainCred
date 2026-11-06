@@ -8,7 +8,6 @@ import {
   InvoiceCreator,
   LoyaltySettings,
   MerchantGate,
-  MerchantGrid,
   PaymentsTable,
   PayKitProvider,
   PayoutSettings,
@@ -29,7 +28,8 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { Mark, PixelSky, PixelWipe } from './theme/pixels'
 import { useBackend, type Backend } from './theme/backend'
 import { PayPage, SubscribePage } from './live/PayPage'
-import { Companies, WalletPage } from './live/DesktopWalletPage'
+import { WalletPage } from './live/DesktopWalletPage'
+import { FeaturedShops, DemoShops } from './live/DesktopShops'
 import { MerchantLive } from './live/Onboarding'
 import { MobileChrome } from './mobile/Mobile'
 
@@ -98,7 +98,7 @@ export default function DesktopApp() {
             <p className="hero__lead">{meta.lead}</p>
           </div>
         </header>
-        {(page === 'shops' || (page === 'merchant' && window.location.hash.startsWith('#merchant/demo'))) && (
+        {page === 'merchant' && window.location.hash.startsWith('#merchant/demo') && (
           <div className="dock" role="group" aria-label="Preview wallet">
             <div className="dock__label">
               <span className="pixel">Wallet</span>
@@ -216,13 +216,8 @@ function Footer() {
 function ShopsPage() {
   return (
     <section className="page">
-      <Companies />
-      <section className="page__section">
-        <p className="eyebrow eyebrow--ink">SDK test shops</p>
-        <h2>Try the SDK without spending anything</h2>
-        <p className="page__lead">These demo shops run on the PayKit SDK in test mode: the full checkout, simulated settlement, no real funds.</p>
-        <MerchantGrid />
-      </section>
+      <FeaturedShops />
+      <DemoShops />
       <PlanDemo />
     </section>
   )
@@ -233,10 +228,10 @@ function PlanDemo() {
   const box = products.data?.find((p) => p.name.includes('subscription'))
   if (!box) return null
   return (
-    <section className="page__section">
+    <section className="page__section desktop-plan-preview">
       <p className="eyebrow eyebrow--ink">Installments</p>
       <h2>Spread a bigger order over time</h2>
-      <p className="page__lead">{box.name} from Mumbai Chai Co., paid in installments. Use the customer wallet.</p>
+      <p className="page__lead">{box.name} from Mumbai Chai Co., paid in installments. Try the complete installment checkout below.</p>
       <div className="narrow">
         <InstallmentPlanPicker
           input={{ merchant: 'chai-co', items: [{ productId: box.id, quantity: 1 }] }}
