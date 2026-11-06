@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ArkivPoints } from './ArkivPoints'
 import { api, connectWallet, errorText, hasWallet, isMobileWallet, knownAccount, short, type Activity, type PointsWallet } from './server'
 import { spendingOverview, type ActivityRange } from './overview'
 import { paymentTarget } from '../mobile/payment-link'
@@ -76,7 +77,7 @@ export function WalletPage() {
       {!address ? <ConnectPanel onConnect={connect} onLookup={setAddress} /> : <>
         {section === 'overview' && <Overview activity={activity} points={points} loading={loading} />}
         {section === 'activity' && <div className="docs-panel"><div className="docs-demo-bar"><span><i /> {activity?.length ?? 0} payments</span><button type="button" onClick={() => void load(address)}>Refresh</button></div><ActivityList activity={activity} loading={loading} /></div>}
-        {section === 'points' && <PointsView points={points} />}
+        {section === 'points' && <PointsView points={points} wallet={address} />}
       </>}
       {error && <div className="wallet-error" role="alert"><b>Couldn’t load your wallet.</b> {error}</div>}
     </section>
@@ -157,8 +158,9 @@ function ActivityList({ activity, loading }: { activity: Activity[] | null; load
   </ul>
 }
 
-function PointsView({ points }: { points: PointsWallet | null }) {
+function PointsView({ points, wallet }: { points: PointsWallet | null; wallet: string }) {
   return <>
+    <ArkivPoints wallet={wallet} />
     <div className="docs-panel">
       <div className="wallet-stats">
         <div className="wallet-stat"><span>Balance</span><b>{points ? points.balance.toLocaleString() : '…'}<small>PKP</small></b><em>Usable at every PayKit shop</em></div>

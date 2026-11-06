@@ -68,7 +68,7 @@ const config = {
   },
 
   // universal points: "chain" = PayKitPoints token on Whitechain, "arkiv" = lots and spends on Arkiv
-  pointsBackend: env("POINTS_BACKEND", "chain") === "arkiv" ? "arkiv" : "chain",
+  pointsBackend: env("POINTS_BACKEND", "arkiv") === "chain" ? "chain" : "arkiv",
   // platform cap on points per USDT when there is no PayKitPoints contract to read it from
   maxPointsPerUsdt: Number(env("MAX_POINTS_PER_USDT", "100")),
   // how long earned points stay spendable (Arkiv's max entity lifetime is ~182 days)

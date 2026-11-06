@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { api, connectWallet, errorText, hasWallet, isMobileWallet, knownAccount, short, type Activity, type MarketReward, type PointsWallet } from '../live/server'
 import { BrandMark } from '../live/BrandMark'
+import { ArkivPoints } from '../live/ArkivPoints'
 import { PixelSky } from '../theme/pixels'
 import { Icon, type IconName } from './icons'
 import { Sheet } from './Sheet'
@@ -69,7 +70,7 @@ export function Home() {
   useEffect(() => {
     const life = new AbortController()
     void knownAccount().then((a) => { if (!life.signal.aborted && a) setAddress((cur) => cur || a) })
-    void api<{ data: MarketReward[] }>('/v1/public/rewards', { signal: life.signal }).then((r) => setRewards(r.data), () => {})
+    void api<{ data: MarketReward[] }>('/v1/public/rewards?source=arkiv', { signal: life.signal }).then((r) => setRewards(r.data), () => {})
     return () => life.abort()
   }, [])
   const load = useCallback(async (account: string, signal?: AbortSignal) => {
@@ -139,6 +140,8 @@ export function Home() {
     <nav className="m-actions" aria-label="Quick actions">
       {actions.map((a) => <button key={a.label} onClick={a.run}><span><Icon name={a.icon} size={22} /></span>{a.label}</button>)}
     </nav>
+
+    {address && !sample && <ArkivPoints wallet={address} compact />}
 
     {sample && <p className="m-banner">Sample wallet. <button onClick={() => setSample(false)}>Exit</button></p>}
     {error && !sheet && <p className="m-banner m-banner--bad" role="alert">{error}{address && <button onClick={() => void load(address)}>Retry</button>}</p>}

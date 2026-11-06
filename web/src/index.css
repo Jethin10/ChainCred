@@ -560,3 +560,23 @@ h1, h2, h3 { font-weight: 400; letter-spacing: -0.01em; line-height: 1.05; }
 .camp__advanced { display: grid; gap: 12px; padding: 12px 14px; border-radius: var(--r); background: var(--mist); }
 .camp__form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 @media (max-width: 640px) { .camp__row { grid-template-columns: 1fr; } .camp__side { justify-items: start; } .camp__actions { justify-content: flex-start; } }
+
+/* Points on Arkiv: read straight from Arkiv (desktop wallet + mobile home) */
+.arkiv-points { display: grid; gap: 12px; margin: 0 0 16px; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--r-lg); background: linear-gradient(180deg, #f7fbff, #fff); }
+.arkiv-points__head { display: flex; align-items: flex-start; gap: 12px; }
+.arkiv-points__head > div { display: grid; gap: 2px; min-width: 0; }
+.arkiv-points__head b { font-size: 15px; }
+.arkiv-points__badge { flex: none; padding: 4px 8px; border-radius: var(--r-sm); background: var(--ink); color: #fff; font: 11px var(--pixel); }
+.arkiv-points__ok { color: var(--good); font-size: 13px; }
+.arkiv-points__warn { color: #a15c00; font-size: 13px; }
+.arkiv-points__lots { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.arkiv-points__lots li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 14px; align-items: center; padding: 8px 0; border-top: 1px dashed var(--line); font-size: 13px; }
+.arkiv-points__lots li > span:nth-child(2) { color: var(--muted); }
+.arkiv-points__links { display: inline-flex; gap: 10px; }
+.arkiv-points__links a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.arkiv-points__query { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted); }
+.arkiv-points__query span { grid-column: 1 / -1; }
+.arkiv-points__query code { overflow-wrap: anywhere; padding: 8px 10px; border-radius: var(--r-sm); background: #0d1117; color: #e6edf3; font-size: 12px; }
+.arkiv-points__query button { height: 34px; padding: 0 12px; border: 1px solid var(--ink); border-radius: var(--r-sm); background: #fff; font: inherit; color: var(--ink); cursor: pointer; }
+.arkiv-points--compact { margin: 14px 0 0; }
+@media (max-width: 640px) { .arkiv-points__lots li { grid-template-columns: 1fr; } }

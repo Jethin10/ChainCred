@@ -36,7 +36,7 @@ export function ShopsDirectory() {
   }, [])
   useEffect(() => {
     const life = new AbortController()
-    void api<{ data: MarketReward[] }>('/v1/public/rewards', { signal: life.signal }).then((r) => setRewards(r.data), () => {})
+    void api<{ data: MarketReward[] }>('/v1/public/rewards?source=arkiv', { signal: life.signal }).then((r) => setRewards(r.data), () => {})
     void knownAccount().then((a) => {
       if (!a || life.signal.aborted) return
       setAddress(a)

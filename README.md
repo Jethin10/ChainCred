@@ -50,6 +50,32 @@ All contracts are deployed and verified on the Whitechain explorer:
 
 Sources: [`paykit-contracts/contracts`](paykit-contracts/contracts). Addresses and constructor arguments: [`paykit-contracts/deployments/1874.json`](paykit-contracts/deployments/1874.json).
 
+## Loyalty points on Arkiv
+
+Points, campaigns and rewards live on **Arkiv** (Rabdi testnet, chain `7794095`): each points lot is owned by the shop that issued it and expires on its own. The wallet's **Points** panel and the rewards on **Shops** read straight from Arkiv.
+
+**Wallets that wrote our entities** (each shop writes with its own signer key, the one registered in `MerchantRegistry`):
+
+| Account | Writes |
+|---|---|
+| `0x1661f882554304e6E1ECE61780595D99e45d1fb6` | Tee Shop: its campaign and the points lots it issued |
+| `0xB1128c8f5E25c5E5e5206Cd782de8365C29b6fD0` | Jeans Co: its rewards and the points spends it accepted |
+| `0x80FB0aa1FEAa89A0EBE4fb9E48B7514f57173d23` | PayKit funder: sends test gas (tGLM) to shop accounts, owns no entities |
+
+**One query to run.** This returns one customer's points lots, each with its owner, expiry and fields:
+
+```sh
+curl -s https://rpc.rabdi.db-chain.testnet.arkiv.network -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"arkiv_query","params":["arkiv.schema = str('"'"'paykit.lot'"'"') AND holder = addr(0x80dB22273dE4B41a1B23ea3047bAA7c12725A248)",{"select":{"key":true,"owner":true,"expiresAt":true,"attributes":true}}]}'
+```
+
+Arkiv docs for judges:
+- [Schema](arkiv/schema.md)
+- [How we use Arkiv](arkiv/how-you-use-arkiv.md)
+- [Why Arkiv](arkiv/why-arkiv.md)
+- [Reach](arkiv/reach.md)
+- [Friction](arkiv/friction.md)
+- Design notes: [paykit-server/ARKIV.md](paykit-server/ARKIV.md)
+
 ## Architecture
 
 ```
@@ -332,6 +358,19 @@ cd ../frontend && VITE_PAYKIT_APP_URL=/app npm run build && node scripts/vercel-
 # 3. (only if the redirect ever needs changing) the old app domain
 cd .. && node scripts/redirect-old-app.mjs && cd web && vercel deploy --prebuilt --prod
 ```
+
+## How we used AI
+
+PayKit was built by our team of three at ETHGlobal Mumbai with AI coding agents (Claude Code and OpenAI Codex) doing much of the typing:
+- **Code:** the SDK, server, app, contract integration and tests.
+- **Media:** the landing page media, the recorded product clips and the in-house motion clips.
+- **Docs:** documentation drafts.
+
+We chose the architecture and product decisions, reviewed and tested the changes, ran the deployments and payments on Whitechain and Arkiv, and wrote or edited the feedback. AI-assisted commits are marked in the git history where the tool added a co-author line.
+
+## License
+
+[MIT](LICENSE)
 
 ## More docs
 

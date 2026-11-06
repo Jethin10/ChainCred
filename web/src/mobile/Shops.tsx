@@ -8,7 +8,7 @@ export function Shops() {
   const { shops, loading, error, retry } = useShops()
   const [q, setQ] = useState('')
   const [rewards, setRewards] = useState<MarketReward[]>([])
-  useEffect(() => { const life = new AbortController(); void api<{ data: MarketReward[] }>('/v1/public/rewards', { signal: life.signal }).then((r) => setRewards(r.data), () => {}); return () => life.abort() }, [])
+  useEffect(() => { const life = new AbortController(); void api<{ data: MarketReward[] }>('/v1/public/rewards?source=arkiv', { signal: life.signal }).then((r) => setRewards(r.data), () => {}); return () => life.abort() }, [])
   const list = useMemo(() => shops.filter((c) => `${c.name} ${c.kind} ${c.blurb}`.toLowerCase().includes(q.toLowerCase().trim())), [q, shops])
   return <div className="m-shops m-rise">
     <header className="m-shops-intro"><p className="m-label">{shops.length} shops take PayKit</p><h2>Pay once, earn everywhere.</h2></header>
