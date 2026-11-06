@@ -1,32 +1,17 @@
-# React + TypeScript + Vite
+# PayKit app
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The SDK showcase and app pages: SDK components (`#components`), Shops, Invoice, Payments and Merchant.
+It uses the landing page's design: pixel-dithered sky, Da Vinci italic headings, Geist text, Chicago pixel labels
+and black pill buttons. The fonts are in `public/fonts`, the theme is in `src/index.css`, and the sky
+canvas and page transition are in `src/theme/pixels.tsx`.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+npm run server:demo   # PayKit API on :8787, simulated chain, demo shops
+npm run dev           # this app on :5174; /v1 is proxied to the API
+npm run frontend      # landing page on :5176; its CTAs open this app
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+When the API answers `/v1/status`, the app uses it and the top bar shows **Live API**. Otherwise it falls
+back to an in-browser mock. Click the badge to switch. Set `VITE_PAYKIT_API_URL` to use another API, or
+`PAYKIT_API_PROXY` to proxy somewhere other than `http://127.0.0.1:8787`. `VITE_PAYKIT_SITE_URL` sets
+where Home links (default `http://127.0.0.1:5176`).
