@@ -30,6 +30,7 @@ import { Mark, PixelSky, PixelWipe } from './theme/pixels'
 import { useBackend, type Backend } from './theme/backend'
 import { PayPage, SubscribePage } from './live/PayPage'
 import { Companies, WalletPage } from './live/WalletPage'
+import { MerchantLive } from './live/Onboarding'
 
 // Public test keys. Never fund them. The merchant key owns the demo shop on the mock and on `npm run server:demo`.
 const MERCHANT_KEY = '0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba'
@@ -44,7 +45,7 @@ const PAGES: Array<{ key: Page; label: string; eyebrow: string; title: string; l
   { key: 'components', label: 'SDK', eyebrow: '@paykit/react', title: 'Components you own', lead: 'Copy the view, keep the payment logic in the SDK. Every preview runs a real checkout flow on simulated funds.' },
   { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Companies with PayKit at checkout. Pay with one signature, never need gas, and earn points you can spend at any of them.' },
   { key: 'wallet', label: 'Wallet', eyebrow: 'Your invoices', title: 'One wallet, every shop', lead: 'Invoices, receipts and points from every company that takes PayKit. Real test USDT on Whitechain.' },
-  { key: 'merchant', label: 'Merchant', eyebrow: 'Dashboard', title: 'Your shop, in one place', lead: 'Use the merchant wallet to see Mumbai Chai Co., or any other wallet to try sign-up.' },
+  { key: 'merchant', label: 'Merchant', eyebrow: 'For businesses', title: 'Get paid in USDT, your way', lead: 'Sign up in two minutes, brand your checkout, join the points network, and start sending invoices.' },
 ]
 
 // The landing page (frontend/) links here as /#components, /#shops, /#invoice, /#me or /#merchant;
@@ -95,7 +96,7 @@ export default function App() {
             <p className="hero__lead">{meta.lead}</p>
           </div>
         </header>
-        {(page === 'shops' || page === 'merchant') && (
+        {(page === 'shops' || (page === 'merchant' && window.location.hash.startsWith('#merchant/demo'))) && (
           <div className="dock" role="group" aria-label="Preview wallet">
             <div className="dock__label">
               <span className="pixel">Wallet</span>
@@ -248,11 +249,20 @@ function PlanDemo() {
 }
 
 function MerchantPage() {
+  const demo = window.location.hash.startsWith('#merchant/demo')
   return (
     <section className="page">
-      <MerchantGate>
-        <MerchantDashboard />
-      </MerchantGate>
+      <nav className="merchant-tabs" aria-label="Merchant">
+        <a href="#merchant" aria-current={demo ? undefined : 'page'}>Your business</a>
+        <a href="#merchant/demo" aria-current={demo ? 'page' : undefined}>Demo dashboard <span>test mode</span></a>
+      </nav>
+      {demo ? (
+        <MerchantGate>
+          <MerchantDashboard />
+        </MerchantGate>
+      ) : (
+        <MerchantLive />
+      )}
     </section>
   )
 }

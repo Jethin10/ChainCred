@@ -353,3 +353,120 @@ h1, h2, h3 { font-weight: 400; letter-spacing: -0.01em; line-height: 1.05; }
 .company__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
 .company__go { font-weight: 600; font-size: 14px; white-space: nowrap; }
 .livepay__back { margin-top: 12px; text-decoration: none; }
+
+/* Merchant: live business vs demo dashboard */
+.merchant-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: var(--r); background: var(--mist); border: 1px solid var(--line); width: max-content; max-width: 100%; }
+.merchant-tabs a { padding: 8px 14px; border-radius: var(--r-sm); text-decoration: none; color: var(--ink-2); font-weight: 500; white-space: nowrap; }
+.merchant-tabs a[aria-current="page"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+.merchant-tabs span { margin-left: 6px; font-size: 11px; color: var(--muted); }
+
+/* Onboarding: vision */
+.onb { display: grid; gap: 28px; }
+.onb-vision { display: grid; gap: 22px; }
+.onb-vision__head h2 { margin: 8px 0 10px; font-family: var(--display); font-style: italic; font-weight: 400; font-size: clamp(2rem, 4.4vw, 3.2rem); line-height: 1.02; max-width: 22ch; }
+.onb-principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.onb-principle { padding: 18px 18px 20px; border: 1px solid var(--line); border-radius: var(--r-lg); background: #fff; }
+.onb-principle svg { width: 26px; height: 26px; padding: 6px; border-radius: var(--r-sm); background: var(--mist); fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; box-sizing: content-box; }
+.onb-principle h3 { margin: 14px 0 6px; font-size: 16px; }
+.onb-principle p { margin: 0; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+.onb-how { counter-reset: how; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 0; margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.onb-how li { counter-increment: how; display: grid; gap: 4px; padding: 16px 18px; background: var(--mist); border-right: 1px solid var(--line); }
+.onb-how li:last-child { border-right: 0; }
+.onb-how li::before { content: counter(how, decimal-leading-zero); font-family: var(--pixel); font-size: .7rem; color: var(--muted); }
+.onb-how span { color: var(--ink-2); font-size: 14px; }
+
+/* Onboarding: wizard */
+.onb-wizard { display: grid; gap: 20px; }
+.onb-steps { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.onb-steps button { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); background: #fff; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; }
+.onb-steps button:disabled { cursor: default; }
+.onb-steps button span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--mist); font-size: 12px; font-weight: 600; }
+.onb-steps li[aria-current="step"] button { color: var(--ink); border-color: var(--ink); }
+.onb-steps li[aria-current="step"] button span, .onb-steps li[data-done] button span { background: var(--ink); color: #fff; }
+.onb-steps li[data-done] button { color: var(--ink-2); }
+.onb-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 28px; align-items: start; }
+.onb-form { display: grid; gap: 14px; min-width: 0; }
+.onb-form h3 { margin: 0; font-size: 20px; }
+.onb-form .pk-muted { margin: 0; }
+.onb-field { display: grid; gap: 6px; min-width: 0; }
+.onb-field__label { font-size: 13px; font-weight: 600; color: var(--ink); }
+.onb-field__hint { font-size: 12.5px; color: var(--muted); }
+.onb-field input:not([type="range"]):not([type="checkbox"]):not([type="color"]), .onb-field select { width: 100%; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: var(--r); background: #fff; font: inherit; font-size: 15px; color: var(--ink); }
+.onb-field input:focus, .onb-field select:focus { outline: 2px solid var(--sky); outline-offset: 1px; }
+.onb-field input[type="range"] { accent-color: var(--ink); }
+.onb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+.onb-toggle { display: flex; align-items: center; gap: 10px; font-weight: 500; cursor: pointer; }
+.onb-toggle input { width: 18px; height: 18px; accent-color: var(--ink); }
+.onb-wallet { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--mist); }
+.onb-wallet__dot { width: 8px; height: 8px; border-radius: 2px; background: var(--good); }
+.onb-swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.onb-swatches > button { width: 36px; height: 36px; border: 2px solid #fff; border-radius: var(--r-sm); box-shadow: 0 0 0 1px var(--line-2); cursor: pointer; }
+.onb-swatches > button[aria-checked="true"] { box-shadow: 0 0 0 2px var(--ink); }
+.onb-swatches__custom { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border: 1px solid var(--line-2); border-radius: var(--r-sm); font-family: var(--mono, ui-monospace, monospace); font-size: 13px; }
+.onb-swatches__custom input { width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; }
+.onb-review { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 0; padding: 14px 0; border-block: 1px dashed var(--line-2); font-size: 14px; }
+.onb-review dt { color: var(--muted); }
+.onb-review dd { margin: 0; overflow-wrap: anywhere; }
+.onb-nav { display: flex; gap: 10px; justify-content: flex-end; padding-top: 6px; }
+
+/* Onboarding: live preview */
+.onb-preview { position: sticky; top: 96px; display: grid; gap: 10px; }
+.onb-preview__label { margin: 0; font-family: var(--pixel); font-size: .7rem; color: var(--muted); }
+.onb-card { position: relative; overflow: hidden; display: grid; gap: 8px; padding: 22px 20px 18px; border: 1px solid var(--line); border-radius: var(--r-lg); background: #fff; box-shadow: 0 18px 40px -26px rgb(0 0 0 / .4); }
+.onb-card__bar { position: absolute; inset: 0 0 auto; height: 5px; background: var(--brand); }
+.onb-card__shop { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.onb-card__tag { margin: -4px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.onb-card__amount { margin: 6px 0 2px; font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+.onb-card__amount small { font-size: 14px; color: var(--muted); font-weight: 600; }
+.onb-card dl { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin: 0; padding: 10px 0; border-block: 1px dashed var(--line); font-size: 13px; }
+.onb-card dt { color: var(--muted); }
+.onb-card dd { margin: 0; text-align: right; }
+.onb-card__reward { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px dashed var(--brand); border-radius: var(--r-sm); font-size: 13px; overflow-wrap: anywhere; }
+.onb-card__pay { margin-top: 4px; padding: 12px; border-radius: var(--r); background: var(--brand); color: #fff; text-align: center; font-weight: 600; }
+
+/* Onboarding: welcome + login */
+.onb-welcome { display: grid; gap: 14px; }
+.onb-welcome h2 { margin: 0; font-family: var(--display); font-style: italic; font-weight: 400; font-size: clamp(2rem, 4vw, 2.8rem); }
+.onb-welcome .pk-muted { margin: 0; }
+.onb-secret { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--mist); }
+.onb-secret > div { display: grid; gap: 4px; min-width: 0; }
+.onb-secret code, .onb-created code { font-size: 13px; overflow-wrap: anywhere; }
+.onb-code { border: 1px solid #1f2328; border-radius: var(--r); overflow: hidden; background: #0d1117; color: #e6edf3; }
+.onb-code__bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 12px; background: #161b22; font-size: 12px; color: #8b949e; }
+.onb-code__bar button { padding: 4px 10px; border: 0; border-radius: 6px; background: #fff; font: inherit; color: var(--ink); cursor: pointer; }
+.onb-code pre { margin: 0; padding: 14px; overflow-x: auto; font-size: 12.5px; line-height: 1.6; }
+.onb-login { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 16px; border: 1px dashed var(--line-2); border-radius: var(--r-lg); }
+.onb-login span { font-weight: 600; }
+.onb-login input { flex: 1; min-width: min(100%, 260px); height: 42px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: var(--r); font: inherit; font-size: 14px; }
+
+/* Merchant console */
+.onb-console { display: grid; gap: 22px; }
+.onb-console__head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 20px; align-items: center; border-top: 4px solid var(--brand) !important; }
+.onb-console__brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.onb-console__brand h2 { margin: 0; font-size: 22px; overflow-wrap: anywhere; }
+.onb-console__brand p { margin: 2px 0 0; }
+.onb-console__swatch { flex: none; width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--brand); }
+.onb-console__stats { display: flex; flex-wrap: wrap; gap: 22px; }
+.onb-console__stats div { display: grid; gap: 2px; }
+.onb-console__stats span { font-size: 12px; color: var(--muted); }
+.onb-console__stats b { font-size: 17px; white-space: nowrap; }
+.onb-invoice { display: grid; gap: 12px; }
+.onb-created { display: grid; gap: 6px; margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--mist); }
+.onb-created__actions { display: flex; gap: 14px; }
+
+/* Pay page: the brand of the merchant */
+.livepay--branded { position: relative; overflow: hidden; }
+.livepay--branded::before { content: ""; position: absolute; inset: 0 0 auto; height: 5px; background: var(--brand); }
+.livepay__merchant { display: flex; align-items: center; gap: 12px; }
+.livepay__mark { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--brand); color: #fff; font-weight: 700; font-size: 18px; }
+.livepay__who { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.livepay__who b { font-size: 16px; overflow-wrap: anywhere; }
+.livepay__who span { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+
+@media (max-width: 900px) {
+  .onb-body { grid-template-columns: 1fr; }
+  .onb-preview { position: static; }
+  .onb-console__head { grid-template-columns: 1fr; }
+  .onb-how li { border-right: 0; border-bottom: 1px solid var(--line); }
+  .onb-how li:last-child { border-bottom: 0; }
+}

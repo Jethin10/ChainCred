@@ -19,7 +19,7 @@ function publicInvoice(inv, merchant) {
   return {
     id: inv.id,
     status: invoiceStatus(inv),
-    merchant: merchant ? { id: merchant.id, name: merchant.name } : undefined,
+    merchant: merchant ? { id: merchant.id, name: merchant.name, profile: merchant.profile || null } : undefined,
     reference: inv.reference || null,
     description: inv.description || null,
     currency: "USDT",

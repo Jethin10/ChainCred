@@ -23,12 +23,12 @@ export class ServerError extends Error {
   }
 }
 
-export async function api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
+export async function api<T>(path: string, init?: { method?: string; body?: unknown; key?: string }): Promise<T> {
   let res: Response
   try {
     res = await fetch(`${SERVER_URL}${path}`, {
       method: init?.method ?? 'GET',
-      headers: init?.body !== undefined ? { 'content-type': 'application/json' } : undefined,
+      headers: { ...(init?.body !== undefined ? { 'content-type': 'application/json' } : {}), ...(init?.key ? { authorization: `Bearer ${init.key}` } : {}) },
       body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
     })
   } catch {
@@ -45,10 +45,11 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
 
 // ── server shapes (only the fields the pages use) ──
 
+export type MerchantProfile = { website: string | null; category: string | null; tagline: string | null; accent: string | null }
 export type Invoice = {
   id: string
   status: string
-  merchant?: { id: string; name: string }
+  merchant?: { id: string; name: string; profile?: MerchantProfile | null }
   reference: string | null
   description: string | null
   amount: string
@@ -179,6 +180,14 @@ async function switchToWhitechain(eth: Eip1193) {
   }
 }
 
+/** personal_sign: a plain message the wallet shows as text. Free, no transaction. */
+export async function signMessage(account: string, message: string): Promise<string> {
+  const eth = provider()
+  if (!eth) throw new ServerError('MetaMask not found.')
+  const hex = '0x' + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, '0')).join('')
+  return ask<string>(eth, 'personal_sign', [hex, account], 5 * MINUTE)
+}
+
 const DOMAIN_FIELDS: Array<[string, string]> = [['name', 'string'], ['version', 'string'], ['chainId', 'uint256'], ['verifyingContract', 'address'], ['salt', 'bytes32']]
 
 /** eth_signTypedData_v4 with the EIP712Domain type the wallet needs. Free: no transaction, no gas. */
@@ -261,3 +270,20 @@ export const COMPANIES = [
     tone: 'books',
   },
 ] as const
+
+// ── merchant onboarding + console ──
+export type Merchant = { id: string; name: string; payoutAddress: string; webhookUrl: string | null; profile: MerchantProfile | null; registerTx: string | null; createdAt: string }
+export type Onboarded = { merchant: Merchant; apiKey: string; webhookSecret: string; campaign: { id: string } | null; reward: { id: string } | null; warnings: string[] }
+export type MerchantInvoice = Invoice & { payUrl: string; createdAt: string; amountDue: string }
+export type Campaign = { id: string; name: string; pointsPerUsdt: number; issued: number; status?: string }
+export type Reward = { id: string; name: string; label: string; pointsCost: number; redeemed: number; status?: string }
+
+/** The exact text the payout wallet signs (must match paykit-server's onboardingMessage). */
+export const onboardingMessage = (name: string, payout: string, time: string) =>
+  `PayKit merchant onboarding
+
+Business: ${name}
+Payout wallet: ${payout}
+Time: ${time}
+
+I control this wallet and want PayKit to send my sales to it.`
