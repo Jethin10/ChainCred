@@ -110,7 +110,18 @@ npm run frontend                                          # http://localhost:517
 - **SDK packages:** `npm run sdk:build && npm run sdk:test`.
 - **Offline demo:** `npm run server:demo` starts the SDK API on a simulated chain (no funds, port 8787).
 
-## Add PayKit to your app (one command)
+## The SDK
+
+PayKit's SDK is what a merchant adds to their own app. The main package is **[`usepaykit`](https://www.npmjs.com/package/usepaykit)** on npm (source in [`packages/paykit`](packages/paykit/README.md)). It has no dependencies, ships TypeScript types, and runs on Node 18+, Bun, Deno and edge runtimes.
+
+| Import | Runs in | What it gives you |
+|---|---|---|
+| `usepaykit` | your server | `PayKit` client for invoices, payments, refunds, plans, points and merchant settings; `verifyWebhook` |
+| `usepaykit/checkout` | the browser | `openCheckout({ invoiceId })`: the in-page MetaMask checkout. It opens on the shop's own page, with no redirect. |
+| `npx usepaykit` | your terminal | CLI: project setup, `doctor`, invoices, webhooks, and an MCP server for coding agents |
+| `@paykit/react` | React apps | Copyable components and hooks (local workspace package, see [below](#react-components)) |
+
+### Set up with one command
 
 ```sh
 npx usepaykit@latest init
@@ -125,6 +136,122 @@ This command:
 - Adds `PAYKIT_*` placeholders to `.env.example`.
 
 Then ask your agent: *"Add PayKit checkout to this app."* The agent guide is [`packages/paykit/AGENTS.md`](packages/paykit/AGENTS.md): drag it into any chat, or run `npx usepaykit agents`.
+
+### Use it in about 20 lines
+
+The demo shops in [`stores/`](stores/) are separate apps that integrate PayKit exactly like this.
+
+```js
+// server: create the invoice from your own order (never trust a price from the browser)
+import { PayKit, verifyWebhook } from "usepaykit";
+const paykit = new PayKit();                       // PAYKIT_API_KEY from env
+app.post("/api/checkout", async (req, res) => {
+  const order = await createOrder(req.body);       // your code
+  const invoice = await paykit.invoices.create({ amount: order.total, reference: order.id });
+  res.json({ invoiceId: invoice.id });
+});
+// server: fulfil from the signed webhook
+app.post("/api/paykit/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  const event = await verifyWebhook(req.body, req.get("paykit-signature"), process.env.PAYKIT_WEBHOOK_SECRET);
+  if (event.type === "invoice.paid") await markPaid(event.data.invoice.reference);
+  res.sendStatus(200);
+});
+
+// browser: pay on your own page, no redirect
+import { openCheckout } from "usepaykit/checkout";
+const { invoiceId } = await (await fetch("/api/checkout", { method: "POST", body: JSON.stringify(cart) })).json();
+const result = await openCheckout({ invoiceId });   // MetaMask → one signature → settled on Whitechain
+```
+
+Merchants get their `PAYKIT_API_KEY` and webhook secret by signing up in the app under **Merchant** (one wallet signature, no gas).
+React apps can use the [components](#react-components) instead.
+
+### Server API
+
+```js
+import { PayKit } from "usepaykit";
+const paykit = new PayKit({ apiKey: process.env.PAYKIT_API_KEY }); // serverUrl defaults to the live server
+```
+
+| Namespace | Methods |
+|---|---|
+| `paykit.invoices` | `create({ amount, reference, description, successUrl, dueDate, metadata })`, `get`, `list`, `getPublic`, `waitForPaid` |
+| `paykit.payments` | `list`, `get`, `receipt(paymentId)` (cross-checked against the chain) |
+| `paykit.refunds` | `create(paymentId, { amount })` returns typed data for the payout wallet to sign; `authorize(refundId, signature)` |
+| `paykit.plans` / `paykit.subscriptions` | create and list subscription or instalment plans; `cancel` |
+| `paykit.points` | `createCampaign({ pointsPerUsdt })`, `createReward({ name, pointsCost, type, value })`, `summary`, `customer(wallet)` |
+| `paykit.merchant` | `get`, `update({ webhookUrl, profile })` |
+| `paykit.webhooks` | `test`, `events`, `redeliver`, `verify` |
+
+Amounts are USDT decimal strings, such as `"12.50"`. Every failure throws a `PayKitError` with `status`, `code` and `message`.
+
+### In-page checkout
+
+```js
+import { openCheckout } from "usepaykit/checkout";
+const result = await openCheckout({ invoiceId, accent: "#1f3d2b" });
+if (result.status === "paid") showThankYou(result.paymentId, result.txUrl);
+```
+
+The checkout does the rest:
+
+1. It connects MetaMask (EIP-6963) and switches it to Whitechain.
+2. It shows the shop's points rewards.
+3. It asks for one gasless USDT signature.
+4. It waits until the router has settled the payment onchain.
+
+The invoice and receipt stay on PayKit, so the customer also sees them in the PayKit wallet. Options: `invoiceId`, `server`, `accent`, `walletUrl`, `onPaid`. You can also skip the code entirely and send the customer to the invoice's hosted `payUrl`.
+
+### Webhooks
+
+Each delivery is a `POST` with a `PayKit-Signature: t=<unix>,v1=<hex>` header: HMAC-SHA256 over `${t}.${rawBody}`, with a 5-minute tolerance. `verifyWebhook(rawBody, header, secret)` checks the signature and returns the event. Failed deliveries are retried, and the merchant can redeliver any event.
+
+Events:
+
+- `invoice.paid`
+- `payment.settled`
+- `refund.settled`
+- `subscription.activated`, `subscription.charged`, `subscription.charge_failed`, `subscription.past_due`, `subscription.cancelled`, `subscription.completed`
+- `test.ping`
+
+### CLI
+
+```
+npx usepaykit init                      set up the package, agent guide, skills and MCP server
+npx usepaykit doctor                    check the server and your API key
+npx usepaykit whoami                    show the merchant account
+npx usepaykit invoice create 5 --reference ORDER-1
+npx usepaykit invoice get <id> | list | wait <id>
+npx usepaykit webhook set <url> | test
+npx usepaykit agents                    print the agent guide
+npx usepaykit mcp                       run the MCP server (stdio)
+```
+
+The CLI reads `PAYKIT_API_KEY` from the environment, `.env` or `.env.local`. Add `--json` for machine-readable output.
+
+### For AI coding agents
+
+`npx usepaykit init` installs PayKit for whichever agents a project uses:
+
+- **Agents covered:** Claude Code, Cursor, VS Code/Copilot, Codex, Windsurf and Gemini CLI.
+- **Instructions:** it writes [`AGENTS.md`](packages/paykit/AGENTS.md) as `PAYKIT.md`, plus a skill or rule per agent.
+- **MCP server:** it registers PayKit's MCP server, which gives the agent these tools:
+  - `paykit_guide` and `paykit_doctor`
+  - `paykit_get_merchant`
+  - `paykit_create_invoice`, `paykit_get_invoice` and `paykit_list_invoices`
+  - `paykit_list_payments`
+  - `paykit_set_webhook` and `paykit_send_test_webhook`
+
+Then ask the agent: *"Add PayKit checkout to this app."* The API key always stays in `.env`; it is never written into config files.
+
+### React components
+
+[`packages/react`](packages/README.md) (`@paykit/react`) has components you copy into your app and style however you like. The payment logic stays in hooks:
+
+- **Components:** `CheckoutButton`, `InvoiceView`, `PaymentStatus`, `ReceiptView`, `ProductGrid`, `Cart`, `DepositPicker`, `InstallmentPlanPicker`, plus merchant dashboards.
+- **Hooks:** `useCheckout`, `usePayment`, `useCart`, `usePlanCheckout`, `useRefund`.
+
+The [component gallery](https://paykit-landing-one.vercel.app/app/#components) previews them live in test mode. `npm run ui:add -- checkout --cwd ../your-store` copies a component and its stylesheet into your project.
 
 ## Mobile app (PWA)
 
@@ -205,35 +332,6 @@ cd ../frontend && VITE_PAYKIT_APP_URL=/app npm run build && node scripts/vercel-
 # 3. (only if the redirect ever needs changing) the old app domain
 cd .. && node scripts/redirect-old-app.mjs && cd web && vercel deploy --prebuilt --prod
 ```
-
-## Merchant integration (about 20 lines)
-
-The demo shops in [`stores/`](stores/) are separate apps that integrate PayKit exactly like this.
-
-```js
-// server: create the invoice from your own order (never trust a price from the browser)
-import { PayKit, verifyWebhook } from "usepaykit";
-const paykit = new PayKit();                       // PAYKIT_API_KEY from env
-app.post("/api/checkout", async (req, res) => {
-  const order = await createOrder(req.body);       // your code
-  const invoice = await paykit.invoices.create({ amount: order.total, reference: order.id });
-  res.json({ invoiceId: invoice.id });
-});
-// server: fulfil from the signed webhook
-app.post("/api/paykit/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-  const event = await verifyWebhook(req.body, req.get("paykit-signature"), process.env.PAYKIT_WEBHOOK_SECRET);
-  if (event.type === "invoice.paid") await markPaid(event.data.invoice.reference);
-  res.sendStatus(200);
-});
-
-// browser: pay on your own page, no redirect
-import { openCheckout } from "usepaykit/checkout";
-const { invoiceId } = await (await fetch("/api/checkout", { method: "POST", body: JSON.stringify(cart) })).json();
-const result = await openCheckout({ invoiceId });   // MetaMask → one signature → settled on Whitechain
-```
-
-Merchants get their `PAYKIT_API_KEY` and webhook secret by signing up in the app under **Merchant** (one wallet signature, no gas).
-React apps can instead use the copyable components in [`packages/react`](packages/README.md), with a `CheckoutButton`, invoices, receipts and plans.
 
 ## Current limitations
 
