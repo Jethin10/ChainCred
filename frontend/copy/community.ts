@@ -3,7 +3,7 @@ import type { Rewrite } from "./rewrites.ts"
 
 /**
  * Landing page layout changes:
- * - "Writing" (the stamp notes) moves up one section, so the "Beyond code" section follows it.
+ * - "Writing" (the stamp notes, "Build notes") and "Work" (product cards and clips) swap places.
  * - "Beyond code" drops the photo ring for a 3D pixel swarm (`swarm.js`) behind the same title,
  *   text and button.
  */
@@ -16,7 +16,7 @@ export const community: Rewrite[] = [
   {
     file: LANDING,
     from: `const qn=[{id:"work",label:"Work"},{id:"values",label:"Values"},{id:"community",label:"Community"},{id:"writing",label:"Writing"},{id:"talk",label:"Small talk"}]`,
-    to: `const qn=[{id:"work",label:"Work"},{id:"values",label:"Values"},{id:"writing",label:"Writing"},{id:"community",label:"Community"},{id:"talk",label:"Small talk"}]`,
+    to: `const qn=[{id:"writing",label:"Writing"},{id:"values",label:"Values"},{id:"work",label:"Work"},{id:"community",label:"Community"},{id:"talk",label:"Small talk"}]`,
   },
   {
     file: LANDING,
