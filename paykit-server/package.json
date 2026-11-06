@@ -11,12 +11,14 @@
     "webhook-receiver": "node scripts/webhook-receiver.js",
     "gen-secrets": "node scripts/gen-secrets.js",
     "demo:subscription": "node scripts/demo-subscription.js",
-    "demo:points": "node scripts/demo-points.js"
+    "demo:points": "node scripts/demo-points.js",
+    "bundle-contracts": "node scripts/bundle-contracts.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@vercel/functions": "^3.11.0",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
     "express": "^4.21.2",
