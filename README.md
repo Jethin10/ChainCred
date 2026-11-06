@@ -12,14 +12,16 @@ USDT commerce SDK for Whitechain. Merchants keep their existing website and orde
 
 Invoices and plans created on the server link to the app's hosted pages: `#pay/<invoiceId>` pays real
 test USDT with one wallet signature, `#pay/subscribe/<planId>` starts a plan. The rest of the app runs
-its demo in the browser.
+against the same server: `paykit-server` also hosts the SDK API (`packages/server`, bundled by
+`npm run bundle-sdk` in `paykit-server`), with demo shops and simulated settlement for the preview
+wallets, its state kept in Neon.
 
-Redeploy (Vercel CLI, logged in): `paykit-server` with `vercel deploy --prod`; the two sites are built
+Redeploy (Vercel CLI, logged in): `paykit-server` with `npm run bundle-sdk && vercel deploy --prod`; the two sites are built
 locally and shipped prebuilt:
 
 ```sh
 # app
-cd web && VITE_PAYKIT_SITE_URL=https://paykit-landing-one.vercel.app npm run build
+cd web && VITE_PAYKIT_API_URL=https://paykit-server.vercel.app VITE_PAYKIT_SITE_URL=https://paykit-landing-one.vercel.app npm run build
 node -e "const f=require('fs');f.rmSync('.vercel/output',{recursive:true,force:true});f.cpSync('dist','.vercel/output/static',{recursive:true});f.writeFileSync('.vercel/output/config.json','{\"version\":3}')"
 vercel deploy --prebuilt --prod
 # landing

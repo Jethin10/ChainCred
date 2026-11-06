@@ -7,6 +7,8 @@ export type Backend = {
   source: Source
   /** Whether the PayKit API answered the last probe. */
   reachable: boolean | null
+  /** The API runs in test mode: orders placed through it never move real funds. */
+  testMode: boolean
   apiUrl: string
   client: PayKitClient
   mock: ReturnType<typeof createMockApi> | null
@@ -23,14 +25,14 @@ function readChoice(): Source | null {
   try { const v = localStorage.getItem(KEY); return v === 'live' || v === 'mock' ? v : null } catch { return null }
 }
 
-async function probe(): Promise<boolean> {
+async function probe(): Promise<{ ok: boolean; testMode: boolean }> {
   try {
-    const r = await fetch(`${API_URL}/v1/status`, { signal: AbortSignal.timeout(1500) })
-    if (!r.ok) return false
-    const body = (await r.json()) as { chainId?: unknown }
-    return typeof body.chainId === 'number'
+    const r = await fetch(`${API_URL}/v1/status`, { signal: AbortSignal.timeout(6000) })
+    if (!r.ok) return { ok: false, testMode: false }
+    const body = (await r.json()) as { chainId?: unknown; testMode?: unknown }
+    return { ok: typeof body.chainId === 'number', testMode: body.testMode === true }
   } catch {
-    return false
+    return { ok: false, testMode: false }
   }
 }
 
@@ -38,10 +40,11 @@ async function probe(): Promise<boolean> {
 export function useBackend(): Backend {
   const [choice, setChoice] = useState<Source | null>(readChoice)
   const [reachable, setReachable] = useState<boolean | null>(null)
+  const [testMode, setTestMode] = useState(false)
 
   useEffect(() => {
     let alive = true
-    const check = () => void probe().then((ok) => alive && setReachable(ok))
+    const check = () => void probe().then((p) => { if (!alive) return; setReachable(p.ok); setTestMode(p.testMode) })
     check()
     const id = window.setInterval(check, 10_000)
     return () => { alive = false; window.clearInterval(id) }
@@ -59,6 +62,8 @@ export function useBackend(): Backend {
   return {
     source,
     reachable,
+    // The in-browser mock never moves funds either.
+    testMode: source === 'mock' || testMode,
     apiUrl: API_URL,
     ...value,
     setSource: (s) => { setChoice(s); try { localStorage.setItem(KEY, s) } catch { /* private mode */ } },

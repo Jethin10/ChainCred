@@ -32,15 +32,20 @@ const session = await paykit.checkout.createSession({
 
 const ACCENTS: Array<[string, string]> = [['Ink', '#0a0a0a'], ['Sky', '#0077d9'], ['Chai', '#a3541d'], ['Mint', '#0f7a5a'], ['Berry', '#b4235a']]
 
+// Clients that talk to the live PayKit API: poll gently and keep what the server already has.
+const liveClients = new WeakSet<PayKitClient>()
+const poll = (client: PayKitClient) => (liveClients.has(client) ? 750 : 25)
+
 // The test wallet earns points the honest way: one earlier purchase (45 USDT → 450 PKP at Mumbai Chai Co.).
+// On the live API points persist, so it only buys when the wallet can't afford a reward yet.
 const earnedPoints = new WeakMap<PayKitClient, Promise<unknown>>()
 function earnPreviewPoints(client: PayKitClient) {
   let job = earnedPoints.get(client)
   if (!job) {
-    job = client.merchants.products('chai-co').then((list) => {
+    job = testWallet.getAddress().then((a) => client.merchants.points(a)).then((b) => Number(b.balance) >= 60, () => false).then((enough) => enough ? null : client.merchants.products('chai-co').then((list) => {
       const box = list.find((p) => p.name.includes('subscription'))
-      return box ? client.checkout.pay({ merchant: 'chai-co', items: [{ productId: box.id, quantity: 1 }] }, testWallet, { wait: { until: 'included', intervalMs: 25 } }) : null
-    }).catch(() => null)
+      return box ? client.checkout.pay({ merchant: 'chai-co', items: [{ productId: box.id, quantity: 1 }] }, testWallet, { wait: { until: 'included', intervalMs: poll(client) } }) : null
+    })).catch(() => null)
     earnedPoints.set(client, job)
   }
   return job
@@ -48,8 +53,10 @@ function earnPreviewPoints(client: PayKitClient) {
 
 function idFromHash() { return catalog.find((item) => item.id === location.hash.split('/')[1])?.id ?? 'checkout' }
 
-export default function ComponentsPage() {
+/** `liveClient`: the app's client for the live PayKit API. Without it, previews run on an in-browser mock. */
+export default function ComponentsPage({ liveClient }: { liveClient?: PayKitClient | null }) {
   const [client] = useState(() => {
+    if (liveClient) { liveClients.add(liveClient); return liveClient }
     const mock = createMockApi({ stepMs: 200, latencyMs: 0 })
     return createPayKitClient({ baseUrl: mock.baseUrl, fetch: mock.fetch, siwe: mock.siwe })
   })
@@ -109,7 +116,7 @@ function ComponentWorkbench({ client }: { client: PayKitClient }) {
       if (selectedId === 'payment-status' || selectedId === 'receipt') {
         if (paymentRef.current) paymentId = paymentRef.current
         else {
-          const result = await client.checkout.pay({ sessionId: session.id }, testWallet, { expectedAmount: '10000000', wait: { until: 'included', intervalMs: 25 } })
+          const result = await client.checkout.pay({ sessionId: session.id }, testWallet, { expectedAmount: '10000000', wait: { until: 'included', intervalMs: poll(client) } })
           paymentId = result.payment.paymentId
           paymentRef.current = paymentId
         }
