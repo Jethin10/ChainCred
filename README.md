@@ -249,6 +249,7 @@ React apps can instead use the copyable components in [`packages/react`](package
 
 ## More docs
 
+- [Whitechain feedback](WHITECHAIN_FEEDBACK.md): what worked, where we got stuck, and what the docs were missing
 - [Merchant integration and customization](packages/README.md) · [Existing-store Next.js example](examples/next-store/README.md)
 - [Specification](plan.md) · [SDK implementation status](research/SDK-IMPLEMENTATION-STATUS.md) · [Contracts integration review](research/CONTRACTS-INTEGRATION.md)
 - [Payment server](paykit-server/README.md) · [Arkiv loyalty backend](paykit-server/ARKIV.md) · [MCP server for AI agents](packages/mcp/README.md)
