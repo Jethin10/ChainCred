@@ -67,6 +67,8 @@ export interface ChainAdapter {
   permitNonce(owner: Address): Promise<bigint>;
   /** PaymentRouter.committed(payer, token): USDT already promised to active plans. */
   committed(payer: Address): Promise<bigint>;
+  /** PayKitPoints balances, when the points contract is deployed. */
+  pointsOf?(wallet: Address): Promise<{ balance: bigint; lifetimeEarned: bigint; lifetimeRedeemed: bigint }>;
   /** Whether the relay wallet has enough WBT to keep sponsoring gas. */
   sponsorship(): Promise<{ ok: boolean; reason: string | null }>;
 }

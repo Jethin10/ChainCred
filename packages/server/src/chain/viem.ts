@@ -194,6 +194,15 @@ export function createViemChain(options: ViemChainOptions): ChainAdapter {
     revokeDomain: ({ merchantId, domainHash }) => write(admin, registry, merchantRegistryAbi, "revokeDomain", [merchantId, domainHash]),
     attestDomain: ({ merchantId, domainHash, expiresAt }) => write(admin, registry, merchantRegistryAbi, "attestDomain", [merchantId, domainHash, expiresAt]),
 
+    ...(network.contracts.points ? {
+      async pointsOf(wallet: Address) {
+        const points = network.contracts.points!;
+        const read = (functionName: "balanceOf" | "lifetimeEarned" | "lifetimeRedeemed") => publicClient.readContract({ address: points, abi: payKitPointsAbi, functionName, args: [wallet] });
+        const [balance, lifetimeEarned, lifetimeRedeemed] = await Promise.all([read("balanceOf"), read("lifetimeEarned"), read("lifetimeRedeemed")]);
+        return { balance, lifetimeEarned, lifetimeRedeemed };
+      },
+    } : {}),
+
     keys: {
       payment: (merchantId, localPaymentId) => publicClient.readContract({ address: router, abi: paymentRouterAbi, functionName: "paymentKeyOf", args: [merchantId, localPaymentId] }),
       plan: (merchantId, localPlanId) => publicClient.readContract({ address: router, abi: paymentRouterAbi, functionName: "planKeyOf", args: [merchantId, localPlanId] }),

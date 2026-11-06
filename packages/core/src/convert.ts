@@ -17,6 +17,11 @@ export function quoteFromWire(q: SignedQuote): PaymentQuoteMessage {
     payer: getAddress(q.payer),
     splitProfileId: q.splitProfileId,
     validUntil: BigInt(q.validUntil),
+    ...(q.discount !== undefined ? { discount: BigInt(q.discount) } : {}),
+    ...(q.pointsEarned !== undefined ? { pointsEarned: BigInt(q.pointsEarned) } : {}),
+    ...(q.campaignId !== undefined ? { campaignId: q.campaignId as Hex } : {}),
+    ...(q.pointsRedeemed !== undefined ? { pointsRedeemed: BigInt(q.pointsRedeemed) } : {}),
+    ...(q.rewardId !== undefined ? { rewardId: q.rewardId as Hex } : {}),
   };
 }
 
@@ -33,6 +38,11 @@ export function quoteToWire(q: PaymentQuoteMessage, merchantSignature: Hex, quot
     payer: q.payer,
     splitProfileId: q.splitProfileId,
     validUntil: q.validUntil.toString(),
+    ...(q.discount !== undefined ? { discount: q.discount.toString() } : {}),
+    ...(q.pointsEarned !== undefined ? { pointsEarned: q.pointsEarned.toString() } : {}),
+    ...(q.campaignId !== undefined ? { campaignId: q.campaignId } : {}),
+    ...(q.pointsRedeemed !== undefined ? { pointsRedeemed: q.pointsRedeemed.toString() } : {}),
+    ...(q.rewardId !== undefined ? { rewardId: q.rewardId } : {}),
     merchantSignature,
     quoteHash,
   };
@@ -56,6 +66,9 @@ export function planTermsFromWire(t: SignedPlanTerms): PlanTermsMessage {
     splitProfileId: t.splitProfileId,
     kind: t.kind,
     validUntil: BigInt(t.validUntil),
+    ...(t.pointsPerCharge !== undefined ? { pointsPerCharge: BigInt(t.pointsPerCharge) } : {}),
+    ...(t.campaignId !== undefined ? { campaignId: t.campaignId as Hex } : {}),
+    ...(t.downPaymentPoints !== undefined ? { downPaymentPoints: BigInt(t.downPaymentPoints) } : {}),
   };
 }
 
@@ -77,6 +90,9 @@ export function planTermsToWire(t: PlanTermsMessage, merchantSignature: Hex, ter
     splitProfileId: t.splitProfileId,
     kind: t.kind,
     validUntil: t.validUntil.toString(),
+    ...(t.pointsPerCharge !== undefined ? { pointsPerCharge: t.pointsPerCharge.toString() } : {}),
+    ...(t.campaignId !== undefined ? { campaignId: t.campaignId } : {}),
+    ...(t.downPaymentPoints !== undefined ? { downPaymentPoints: t.downPaymentPoints.toString() } : {}),
     merchantSignature,
     termsHash,
   };

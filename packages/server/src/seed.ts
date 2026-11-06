@@ -1,4 +1,4 @@
-import { merchantIdFor, type Merchant, type NetworkConfig } from "@paykit/core";
+import { merchantIdFor, rewardIdFor, type Merchant, type NetworkConfig } from "@paykit/core";
 import type { Address } from "viem";
 import type { PayKitDb } from "./api.ts";
 
@@ -31,6 +31,20 @@ export function seedDemo(db: PayKitDb, owner: Address, network: NetworkConfig): 
     ["pixel-studio", "Website build", "1000000000"],
     ["byte-books", "Solidity handbook", "19990000"],
   ];
+  // Loyalty: Mumbai Chai Co. gives 10 points per USDT; 25 points buys 1 USDT off.
+  // Points are only ever minted by real (simulated) payments: pay first, then redeem.
+  const chai = (name: string) => rewardIdFor("chai-co", name.toLowerCase());
+  db.loyalty = {
+    "chai-co": {
+      enabled: true,
+      pointsPerUsdt: 10,
+      rewards: [
+        { id: chai("1 USDT off"), name: "1 USDT off", pointsCost: "25", discount: "1000000", active: true },
+        { id: chai("Free masala chai"), name: "Free masala chai", pointsCost: "60", discount: "2500000", active: true },
+      ],
+    },
+    "byte-books": { enabled: true, pointsPerUsdt: 5, rewards: [{ id: rewardIdFor("byte-books", "2 usdt off"), name: "2 USDT off", pointsCost: "40", discount: "2000000", active: true }] },
+  };
   for (const [merchantSlug, name, price] of products) {
     db.products.push({ id: `prod_${++db.counter}`, merchantSlug, sku: null, name, description: null, imageUrl: null, price, token: "USDT", active: true });
   }

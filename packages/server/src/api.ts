@@ -1,4 +1,5 @@
 import { decideRefill, refillAmount } from "./refill.ts";
+import { applyPayment, applyRefund, balanceOf, earnFor, historyOf, programOf, updateProgram, type LoyaltyDb } from "./loyalty.ts";
 import type { ChainEvent } from "@paykit/observer";
 /**
  * The PayKit API: every route in @paykit/core `routes`, as one `handle(Request) → Response`.
@@ -44,6 +45,9 @@ import {
   refundTermsTypedData,
   registerMerchantTypedData,
   routerVersionOf,
+  pointsForAmount,
+  zLoyaltyProgramUpdate,
+  type Reward,
   requireContract,
   routes,
   setSignerTypedData,
@@ -93,7 +97,7 @@ interface RegistrationDraft {
 }
 
 /** All state. Plain JSON (no bigint/Map), so it can be saved to a file. */
-export interface PayKitDb {
+export interface PayKitDb extends LoyaltyDb {
   refill: { lastAt: number; paused: boolean; runs: Array<{ id: string; action: string; reason: string; amount?: string; output?: string; cost?: string; minOutput?: string; deadline?: string; txHash?: Hex; nativeBefore?: string; nativeAfter?: string; createdAt: number }> };
   observer: { nextBlock: string | null; events: ChainEvent[] };
   domainRevocations: Record<string, { merchantId: Hex; domainHash: Hex; txHash: Hex | null }>;
@@ -187,6 +191,8 @@ export interface PayKitApiOptions {
   requestLimit?: number;
   observerStartBlock?: bigint;
   refill?: { reserve: bigint; measuredPaymentCost: bigint; intervalMs?: number };
+  /** PayKitPoints.maxPointsPerUsdt: platform cap on points per 1 USDT. Default 100. */
+  maxPointsPerUsdt?: number;
 }
 
 export interface PayKitApi {
@@ -226,6 +232,9 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
   const registry = requireContract(network, "registry");
   const usdt = network.usdt!.address;
   const fees = options.feeSchedule ?? DEFAULT_FEE_SCHEDULE;
+  const maxPoints = options.maxPointsPerUsdt ?? 100;
+  /** Points and discounts need PaymentRouterV2 and a PayKitPoints deployment. */
+  const pointsOn = !!network.contracts.points && routerVersionOf(network) === "2";
   const pollMs = options.finalityPollMs ?? 4000;
   const doFetch = options.fetch ?? ((i: RequestInfo | URL, init?: RequestInit) => globalThis.fetch(i, init));
   const db = options.db ?? emptyDb();
@@ -385,7 +394,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
     if (inv.splitProfileId && !db.splits.some((s) => s.owner === m.slug && s.profileId === inv.splitProfileId && s.status === "active")) throw httpError(400, "validation_failed", "Unknown split profile");
   }
 
-  async function signQuote(m: Merchant, inv: Invoice, gross: bigint, partIndex: number, allowUnsigned = false) {
+  async function signQuote(m: Merchant, inv: Invoice, gross: bigint, partIndex: number, allowUnsigned = false, reward?: Reward) {
     const quote = {
       merchantId: m.merchantId as Hex,
       invoiceId: inv.invoiceId as Hex,
@@ -398,6 +407,9 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       payer: inv.customerWallet ? getAddress(inv.customerWallet) : zeroAddress,
       splitProfileId: inv.splitProfileId ?? 0,
       validUntil: BigInt(Math.min(Number(nowSeconds() + 900n), Math.floor(Date.parse(inv.validUntil) / 1000))),
+      // V2: points earned on what the customer actually pays; a reward burns points for a discount.
+      ...(pointsOn ? { pointsEarned: earnFor(db, m.slug, gross, maxPoints) } : {}),
+      ...(pointsOn && reward ? { discount: BigInt(reward.discount), pointsRedeemed: BigInt(reward.pointsCost), rewardId: reward.id } : {}),
     };
     const authorized = isMerchantSigner(m, signer.address);
     if (!authorized && !allowUnsigned) throw httpError(409, "config_invalid", "Authorize the hosted signer or create the checkout session through your server signer");
@@ -408,6 +420,8 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
   async function validateSignedQuote(quote: SignedQuote, merchant: Merchant, invoice: Invoice, gross: bigint): Promise<SignedQuote> {
     const message = quoteFromWire(quote);
     if (quote.invoiceId !== invoice.invoiceId || quote.invoiceDigest !== invoice.digest || quote.merchantId !== merchant.merchantId || BigInt(quote.gross) !== gross || BigInt(quote.invoiceTotal) !== BigInt(invoice.total) || quote.token.toLowerCase() !== usdt.toLowerCase() || BigInt(quote.validUntil) <= nowSeconds() || BigInt(quote.validUntil) > BigInt(Math.floor(Date.parse(invoice.validUntil) / 1000)) || quote.splitProfileId !== (invoice.splitProfileId ?? 0) || BigInt(quote.fee) !== protocolFee(gross, fees) || (invoice.customerWallet && !isAddressEqual(message.payer, invoice.customerWallet))) throw httpError(400, "quote_mismatch", "Signed quote differs from the invoice");
+    if (BigInt(quote.discount ?? "0") > 0n || BigInt(quote.pointsRedeemed ?? "0") > 0n) throw httpError(400, "quote_mismatch", "Apply rewards through the checkout session, not a self-signed quote");
+    if (BigInt(quote.pointsEarned ?? "0") > pointsForAmount(gross, maxPoints, maxPoints)) throw httpError(400, "quote_mismatch", "Points earned exceed the platform cap");
     const hash = hashPaymentQuote(network, message);
     if (hash !== quote.quoteHash) throw httpError(400, "quote_mismatch", "Quote hash differs");
     const recovered = await recoverTypedDataAddress({ ...paymentQuoteTypedData(network, message), signature: quote.merchantSignature as Hex });
@@ -444,16 +458,50 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       router,
       chainId: network.chain.id,
       expiresAt: iso(Date.now() + 900_000),
+      reward: null,
     };
     db.sessions[session.id] = { kind: "checkout", value: session };
     return session;
+  }
+
+  /** Points balance: PayKitPoints when deployed, otherwise the API's mirror ledger. */
+  async function pointsBalance(wallet: Address) {
+    const onchain = chain.pointsOf ? await chain.pointsOf(wallet).catch(() => null) : null;
+    return { ...(onchain ?? balanceOf(db, wallet)), source: onchain ? "chain" as const : "ledger" as const };
+  }
+
+  /** Applies (rewardId) or removes (null) a points reward, re-signing the session's quote. */
+  async function applyReward(id: string, body: Json): Promise<CheckoutSession> {
+    const entry = db.sessions[id];
+    if (!entry || entry.kind !== "checkout") throw httpError(404, "not_found", "Checkout session not found");
+    if (!pointsOn) throw httpError(409, "config_invalid", "Points need PaymentRouterV2 and PayKitPoints");
+    const s = entry.value;
+    const m = findMerchant(s.merchant.slug)!;
+    validateInvoice(s.invoice, m);
+    if (db.payments.some((p) => p.invoiceId === s.invoice.id && p.status !== "failed" && db.pendingPays[p.paymentId]?.sessionId === id)) throw httpError(409, "already_settled", "This checkout is already being paid");
+    const base = nextPartAmount(s.invoice);
+    let reward: Reward | undefined;
+    if (body.rewardId) {
+      const program = programOf(db, m.slug, maxPoints);
+      reward = program.rewards.find((r) => r.active && r.id.toLowerCase() === String(body.rewardId).toLowerCase());
+      if (!program.enabled || !reward) throw httpError(404, "not_found", "Reward not found");
+      const payer = getAddress(String(body.payer));
+      if ((await pointsBalance(payer)).balance < BigInt(reward.pointsCost)) throw httpError(409, "validation_failed", "Not enough points for this reward");
+      if (BigInt(reward.discount) >= base) throw httpError(409, "validation_failed", "This reward is worth more than the order");
+    }
+    const gross = base - (reward ? BigInt(reward.discount) : 0n);
+    s.quote = await signQuote(m, s.invoice, gross, s.partIndex, false, reward);
+    s.reward = reward ? { id: reward.id, name: reward.name, pointsCost: reward.pointsCost, discount: reward.discount } : null;
+    save();
+    return s;
   }
 
   async function authorizeCheckout(id: string, body: Json): Promise<Payment> {
     const entry = db.sessions[id];
     if (!entry || entry.kind !== "checkout") throw httpError(404, "not_found", "Checkout session not found");
     const s = entry.value;
-    const existing = db.payments.find((p) => p.paymentId === s.quote.paymentId);
+    const canonicalId = await keys.payment(s.quote.merchantId as Hex, s.quote.paymentId as Hex);
+    const existing = db.payments.find((p) => p.paymentId === canonicalId);
     if (existing) return existing; // idempotent: no second charge
     validateInvoice(s.invoice, findMerchant(s.invoice.merchantSlug)!);
     if (db.payments.some((p) => p.invoiceId === s.invoice.id && ["queued", "submitted"].includes(p.status))) throw httpError(409, "already_settled", "An attempt for this invoice is already processing; resume that payment");
@@ -471,8 +519,13 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
     });
     if (!isAddressEqual(recovered, payer)) throw httpError(400, "signature_invalid", "Payer signature does not match");
     if (BigInt(s.quote.validUntil) < nowSeconds()) throw httpError(409, "quote_expired", "This payment offer expired. Start again.");
+    const redeem = BigInt(s.quote.pointsRedeemed ?? "0");
+    if (redeem > 0n && (await pointsBalance(payer)).balance < redeem) throw httpError(409, "validation_failed", "Not enough points for this reward");
     const payment: Payment = {
-      paymentId: await keys.payment(s.quote.merchantId as Hex, s.quote.paymentId as Hex),
+      paymentId: canonicalId,
+      ...(BigInt(s.quote.discount ?? "0") > 0n ? { discount: s.quote.discount } : {}),
+      ...(BigInt(s.quote.pointsEarned ?? "0") > 0n ? { pointsEarned: s.quote.pointsEarned } : {}),
+      ...(redeem > 0n ? { pointsRedeemed: redeem.toString() } : {}),
       merchantSlug: s.merchant.slug,
       merchantName: s.merchant.name,
       invoiceId: s.invoice.id,
@@ -509,7 +562,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
   function projectInvoices() {
     for (const inv of db.invoices) {
       const payments = db.payments.filter((p) => p.invoiceId === inv.id && SETTLED.includes(p.status));
-      inv.paid = payments.reduce((sum, p) => sum + BigInt(p.gross), 0n).toString();
+      inv.paid = payments.reduce((sum, p) => sum + BigInt(p.gross) + BigInt(p.discount ?? "0"), 0n).toString();
       inv.refunded = payments.reduce((sum, p) => sum + BigInt(p.refunded), 0n).toString();
       if (inv.status === "void") continue;
       inv.status = BigInt(inv.paid) === 0n ? (Date.parse(inv.validUntil) <= Date.now() ? "expired" : "open") : BigInt(inv.refunded) >= BigInt(inv.paid) ? "refunded" : BigInt(inv.refunded) > 0n ? "partially_refunded" : BigInt(inv.paid) >= BigInt(inv.total) ? "paid" : "partially_paid";
@@ -523,6 +576,11 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
     payment.blockHash = receipt.blockHash ?? null;
     if (receipt.transactionHash) { payment.txHash = receipt.transactionHash; payment.explorerUrl = explorerTxUrl(network, receipt.transactionHash); }
     payment.settledAt ??= iso();
+    if (pointsOn) {
+      const sessionId = db.pendingPays[payment.paymentId]?.sessionId;
+      const session = sessionId ? db.sessions[sessionId] : undefined;
+      try { applyPayment(db, payment, session?.kind === "checkout" ? session.value.reward?.name ?? null : null); } catch { /* onchain the router would have reverted; the ledger stays consistent */ }
+    }
     projectInvoices();
     const inv = db.invoices.find((i) => i.id === payment.invoiceId);
     if (inv && inv.paid !== previous) emit(inv.status === "paid" ? "invoice.paid" : "invoice.partially_paid", inv.merchantSlug, `${inv.id}_${inv.paid}`, inv);
@@ -630,6 +688,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       splitProfileId: inv.splitProfileId ?? 0,
       kind: 0,
       validUntil: BigInt(Math.min(Number(nowSeconds() + 900n), Math.floor(Date.parse(inv.validUntil) / 1000))),
+      ...(pointsOn ? { pointsPerCharge: earnFor(db, m.slug, split.installmentAmount, maxPoints), downPaymentPoints: split.downPayment > 0n ? earnFor(db, m.slug, split.downPayment, maxPoints) : 0n } : {}),
     };
     if (!isMerchantSigner(m, signer.address)) throw httpError(409, "config_invalid", "Authorize the hosted signer before creating a plan");
     const sig = await signer.signTypedData(planTermsTypedData(network, terms));
@@ -727,7 +786,9 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
     const existing = db.payments.find((p) => p.paymentId === paymentId);
     if (existing) return existing;
     const inv = db.invoices.find((i) => i.id === db.planInvoices[plan.planId]);
-    const payment: Payment = { paymentId, merchantSlug: plan.merchantSlug, merchantName: plan.merchantName, invoiceId: inv?.id ?? null, planId: plan.planId, kind: index === DOWN_PAYMENT_INDEX ? "down_payment" : "installment", payer: plan.payer, refundTo: plan.payer, token: "USDT", gross, fee, net: (BigInt(gross) - BigInt(fee)).toString(), refunded: "0", status: "submitted", txHash: hash, blockNumber: null, explorerUrl: explorerTxUrl(network, hash), error: null, createdAt: iso(), settledAt: null, externalOrderId: inv?.externalOrderId ?? null, metadata: inv?.metadata ?? {} };
+    const planTerms = db.planTerms[plan.planId];
+    const earned = index === DOWN_PAYMENT_INDEX ? planTerms?.downPaymentPoints : planTerms?.pointsPerCharge;
+    const payment: Payment = { ...(pointsOn && earned && earned !== "0" ? { pointsEarned: earned } : {}), paymentId, merchantSlug: plan.merchantSlug, merchantName: plan.merchantName, invoiceId: inv?.id ?? null, planId: plan.planId, kind: index === DOWN_PAYMENT_INDEX ? "down_payment" : "installment", payer: plan.payer, refundTo: plan.payer, token: "USDT", gross, fee, net: (BigInt(gross) - BigInt(fee)).toString(), refunded: "0", status: "submitted", txHash: hash, blockNumber: null, explorerUrl: explorerTxUrl(network, hash), error: null, createdAt: iso(), settledAt: null, externalOrderId: inv?.externalOrderId ?? null, metadata: inv?.metadata ?? {} };
     db.payments.unshift(payment);
     includePayment(payment, receipt);
     void relayPayment(payment.paymentId);
@@ -833,6 +894,8 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       refund.status = "settled";
       refund.settledAt = iso();
       for (const payment of db.payments) payment.refunded = db.refunds.filter((r) => r.paymentId === payment.paymentId && r.status === "settled").reduce((sum, r) => sum + BigInt(r.amount), 0n).toString();
+      const refunded = db.payments.find((p) => p.paymentId === refund.paymentId);
+      if (pointsOn && refunded) applyRefund(db, refunded);
       projectInvoices();
       emit("refund.succeeded", refund.merchantSlug, refund.refundId, refund);
     } catch (error) {
@@ -1013,6 +1076,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
           if (!refund) { refund = { id: `chain_${a.refundId}`, refundId: a.refundId as Hex, paymentId: payment.paymentId, merchantSlug: payment.merchantSlug, merchantName: payment.merchantName, to: getAddress(String(a.to)), amount: String(a.amount), fee: String(a.fee), reason: null, status: "submitted", txHash: event.transactionHash, explorerUrl: explorerTxUrl(network, event.transactionHash), createdAt: iso(), settledAt: null }; db.refunds.push(refund); }
           refund.status = "settled"; refund.settledAt ??= iso(); refund.txHash = event.transactionHash;
           payment.refunded = String(a.cumulativeRefunded);
+          if (pointsOn) applyRefund(db, payment);
           emit("refund.succeeded", refund.merchantSlug, refund.refundId, refund);
         }
       } else if (event.eventName === "PayoutChanged" && merchant) { merchant.payout = getAddress(String(a.newPayout)); merchant.pendingPayout = null;
@@ -1075,6 +1139,13 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       const category = query.get("category");
       return page(db.merchants.filter((m) => m.listed && m.status === "active" && m.verifiedDomains.some((d) => Date.parse(d.expiresAt) > Date.now()) && (!q || m.name.toLowerCase().includes(q)) && (!category || m.category === category)));
     }
+    if ((mm = match("GET", /^\/v1\/merchants\/([^/]+)\/loyalty$/))) {
+      const m = findMerchant(arg(mm));
+      if (!m) throw httpError(404, "not_found", "Merchant not found");
+      const program = programOf(db, m.slug, maxPoints);
+      return { ...program, enabled: pointsOn && program.enabled, rewards: program.rewards.filter((r) => r.active) };
+    }
+    if ((mm = match("POST", /^\/v1\/checkout\/sessions\/([^/]+)\/reward$/))) return applyReward(arg(mm), body);
     if ((mm = match("GET", /^\/v1\/merchants\/([^/]+)\/products$/))) {
       const slug = arg(mm);
       restricted(slug);
@@ -1151,6 +1222,11 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
     }
 
     // customer dashboard
+    if (is("GET", routes.myPoints())) {
+      const { address } = await auth(headers);
+      const b = await pointsBalance(address);
+      return { wallet: address, balance: b.balance.toString(), lifetimeEarned: b.lifetimeEarned.toString(), lifetimeRedeemed: b.lifetimeRedeemed.toString(), source: b.source, history: historyOf(db, address) };
+    }
     if (is("GET", routes.myPayments())) {
       const { address } = await auth(headers);
       return page(db.payments.filter((p) => isAddressEqual(p.payer, address) && (!browser || p.merchantSlug === browser)).filter(statusFilter(query.get("status"))));
@@ -1230,6 +1306,17 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
 
     // merchant dashboard (wallet session or secret key)
     if (is("GET", routes.myMerchant())) return myMerchant(headers);
+    if (is("GET", routes.portalLoyalty())) {
+      const m = await myMerchant(headers);
+      return { ...programOf(db, m.slug, maxPoints), available: pointsOn };
+    }
+    if (is("PATCH", routes.portalLoyalty())) {
+      const m = await myMerchant(headers);
+      const update = zLoyaltyProgramUpdate.safeParse(body);
+      if (!update.success) throw httpError(400, "validation_failed", update.error.issues[0]?.message ?? "Invalid loyalty program");
+      try { const program = updateProgram(db, m.slug, update.data, maxPoints); save(); return { ...program, available: pointsOn }; }
+      catch (error) { throw httpError(400, "validation_failed", error instanceof Error ? error.message : "Invalid loyalty program"); }
+    }
     if (is("GET", routes.merchantStats())) {
       const m = await myMerchant(headers);
       const mine = db.payments.filter((p) => p.merchantSlug === m.slug);

@@ -23,6 +23,7 @@ const MOCK_CONTRACTS = {
   registry: fakeAddress("e915"),
   router: fakeAddress("f0a7"),
   treasury: fakeAddress("fee5"),
+  points: fakeAddress("9017"),
 };
 
 /**
