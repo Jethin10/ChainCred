@@ -680,6 +680,11 @@ export class PayKitClient {
       start: (domain: string, method: "dns" | "wellknown" = "wellknown"): Promise<DomainChallenge> =>
         this.mpost(zDomainChallenge, routes.merchantDomains(), { domain, method }, "domain challenge"),
       check: (domain: string): Promise<DomainChallenge> => this.mpost(zDomainChallenge, routes.merchantDomainCheck(domain), {}, "domain challenge"),
+      /** Removes a domain. A verified one loses its badge and its onchain attestation is revoked. */
+      remove: async (domain: string): Promise<void> => {
+        this.requireMerchantAccess();
+        await this.merchantHttp.delete(routes.merchantDomain(domain));
+      },
       /**
        * Signs the /.well-known/paykit.json body with the owner wallet and returns the exact
        * file contents to upload. The signature stops anyone faking the file.

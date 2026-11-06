@@ -848,7 +848,12 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
         if (job.kind === "plan") plan.status = "cancelled";
         if (job.kind === "collect") {
           const inst = plan.installments[job.index!]!;
-          if (Date.now() > Date.parse(inst.dueAt) + plan.graceSeconds * 1000) { plan.status = "delinquent"; inst.status = "missed"; emit("plan.installment_missed", plan.merchantSlug, `${plan.planId}_${inst.index}`, plan); }
+          if (Date.now() > Date.parse(inst.dueAt) + plan.graceSeconds * 1000) {
+            const first = plan.status !== "delinquent";
+            plan.status = "delinquent"; inst.status = "missed"; emit("plan.installment_missed", plan.merchantSlug, `${plan.planId}_${inst.index}`, plan);
+            // Record it onchain too (InstallmentMissed). Collection keeps retrying either way.
+            if (first) void chain.markDelinquent?.(plan.planId as Hex).catch(() => {});
+          }
         }
         delete db.jobs[key];
       }
@@ -856,6 +861,25 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       throw error;
     } finally { inFlight.delete(key); }
   }
+  /** Queued payout changes take effect onchain only when someone calls executePayoutChange. */
+  async function executeDuePayouts() {
+    for (const m of db.merchants) {
+      const pending = m.pendingPayout;
+      const key = `payout:${m.slug}`;
+      if (!pending || !m.merchantId || Date.parse(pending.executableAt) > Date.now() || inFlight.has(key) || !chain.executePayoutChange) continue;
+      inFlight.add(key);
+      try {
+        const receipt = await chain.waitForReceipt(await chain.executePayoutChange(m.merchantId as Hex));
+        if (receipt.success) {
+          m.payout = getAddress(pending.address);
+          m.pendingPayout = null;
+          emit("merchant.payout_changed", m.slug, `${m.slug}:${pending.address}`, m);
+          save();
+        }
+      } catch { /* retried next tick */ } finally { inFlight.delete(key); }
+    }
+  }
+
   async function collectDue() {
     for (const plan of db.plans.filter((p) => (p.status === "active" || p.status === "delinquent") && p.collected < p.count)) {
       const inst = plan.installments[plan.collected];
@@ -932,8 +956,8 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
   }
 
   async function refreshDomains() {
-    if (options.domainCheck === "trust") return;
-    for (const entry of Object.values(db.domains)) {
+    // "trust" skips the periodic HTTP re-checks, but queued revocations are still relayed below.
+    for (const entry of options.domainCheck === "trust" ? [] : Object.values(db.domains)) {
       if (entry.challenge.status !== "verified" || (entry.challenge.lastCheckedAt && Date.now() - Date.parse(entry.challenge.lastCheckedAt) < 86400000)) continue;
       const merchant = findMerchant(entry.owner);
       if (!merchant) continue;
@@ -1547,6 +1571,21 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       const m = await myMerchant(headers);
       return page(Object.values(db.domains).filter((d) => d.owner === m.slug).map((d) => d.challenge));
     }
+    if ((mm = match("DELETE", /^\/v1\/portal\/merchant\/domains\/([^/]+)$/))) {
+      const m = await myMerchant(headers);
+      const domain = normalizeDomain(arg(mm));
+      const entry = Object.entries(db.domains).find(([, d]) => d.owner === m.slug && d.challenge.domain === domain);
+      if (!entry) throw httpError(404, "not_found", "Domain not found");
+      const wasVerified = m.verifiedDomains.some((d) => d.domain === domain);
+      delete db.domains[entry[0]];
+      m.verifiedDomains = m.verifiedDomains.filter((d) => d.domain !== domain);
+      m.listed = m.verifiedDomains.length > 0;
+      // Revoke the onchain attestation (the registry lets the platform or the owner do this).
+      if (wasVerified && m.merchantId) db.domainRevocations[`${m.slug}:${domain}`] = { merchantId: m.merchantId as Hex, domainHash: domainHash(domain), txHash: null };
+      emit("merchant.domain_revoked", m.slug, `${domain}:${iso()}`, m);
+      save();
+      return { removed: domain };
+    }
     if (is("POST", routes.merchantDomains())) {
       const m = await myMerchant(headers);
       const domain = normalizeDomain(String(body.domain));
@@ -1827,6 +1866,7 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
         for (const key of Object.keys(db.jobs)) await runPlanJob(key).catch(() => {});
         projectInvoices();
         await collectDue();
+        await executeDuePayouts();
         await deliverWebhooks();
         save();
       } finally { ticking = false; }

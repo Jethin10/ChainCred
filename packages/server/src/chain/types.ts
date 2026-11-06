@@ -37,6 +37,10 @@ export interface ChainAdapter {
   registerMerchant(args: { message: RegisterMerchantMessage; signature: Hex }): Promise<Hex>;
   registryAction(args: { request: RegistryActionRequest; signature: Hex }): Promise<Hex>;
   revokeDomain?(args: { merchantId: Hex; domainHash: Hex }): Promise<Hex>;
+  /** MerchantRegistry.executePayoutChange: permissionless once the payout delay has passed. */
+  executePayoutChange?(merchantId: Hex): Promise<Hex>;
+  /** PaymentRouter.markDelinquent: permissionless once an installment is past its grace period. */
+  markDelinquent?(planId: Hex): Promise<Hex>;
   attestDomain(args: { merchantId: Hex; domainHash: Hex; expiresAt: bigint }): Promise<Hex>;
 
   /**

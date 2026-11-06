@@ -43,6 +43,8 @@ export function createSimulatedChain(options: { stepMs?: number } = {}): ChainAd
       return send("registry");
     },
     attestDomain: () => send("attest"),
+    executePayoutChange: () => send("payout"),
+    markDelinquent: () => send("delinquent"),
     async waitForReceipt(hash) {
       const bn = pending.get(hash);
       if (bn === undefined) return { success: false, blockNumber: 0n, error: "Unknown transaction" };

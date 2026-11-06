@@ -52,6 +52,8 @@ export const routes = {
   merchantRefunds: () => "/v1/portal/merchant/refunds",
   merchantDomains: () => "/v1/portal/merchant/domains",
   merchantDomainCheck: (domain: string) => `/v1/portal/merchant/domains/${e(domain)}/check`,
+  /** DELETE: stop using a domain and revoke its onchain attestation. */
+  merchantDomain: (domain: string) => `/v1/portal/merchant/domains/${e(domain)}`,
   merchantApiKeys: () => "/v1/portal/merchant/api-keys",
   merchantApiKey: (id: string) => `/v1/portal/merchant/api-keys/${e(id)}`,
   merchantSigners: () => "/v1/portal/merchant/signers",

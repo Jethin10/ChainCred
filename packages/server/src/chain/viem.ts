@@ -191,6 +191,8 @@ export function createViemChain(options: ViemChainOptions): ChainAdapter {
       return write(relayer, registry, merchantRegistryAbi, "queuePayoutChangeWithSig", [{ ...base, newPayout: r.newPayout }, signature]);
     },
 
+    executePayoutChange: (merchantId) => write(relayer, registry, merchantRegistryAbi, "executePayoutChange", [merchantId]),
+    markDelinquent: (planId) => write(relayer, router, paymentRouterAbi, "markDelinquent", [planId]),
     revokeDomain: ({ merchantId, domainHash }) => write(admin, registry, merchantRegistryAbi, "revokeDomain", [merchantId, domainHash]),
     attestDomain: ({ merchantId, domainHash, expiresAt }) => write(admin, registry, merchantRegistryAbi, "attestDomain", [merchantId, domainHash, expiresAt]),
 
