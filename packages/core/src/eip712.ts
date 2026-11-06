@@ -101,8 +101,8 @@ export const paymentQuoteTypes = {
 
 /**
  * PaymentRouterV2 quote: v1 fields plus points and a merchant-funded discount.
- * ASSUMPTION until libraries/PayKitTypesV2.sol is available: new fields are appended in the
- * order the router's Settlement struct lists them. `npm run contracts:check` proves or refutes it.
+ * Layout from libraries/PayKitTypesV2.sol (PaymentQuoteV2); verified against the testnet router
+ * with `npm run contracts:check`.
  */
 export const paymentQuoteV2Types = {
   PaymentQuote: [
@@ -147,13 +147,13 @@ export const planTermsTypes = {
   ],
 } as const;
 
-/** PaymentRouterV2 plan terms: v1 fields plus points per charge. Same ASSUMPTION as paymentQuoteV2Types. */
+/** PaymentRouterV2 plan terms: v1 fields plus points (libraries/PayKitTypesV2.sol, PlanTermsV2). */
 export const planTermsV2Types = {
   PlanTerms: [
     ...planTermsTypes.PlanTerms,
     { name: "pointsPerCharge", type: "uint256" },
-    { name: "campaignId", type: "bytes32" },
     { name: "downPaymentPoints", type: "uint256" },
+    { name: "campaignId", type: "bytes32" },
   ],
 } as const;
 

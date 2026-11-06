@@ -6,9 +6,8 @@ import { parseAbi } from "viem";
  * PayKitPoints.sol. Function names, getters, events and errors are exact.
  *
  * The router's calldata STRUCTS (PaymentQuote, PlanTerms, PayerConsent, PayerAuth, ...) are
- * declared in libraries/PayKitTypes.sol and PayKitTypesV2.sol, which were not provided. Their
- * layouts below follow plan.md §9.2 plus the V2 fields in Settlement order. Regenerate this file
- * from the build artifacts once the libraries are available, and run `npm run contracts:check`.
+ * declared in paykit-contracts/contracts/libraries/PayKitTypes.sol and PayKitTypesV2.sol and
+ * match them field for field. `npm run contracts:check` verifies them against a deployment.
  */
 
 export const usdtAbi = parseAbi([
@@ -118,7 +117,7 @@ export const paymentRouterV1Abi = parseAbi([
 export const paymentRouterV2Abi = parseAbi([
   ...routerShared,
   "struct PaymentQuote { bytes32 merchantId; bytes32 invoiceId; bytes32 invoiceDigest; bytes32 paymentId; address token; uint256 invoiceTotal; uint256 gross; uint256 fee; address payer; uint32 splitProfileId; uint64 validUntil; uint256 discount; uint256 pointsEarned; bytes32 campaignId; uint256 pointsRedeemed; bytes32 rewardId; }",
-  "struct PlanTerms { bytes32 merchantId; bytes32 planId; bytes32 invoiceDigest; address payer; address token; uint256 downPayment; uint256 installmentAmount; uint256 feePerInstallment; uint256 downPaymentFee; uint16 count; uint32 period; uint64 firstDue; uint32 grace; uint32 splitProfileId; uint8 kind; uint64 validUntil; uint256 pointsPerCharge; bytes32 campaignId; uint256 downPaymentPoints; }",
+  "struct PlanTerms { bytes32 merchantId; bytes32 planId; bytes32 invoiceDigest; address payer; address token; uint256 downPayment; uint256 installmentAmount; uint256 feePerInstallment; uint256 downPaymentFee; uint16 count; uint32 period; uint64 firstDue; uint32 grace; uint32 splitProfileId; uint8 kind; uint64 validUntil; uint256 pointsPerCharge; uint256 downPaymentPoints; bytes32 campaignId; }",
   "function pay(PaymentQuote q, bytes merchantSig, PayerAuth a) returns (bytes32 paymentId)",
   "function createPlan(PlanTerms t, bytes merchantSig, PayerConsent consent, PermitData permit) returns (bytes32 planId)",
   "function quoteDigest(PaymentQuote q) view returns (bytes32)",

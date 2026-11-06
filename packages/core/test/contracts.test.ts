@@ -86,7 +86,7 @@ describe("PaymentRouter domains", () => {
   });
   it("V2 plan terms append points per charge", () => {
     const terms: PlanTermsMessage = { merchantId: H32(1), planId: H32(5), invoiceDigest: H32(3), payer: "0x0000000000000000000000000000000000000001", token: quote.token, downPayment: 0n, installmentAmount: 1_000_000n, feePerInstallment: 10_000n, downPaymentFee: 0n, count: 3, period: 86_400, firstDue: 1n, grace: 0, splitProfileId: 0, kind: 0, validUntil: 2n };
-    assert.deepEqual(planTermsTypedData(v2, terms).types.PlanTerms!.slice(-3).map((f) => f.name), ["pointsPerCharge", "campaignId", "downPaymentPoints"]);
+    assert.deepEqual(planTermsTypedData(v2, terms).types.PlanTerms!.slice(-3).map((f) => f.name), ["pointsPerCharge", "downPaymentPoints", "campaignId"]);
     assert.equal(planTermsTypedData(v1, terms).types.PlanTerms!.length, 16);
   });
   it("createPlan takes a PayerConsent struct, not a bare signature", () => {
