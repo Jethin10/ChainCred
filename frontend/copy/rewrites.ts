@@ -78,6 +78,47 @@ export const rewrites: Rewrite[] = [
   },
   { file: LANDING, from: `hrefOf:A=>It(Kn[A])`, to: `hrefOf:A=>"/app/"+(A==="schneider"?"merchant":"shops")` },
 
+  // ── Work: our own media (recorded from the live product, motion made in-house) ──
+  // The two big cards play real recordings instead of the template's mock UIs.
+  {
+    file: LANDING,
+    from: `media:i.jsx(Bt,{mock:"canvas",still:!0})`,
+    to: `media:i.jsx("video",{className:"block",src:"/assets/paykit-sdk-checkout.mp4",poster:"/assets/paykit-sdk-checkout.webp",autoPlay:!0,muted:!0,loop:!0,playsInline:!0,preload:"metadata","aria-label":${q('The PayKit checkout component paying an order: press and hold, sign, relay, settle')},style:{width:"100%",height:"100%",objectFit:"cover",display:"block"}})`,
+  },
+  {
+    file: LANDING,
+    from: `media:i.jsx(Ct,{screen:"sld",look:"operator",label:IA.cover.alt})`,
+    to: `media:i.jsx("video",{className:"block",src:"/assets/paykit-dashboard.mp4",poster:"/assets/paykit-dashboard.webp",autoPlay:!0,muted:!0,loop:!0,playsInline:!0,preload:"metadata","aria-label":${q('The PayKit merchant dashboard: sales, payouts and refunds')},style:{width:"100%",height:"100%",objectFit:"cover",display:"block"}})`,
+  },
+  // A tile's last argument may be a full link (ours) instead of a post id (the template's).
+  {
+    file: VA,
+    from: 'post:`https://x.com/andreaskruszaki/status/${i}`',
+    to: 'post:/^(https?:|\\/)/.test(i)?i:`https://x.com/andreaskruszaki/status/${i}`',
+  },
+  ...([
+    [`I("graph-ui","A graph for org-wide access","Interface","interface",1.53,"2083492433615094084")`, 'graph-ui', 'One signature in, USDT out', 'Relayer', 'animation', '/app/components'],
+    [`I("hue-picker","A hue picker","Interaction","interface",1.86,"2073833531864682896")`, 'hue-picker', 'Settled on Whitechain', 'Chain', 'animation', 'https://explorer.testnet.whitechain.io'],
+    [`I("dia-folders","Changing folder icons on Dia","Interface","interface",.91,"2085261870122832233")`, 'dia-folders', 'Checkout inside the shop', 'Embed', 'interface', 'https://kettle-and-leaf-five.vercel.app'],
+    [`I("radial-menu","A radial menu","Interaction","interface",1.48,"2061704114640433520")`, 'radial-menu', 'USDT, no gas needed', 'Token', 'animation', '/app/wallet'],
+    [`I("ceramics","A ceramic collection","3D","animation",1.64,"2092911749708325221")`, 'ceramics', 'Points that travel between shops', 'Loyalty', 'animation', '/app/shops'],
+    [`I("idea-forest","Idea Forest, a forest for your ideas","Interface","interface",1.5,"2061346759960625152")`, 'idea-forest', 'The PayKit app, in pixels', 'Mobile', 'interface', '/app/wallet'],
+    [`I("fluid-cd-player","A fluid CD player","Interaction","interface",1.68,"2079167183444197800")`, 'fluid-cd-player', 'Pay anyone, anywhere', 'Network', 'animation', '/app/shops'],
+    [`I("cursor-traffic-lights","What if Cursor had traffic lights?","Interface","interface",.75,"2060993935023976772")`, 'cursor-traffic-lights', 'From signature to settlement', 'EIP-3009', 'animation', '/app/components'],
+    [`I("pr-elevator","What if every PR was an elevator stop?","Interaction","interface",1.53,"2072207574754062722")`, 'pr-elevator', 'One command for your coding agent', 'CLI', 'interface', 'https://www.npmjs.com/package/usepaykit'],
+    [`I("voxel-clock","A voxel clock in heerich.js","3D","animation",1.59,"2071486322074886613")`, 'voxel-clock', 'Merchant sign-up in two minutes', 'Merchants', 'interface', '/app/merchant'],
+    [`I("gooey-ui","Make gooey UI great again","Interaction","interface",1.3,"2075881281536356743")`, 'gooey-ui', 'Webhooks you can verify', 'Webhooks', 'interface', 'https://www.npmjs.com/package/usepaykit'],
+    [`I("waveform","Waveform UI","Interaction","interface",1.59,"2057731437730873766")`, 'waveform', 'Shops that take USDT', 'Directory', 'interface', '/app/shops'],
+    [`I("mosaic-brand","Mosaic brand","Generative","animation",1.35,"2106193384465662313")`, 'mosaic-brand', 'Checkout inside the shop', 'Embed', 'interface', 'https://kettle-and-leaf-five.vercel.app'],
+    [`I("smart-light","A smart home light","Interaction","interface",1.68,"2087822213399347527")`, 'smart-light', 'From signature to settlement', 'EIP-3009', 'animation', '/app/components'],
+    [`I("json-menu","Cursor's JSON menu, for real","Interface","interface",1.48,"2050312160387944504")`, 'json-menu', 'One signature in, USDT out', 'Relayer', 'animation', '/app/components'],
+    [`I("vibes-piano","npm i vibes","Interaction","interface",1.49,"2051920851113541647")`, 'vibes-piano', 'Points that travel between shops', 'Loyalty', 'animation', '/app/shops'],
+  ] as const).map(([from, id, title, kind, category, link]): Rewrite => ({
+    file: VA,
+    from,
+    to: `I(${q(id)},${q(title)},${q(kind)},${q(category)},1.5,${q(link)})`,
+  })),
+
   // ── Built to move (globe story) ─────────────────────────────────────────
   {
     file: VA,
