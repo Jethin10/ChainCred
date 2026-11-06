@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  api, connectWallet, errorText, EXPLORER, hasWallet, short, signTypedData, sleep, usdt,
+  api, connectWallet, errorText, reconnectWallet, EXPLORER, hasWallet, short, signTypedData, sleep, usdt,
   type Invoice, type Offers, type Plan, type Quote, type QuoteStatus, type Receipt, type Subscribe, type Subscription,
 } from './server'
 
@@ -14,6 +14,12 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
   const [status, setStatus] = useState<QuoteStatus | null>(null)
   const [receipt, setReceipt] = useState<Receipt | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reconnect, setReconnect] = useState(false)
+  const fail = (e: unknown) => { setError(errorText(e)); setReconnect((e as { code?: unknown }).code === 'wallet_unauthorized') }
+  const relink = async () => {
+    setError(null); setReconnect(false)
+    try { setAccount(await reconnectWallet()) } catch (e) { fail(e) }
+  }
 
   const load = useCallback(() => api<Invoice>(`/v1/public/invoices/${encodeURIComponent(invoiceId)}`).then(setInvoice, (e) => setError(errorText(e))), [invoiceId])
   useEffect(() => { void load() }, [load])
@@ -24,12 +30,13 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
 
   const connect = async () => {
     setError(null)
-    try { setAccount(await connectWallet()) } catch (e) { setError(errorText(e)) }
+    try { setAccount(await connectWallet()) } catch (e) { fail(e) }
   }
 
   const pay = async () => {
     if (!account) return
     setError(null)
+    setReconnect(false)
     try {
       setStep('quote')
       const q = await api<Quote>(`/v1/public/invoices/${encodeURIComponent(invoiceId)}/quote`, { method: 'POST', body: { payer: account, ...(reward ? { rewardId: reward } : {}) } })
@@ -39,8 +46,8 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
       setStatus(await api<QuoteStatus>(`/v1/public/quotes/${q.quoteId}/authorize`, { method: 'POST', body: { signature } }))
       setStep('settle')
       // The receipt reads the router onchain, so it is the source of truth for "paid".
-      for (let i = 0; i < 60; i++) {
-        await sleep(3000)
+      for (let i = 0; i < 120; i++) {
+        await sleep(i === 0 ? 1000 : 1500)
         const [s, r] = await Promise.all([
           api<QuoteStatus>(`/v1/public/quotes/${q.quoteId}`).catch(() => null),
           api<Receipt>(`/v1/public/receipts/${q.paymentId}`).catch(() => null),
@@ -51,7 +58,7 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
       }
       throw new Error('Still waiting for the chain. Your payment may settle shortly; reload this page to check.')
     } catch (e) {
-      setError(errorText(e))
+      fail(e)
       setStep('idle')
     }
   }
@@ -108,7 +115,7 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
             {account && offers?.enabled && offers.willEarn > 0 && <p className="pk-hint">You earn {chosen?.willEarn ?? offers.willEarn} points with this payment.</p>}
 
             {!account ? (
-              <button type="button" className="pk-button pk-button--primary pk-button--block" onClick={connect}>{hasWallet() ? 'Connect wallet' : 'Open in a wallet browser'}</button>
+              <button type="button" className="pk-button pk-button--primary pk-button--block" onClick={connect}>{hasWallet() ? 'Connect MetaMask' : 'Install MetaMask to pay'}</button>
             ) : (
               <button type="button" className="pk-button pk-button--primary pk-button--block" disabled={busy} onClick={pay}>
                 {step === 'quote' ? 'Preparing…' : step === 'sign' ? 'Sign in your wallet…' : step === 'send' ? 'Sending…' : step === 'settle' ? 'Settling onchain…' : `Pay ${usdt(payNow)}`}
@@ -119,6 +126,7 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
         )}
         {status?.txUrl && step === 'settle' && <p className="pk-hint"><a className="pk-link" href={status.txUrl} target="_blank" rel="noreferrer">Transaction submitted</a>, waiting for confirmations…</p>}
         {error && <State kind="error" title="Payment not completed">{error}</State>}
+        {reconnect && <button type="button" className="pk-button pk-button--secondary pk-button--block" onClick={relink}>Reconnect MetaMask</button>}
       </section>
     </Shell>
   )
@@ -132,17 +140,24 @@ export function SubscribePage({ planId }: { planId: string }) {
   const [sub, setSub] = useState<Subscription | null>(null)
   const [terms, setTerms] = useState<Subscribe['summary'] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reconnect, setReconnect] = useState(false)
+  const fail = (e: unknown) => { setError(errorText(e)); setReconnect((e as { code?: unknown }).code === 'wallet_unauthorized') }
+  const relink = async () => {
+    setError(null); setReconnect(false)
+    try { setAccount(await reconnectWallet()) } catch (e) { fail(e) }
+  }
 
   useEffect(() => { api<Plan>(`/v1/public/plans/${encodeURIComponent(planId)}`).then(setPlan, (e) => setError(errorText(e))) }, [planId])
 
   const connect = async () => {
     setError(null)
-    try { setAccount(await connectWallet()) } catch (e) { setError(errorText(e)) }
+    try { setAccount(await connectWallet()) } catch (e) { fail(e) }
   }
 
   const subscribe = async () => {
     if (!account) return
     setError(null)
+    setReconnect(false)
     try {
       setStep('terms')
       const s = await api<Subscribe>(`/v1/public/plans/${encodeURIComponent(planId)}/subscribe`, { method: 'POST', body: { payer: account } })
@@ -162,7 +177,7 @@ export function SubscribePage({ planId }: { planId: string }) {
       }
       setStep('done')
     } catch (e) {
-      setError(errorText(e))
+      fail(e)
       setStep('idle')
     }
   }
@@ -193,7 +208,7 @@ export function SubscribePage({ planId }: { planId: string }) {
             {sub.nextChargeAt ? ` · next on ${new Date(sub.nextChargeAt).toLocaleDateString()}` : ''}. You can cancel any time.
           </State>
         ) : !account ? (
-          <button type="button" className="pk-button pk-button--primary pk-button--block" disabled={!plan.active} onClick={connect}>Connect wallet</button>
+          <button type="button" className="pk-button pk-button--primary pk-button--block" disabled={!plan.active} onClick={connect}>Connect MetaMask</button>
         ) : (
           <button type="button" className="pk-button pk-button--primary pk-button--block" disabled={busy || !plan.active} onClick={subscribe}>
             {step === 'terms' ? 'Preparing terms…' : step === 'permit' ? 'Sign 1 of 2: spending limit…' : step === 'consent' ? 'Sign 2 of 2: plan terms…' : step === 'send' ? 'Starting plan…' : `Subscribe for ${usdt(plan.chargedAtSignup)} today`}
@@ -201,6 +216,7 @@ export function SubscribePage({ planId }: { planId: string }) {
         )}
         {account && step !== 'done' && <p className="pk-hint">From {short(account)}. Two signatures, no transactions: a USDT spending limit capped at the plan total, and your consent to these terms.</p>}
         {error && <State kind="error" title="Not subscribed">{error}</State>}
+        {reconnect && <button type="button" className="pk-button pk-button--secondary pk-button--block" onClick={relink}>Reconnect MetaMask</button>}
       </section>
     </Shell>
   )

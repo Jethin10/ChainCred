@@ -100,37 +100,70 @@ const provider = (): Eip1193 | null => {
 export const hasWallet = () => provider() !== null
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
+const MINUTE = 60_000
+
+/** A wallet request that can't hang the page: after `ms` it fails with a clear next step. */
+async function ask<T>(eth: Eip1193, method: string, params?: unknown[], ms = 2 * MINUTE): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new ServerError('MetaMask did not answer. Click the MetaMask icon in your toolbar to see the pending request, or press the button again.', 'wallet_timeout')), ms)
+  })
+  try {
+    return (await Promise.race([eth.request({ method, params }), timeout])) as T
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
+ * Asks MetaMask for this site's permissions: the account, and Whitechain testnet as a permitted
+ * network. MetaMask keeps both per site; without the network it answers signatures with 4100.
+ */
+async function grant(eth: Eip1193): Promise<string[]> {
+  try {
+    await ask(eth, 'wallet_requestPermissions', [
+      { eth_accounts: {}, 'endowment:permitted-chains': { caveats: [{ type: 'restrictNetworkSwitching', value: [CHAIN.chainId] }] } },
+    ])
+  } catch (e) {
+    const code = (e as { code?: number }).code
+    if (code === 4001 || (e as { code?: string }).code === 'wallet_timeout') throw e
+    // Older MetaMask (or another wallet) without per-site networks: accounts only.
+    await ask(eth, 'wallet_requestPermissions', [{ eth_accounts: {} }])
+  }
+  return ask<string[]>(eth, 'eth_accounts')
+}
 
 export async function connectWallet(): Promise<string> {
   window.dispatchEvent(new Event('eip6963:requestProvider'))
   const eth = provider()
-  if (!eth) throw new ServerError('No browser wallet found. Install MetaMask (or another wallet) to pay with USDT on Whitechain.')
+  if (!eth) throw new ServerError('MetaMask not found. Install the MetaMask extension to pay with USDT on Whitechain.')
   chosen = eth
-  const [account] = (await eth.request({ method: 'eth_requestAccounts' })) as string[]
-  if (!account) throw new ServerError('The wallet did not share an account.')
+  let accounts = await ask<string[]>(eth, 'eth_accounts')
+  if (!accounts.length) accounts = await grant(eth)
   await switchToWhitechain(eth)
-  return account
+  if (!accounts[0]) throw new ServerError('MetaMask did not share an account.')
+  return accounts[0]
 }
 
-/** Makes sure this site may use `account` right now (MetaMask answers 4100 otherwise). */
-async function authorize(eth: Eip1193, account: string, force = false) {
-  const allowed = force ? [] : ((await eth.request({ method: 'eth_accounts' })) as string[])
-  if (allowed.some((a) => same(a, account))) return
-  if (force) await eth.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] })
-  const granted = (await eth.request({ method: 'eth_requestAccounts' })) as string[]
-  if (!granted.some((a) => same(a, account))) {
-    throw new ServerError(`Your wallet is now on ${granted[0] ?? 'another account'}. Reload the page and connect the account you want to pay from.`)
-  }
+/** Re-grants the site's permissions after MetaMask refused one (error 4100). Call from a click. */
+export async function reconnectWallet(): Promise<string> {
+  const eth = provider()
+  if (!eth) throw new ServerError('MetaMask not found.')
+  chosen = eth
+  const accounts = await grant(eth)
+  await switchToWhitechain(eth)
+  if (!accounts[0]) throw new ServerError('MetaMask did not share an account.')
+  return accounts[0]
 }
 
 async function switchToWhitechain(eth: Eip1193) {
-  const current = (await eth.request({ method: 'eth_chainId' })) as string
+  const current = await ask<string>(eth, 'eth_chainId')
   if (parseInt(current, 16) === 1874) return
   try {
-    await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN.chainId }] })
+    await ask(eth, 'wallet_switchEthereumChain', [{ chainId: CHAIN.chainId }])
   } catch (e) {
     if ((e as { code?: number }).code !== 4902) throw e
-    await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN] })
+    await ask(eth, 'wallet_addEthereumChain', [CHAIN])
   }
 }
 
@@ -139,17 +172,21 @@ const DOMAIN_FIELDS: Array<[string, string]> = [['name', 'string'], ['version', 
 /** eth_signTypedData_v4 with the EIP712Domain type the wallet needs. Free: no transaction, no gas. */
 export async function signTypedData(account: string, data: TypedData): Promise<string> {
   const eth = provider()
-  if (!eth) throw new ServerError('No browser wallet found.')
-  await authorize(eth, account)
+  if (!eth) throw new ServerError('MetaMask not found.')
+  const allowed = await ask<string[]>(eth, 'eth_accounts')
+  if (!allowed.some((a) => same(a, account))) {
+    throw new ServerError('MetaMask is not connected to this account any more. Reconnect MetaMask and try again.', 'wallet_unauthorized')
+  }
   await switchToWhitechain(eth)
   const EIP712Domain = DOMAIN_FIELDS.filter(([name]) => data.domain[name] !== undefined).map(([name, type]) => ({ name, type }))
-  const params = [account.toLowerCase(), JSON.stringify({ ...data, types: { EIP712Domain, ...data.types } })]
+  const params = [account, JSON.stringify({ ...data, types: { EIP712Domain, ...data.types } })]
   try {
-    return (await eth.request({ method: 'eth_signTypedData_v4', params })) as string
+    return await ask<string>(eth, 'eth_signTypedData_v4', params, 5 * MINUTE)
   } catch (e) {
-    if ((e as { code?: number }).code !== 4100) throw e
-    await authorize(eth, account, true) // permission was lost: ask again, then retry once
-    return (await eth.request({ method: 'eth_signTypedData_v4', params })) as string
+    if ((e as { code?: number }).code === 4100) {
+      throw new ServerError('MetaMask has not allowed this site to sign on Whitechain yet. Press "Reconnect MetaMask", approve the account and the Whitechain network, then pay again.', 'wallet_unauthorized')
+    }
+    throw e
   }
 }
 

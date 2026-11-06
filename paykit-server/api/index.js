@@ -47,7 +47,10 @@ module.exports = async (req, res) => {
     return res.end(JSON.stringify({ ok: true, refill: refill && refill.decision }));
   }
 
-  const pending = catchUp(svc);
-  if (pending) waitUntil(pending);
+  // Catch up only after the response is out, so it never slows the request itself.
+  res.on("finish", () => {
+    const pending = catchUp(svc);
+    if (pending) waitUntil(pending);
+  });
   return svc.app(req, res);
 };

@@ -14,17 +14,21 @@ const { createRefill } = require("./refill");
 const { createApi } = require("./api");
 
 async function boot() {
-  const net = await provider.getNetwork();
+  if (config.routerV2 && !config.points) throw new Error("ROUTER_V2_ADDRESS is set but POINTS_ADDRESS is not");
+  // The chain sanity checks and the database connection run in parallel (faster cold starts).
+  const [net, routerCode, v2Code, owner, store] = await Promise.all([
+    provider.getNetwork(),
+    provider.getCode(config.router),
+    config.routerV2 ? provider.getCode(config.routerV2) : Promise.resolve(null),
+    router.owner(),
+    createStore(),
+  ]);
   if (Number(net.chainId) !== config.chainId) throw new Error(`RPC is chain ${net.chainId}, expected ${config.chainId}`);
-  if ((await provider.getCode(config.router)) === "0x") throw new Error(`No contract at ROUTER_ADDRESS ${config.router}`);
-  const isOwner = (await router.owner()) === adminWallet.address;
-  if (config.routerV2) {
-    if (!config.points) throw new Error("ROUTER_V2_ADDRESS is set but POINTS_ADDRESS is not");
-    if ((await provider.getCode(config.routerV2)) === "0x") throw new Error(`No contract at ROUTER_V2_ADDRESS ${config.routerV2}`);
-    if (!config.deployBlockV2) console.warn("[config] DEPLOY_BLOCK_V2 not set: v2 events before the observer's cursor may be missed");
-  }
+  if (routerCode === "0x") throw new Error(`No contract at ROUTER_ADDRESS ${config.router}`);
+  if (config.routerV2 && v2Code === "0x") throw new Error(`No contract at ROUTER_V2_ADDRESS ${config.routerV2}`);
+  if (config.routerV2 && !config.deployBlockV2) console.warn("[config] DEPLOY_BLOCK_V2 not set: v2 events before the observer's cursor may be missed");
+  const isOwner = owner === adminWallet.address;
 
-  const store = await createStore();
   const relayer = createRelayer(store);
   const webhooks = createWebhooks(store);
   const merchants = createMerchantService(store, relayer, webhooks);
