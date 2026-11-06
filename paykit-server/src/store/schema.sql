@@ -102,6 +102,35 @@ CREATE TABLE IF NOT EXISTS points_wallets (
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
 
+-- points on Arkiv (POINTS_BACKEND=arkiv): Postgres mirrors of the Arkiv entities + the write outbox
+CREATE TABLE IF NOT EXISTS point_lots (
+  id          text PRIMARY KEY,           -- lot_<payment key>: points one payment earned (issuer = merchant_id)
+  merchant_id text NOT NULL,
+  data        jsonb NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS point_lots_wallet ON point_lots ((data->>'wallet'));
+
+CREATE TABLE IF NOT EXISTS point_spends (
+  id          text PRIMARY KEY,           -- sp_<payment key>_<n>: points used from one lot (redeemer = merchant_id)
+  merchant_id text NOT NULL,
+  data        jsonb NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS point_spends_wallet ON point_spends ((data->>'wallet'));
+CREATE INDEX IF NOT EXISTS point_spends_lot ON point_spends ((data->>'lotId'));
+
+CREATE TABLE IF NOT EXISTS arkiv_outbox (
+  id          text PRIMARY KEY,           -- <kind>:<record id>, one pending sync per record
+  merchant_id text,
+  data        jsonb NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS arkiv_outbox_status ON arkiv_outbox ((data->>'status'));
+
 CREATE TABLE IF NOT EXISTS webhook_events (
   id          text PRIMARY KEY,           -- evt_<uuid>
   merchant_id text NOT NULL,

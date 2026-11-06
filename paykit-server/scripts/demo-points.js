@@ -17,11 +17,13 @@ const { ask, askAddress, askPrivateKey, askAmount } = require(path.resolve(
 ));
 
 const API = process.env.PAYKIT_API || `http://localhost:${process.env.PORT || 8787}`;
+process.on("unhandledRejection", (e) => { console.error("\n✗", e?.name === "TimeoutError" ? "a server call took longer than 60 s, look at the server window for the error" : e?.message || e); process.exit(1); });
 const STATE = path.join(__dirname, "..", ".demo-points.json");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function call(method, url, { token, body } = {}) {
   const res = await fetch(API + url, {
+    signal: AbortSignal.timeout(60_000), // never hang silently: say which call is slow
     method,
     headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
     body: body ? JSON.stringify(body) : undefined,
@@ -87,7 +89,8 @@ async function main() {
 
   const customer = await askPrivateKey("\nCUSTOMER wallet (needs USDT, no WBT).", null);
   const pts = async () => (await call("GET", `/v1/public/points/${customer.address}`)).balance;
-  console.log(`  points balance: ${await pts()} PKP`);
+  const start = await pts();
+  console.log(`  points balance: ${start} PKP`);
 
   // ── 1. buy a t-shirt at shop A, earn points ──
   console.log("\n── 1. T-shirt at Tee Shop ──");
@@ -96,8 +99,17 @@ async function main() {
   const preA = await call("GET", `/v1/public/invoices/${invA.id}/offers?payer=${customer.address}`);
   console.log(`  you'll earn ${preA.willEarn} points (${preA.campaign ? preA.campaign.name : "no campaign"})`);
   await pay(invA.id, customer);
-  const after1 = await until("points", () => call("GET", `/v1/public/points/${customer.address}`), (w) => w.inSync && w.balance >= preA.willEarn);
-  console.log(`  ✓ points balance: ${after1.balance} PKP (onchain, token ${after1.token.address})`);
+  const after1 = await until("points", () => call("GET", `/v1/public/points/${customer.address}`), (w) => w.balance >= start + preA.willEarn);
+  if (after1.backend === "arkiv") {
+    const lot = after1.lots[after1.lots.length - 1];
+    console.log(`  ✓ points balance: ${after1.balance} (lot from ${lot ? lot.shop : "?"}, expires ${lot ? lot.expiresAt.slice(0, 10) : "?"})`);
+    await until("the copy on Arkiv", () => call("GET", `/v1/public/points/${customer.address}`), (w) => w.arkiv.pendingWrites === 0, 90_000);
+    const v = await call("GET", `/v1/public/points/${customer.address}?verify=1`);
+    console.log(`    Arkiv itself says: ${v.arkiv.balance ?? "no answer (" + v.arkiv.error + ")"}  (Postgres says ${v.balance})`);
+    console.log(`    Arkiv query: ${after1.arkiv.query}`);
+  } else {
+    console.log(`  ✓ points balance: ${after1.balance} PKP (onchain, token ${after1.token.address})`);
+  }
 
   // ── 2. jeans at shop B, pick an offer ──
   console.log("\n── 2. Jeans at Jeans Co ──");
@@ -115,8 +127,8 @@ async function main() {
   if (chosen && !chosen.available) throw new Error(`That offer is not available: ${chosen.message}`);
   const q = await pay(invB.id, customer, chosen ? { rewardId: chosen.id } : {});
   console.log(`  paid ${q.gross} USDT${Number(q.discount) > 0 ? ` (discount ${q.discount}, ${q.points.redeemed} points used)` : ""}`);
-  const after2 = await until("points", () => call("GET", `/v1/public/points/${customer.address}`), (w) => w.inSync);
-  console.log(`  ✓ points balance: ${after2.balance} PKP`);
+  const after2 = await until("points", () => call("GET", `/v1/public/points/${customer.address}`), (w) => w.balance <= start + preA.willEarn - (q.points?.redeemed || 0));
+  console.log(`  ✓ points balance: ${after2.balance}${after2.backend === "arkiv" ? ` (Arkiv copy ${after2.arkiv.pendingWrites === 0 ? "up to date" : after2.arkiv.pendingWrites + " write(s) still queued"})` : " PKP"}`);
   const inv = await call("GET", `/v1/invoices/${invB.id}`, { token: st.B.apiKey });
   console.log(`  invoice ${inv.id}: ${inv.status} (${inv.amountPaid} of ${inv.amount} incl. discount)`);
 
@@ -127,6 +139,7 @@ async function main() {
   console.log(`  Tee Shop: issued ${sA.issued.points} points to ${sA.issued.customers} customer(s); spent elsewhere: ${JSON.stringify(sA.yourCustomersSpentElsewhere)}`);
   console.log(`  Jeans Co: ${sB.redeemedAtYou.redemptions} redemption(s), ${sB.redeemedAtYou.points} points, discount given ${sB.redeemedAtYou.discountGiven} USDT, new customers via points: ${sB.redeemedAtYou.newCustomersViaPoints}`);
   console.log(`\nCustomer history: ${API}/v1/public/points/${customer.address}`);
+  console.log(`Rewards read from Arkiv: ${API}/v1/public/rewards`);
 }
 
 main().catch((e) => {
