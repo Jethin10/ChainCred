@@ -1,6 +1,7 @@
 /* Build replaces these with this release's exact app-shell files and content hash. */
 const ASSETS = __PRECACHE__
 const CACHE = 'paykit-shell-' + __VERSION__
+const BASE = __BASE__
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)))
 })
@@ -16,7 +17,7 @@ self.addEventListener('fetch', (event) => {
   // Never cache API data, wallet requests, merchant credentials, or payment writes.
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/v1/') || url.pathname.startsWith('/api/')) return
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(async () => (await caches.open(CACHE)).match('/index.html')))
+    event.respondWith(fetch(request).catch(async () => (await caches.open(CACHE)).match(BASE + 'index.html')))
     return
   }
   if (!ASSETS.includes(url.pathname)) return

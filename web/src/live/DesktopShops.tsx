@@ -11,7 +11,7 @@ const TABS: Array<[Tab, string]> = [['overview', 'Overview'], ['invoices', 'Your
 
 const shopId = (s: Shop) => s.name.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-')
 // Photos of each shop (public/shops/<id>.jpg): public-domain stock, no watermarks.
-const shotOf = (s: Shop) => `/shops/${shopId(s)}.jpg`
+const shotOf = (s: Shop) => `${import.meta.env.BASE_URL}shops/${shopId(s)}.jpg`
 const hashPart = (i: number) => decodeURIComponent(location.hash.split('/')[i] ?? '')
 const tabFromHash = (): Tab => TABS.find(([t]) => t === hashPart(2))?.[0] ?? 'overview'
 const hostOf = (url: string) => url.replace(/^https?:\/\//, '').replace(/\/$/, '')

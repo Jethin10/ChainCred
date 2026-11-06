@@ -58,7 +58,7 @@ export function MobileProvider({ children }: { children: ReactNode }) {
     const lifecycle = new AbortController()
     const controllerChanged = () => { if (applying.current) location.reload() }
     navigator.serviceWorker.addEventListener('controllerchange', controllerChanged)
-    void navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).then((reg) => {
+    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL, updateViaCache: 'none' }).then((reg) => {
       if (lifecycle.signal.aborted) return
       setRegistration(reg); setUpdate(!!reg.waiting)
       reg.addEventListener('updatefound', () => {

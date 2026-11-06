@@ -31,7 +31,7 @@ The PayKit mobile app is in [`web/`](web/), with a home-screen app manifest,
 offline app shell, fingerprint/face/device-PIN unlock, and a QR scanner.
 It shares the website's pixel artwork and typography.
 
-You can also install directly from the [PayKit app](https://paykit-app.vercel.app/#settings):
+You can also install directly from the [PayKit app](https://paykit-landing-one.vercel.app/app/#settings):
 
 | Device | Install PayKit |
 |---|---|
@@ -65,8 +65,8 @@ unlock rather than a numeric IP address.
 
 | What | URL |
 |---|---|
-| Landing page (`frontend/`) | https://paykit-landing-one.vercel.app |
-| App and SDK gallery (`web/`) | https://paykit-app.vercel.app |
+| Website: landing page (`frontend/`) | https://paykit-landing-one.vercel.app |
+| Same website: app and SDK gallery (`web/`) | https://paykit-landing-one.vercel.app/app/ |
 | PayKit server (`paykit-server/`, Whitechain testnet) | https://paykit-server.vercel.app/health |
 | Demo company: Kettle & Leaf (`stores/`) | https://kettle-and-leaf-five.vercel.app |
 | Demo company: Paper Lantern Books (`stores/`) | https://paper-lantern-books.vercel.app |
@@ -84,16 +84,20 @@ site lists every invoice, receipt and point across stores. Build one with
 `node stores/build.mjs <kettle-leaf|paper-lantern> [other store url]`, then `vercel deploy --prebuilt --prod`
 from `stores/out/<slug>` (the project needs `STORE` and `STORE_API_KEY`).
 
-Redeploy (Vercel CLI, logged in): `paykit-server` with `npm run bundle-sdk && vercel deploy --prod`; the two sites are built
-locally and shipped prebuilt:
+The landing page and the app are one website: the app is built to live under `/app/` and ships inside
+the landing deployment. The old `paykit-app.vercel.app` permanently redirects to `/app/` and keeps the
+`#fragment`, so earlier pay links (`#pay/<invoiceId>`) still work.
+
+Redeploy (Vercel CLI, logged in; in Git Bash set `MSYS_NO_PATHCONV=1` so `/app/` isn't turned into a Windows path):
+`paykit-server` with `npm run bundle-sdk && vercel deploy --prod`, then:
 
 ```sh
-# app
-cd web && VITE_PAYKIT_API_URL=https://paykit-server.vercel.app VITE_PAYKIT_SITE_URL=https://paykit-landing-one.vercel.app npm run build
-node -e "const f=require('fs');f.rmSync('.vercel/output',{recursive:true,force:true});f.cpSync('dist','.vercel/output/static',{recursive:true});f.writeFileSync('.vercel/output/config.json','{\"version\":3}')"
-vercel deploy --prebuilt --prod
-# landing
-cd frontend && VITE_PAYKIT_APP_URL=https://paykit-app.vercel.app npm run build && node scripts/vercel-output.mjs && vercel deploy --prebuilt --prod
+# 1. the app, built for /app/
+cd web && VITE_BASE=/app/ VITE_PAYKIT_API_URL=https://paykit-server.vercel.app VITE_PAYKIT_SERVER_URL=https://paykit-server.vercel.app VITE_PAYKIT_SITE_URL=/ npx vite build --outDir dist-app --emptyOutDir
+# 2. the landing page, which packages web/dist-app at /app/
+cd ../frontend && VITE_PAYKIT_APP_URL=/app npm run build && node scripts/vercel-output.mjs && vercel deploy --prebuilt --prod
+# 3. (only if the redirect ever needs changing) the old app domain
+cd .. && node scripts/redirect-old-app.mjs && cd web && vercel deploy --prebuilt --prod
 ```
 
 ## Start here

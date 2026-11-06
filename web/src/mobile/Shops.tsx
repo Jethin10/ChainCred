@@ -3,7 +3,7 @@ import { api, COMPANIES, type MarketReward } from '../live/server'
 import { BrandMark } from '../live/BrandMark'
 import { Icon } from './icons'
 
-const photo = (name: string) => `/shops/${name.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.jpg`
+const photo = (name: string) => `${import.meta.env.BASE_URL}shops/${name.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.jpg`
 
 export function Shops() {
   const [q, setQ] = useState('')
