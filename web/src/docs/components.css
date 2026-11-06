@@ -71,6 +71,8 @@
 .docs-code__bar button:active { transform: scale(.92); }
 .docs-code__bar button[data-copied="true"] { background: var(--good); color: #fff; animation: pop-in .35s var(--pop); }
 .docs-code pre { margin: 0; padding: 20px; overflow: auto; max-height: 550px; font-size: .8rem; line-height: 1.8; tab-size: 2; }
+/* the SDK's inline-code chip (.pk-root code) must not paint inside dark code blocks */
+.docs-code pre code, .onb-code pre code { background: none; border: 0; padding: 0; color: inherit; font-size: inherit; word-break: normal; }
 .docs-code > p { padding: 0 16px; color: #ff8a7a; font-size: .85rem; }
 .docs-file-tabs { display: flex; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--mist); }
 .docs-file-tabs button { border: 0; background: transparent; border-radius: var(--r); padding: 7px 12px; font-family: var(--mono); font-size: .78rem; color: var(--muted); cursor: pointer; transition: background-color .2s, color .2s; }

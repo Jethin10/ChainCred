@@ -507,3 +507,13 @@ h1, h2, h3 { font-weight: 400; letter-spacing: -0.01em; line-height: 1.05; }
 .onb-fine { margin: 0; font-size: 13px; }
 .onb-login .onb-error { flex-basis: 100%; }
 @media (max-width: 900px) { .onb-promise { grid-template-columns: 1fr; } .onb-dots { flex-wrap: wrap; } }
+
+/* SDK install button under the hero */
+.install-cta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 18px; margin-top: 26px; }
+.install-cta__cmd { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; padding: 8px 8px 8px 16px; border: 1px solid var(--ink); border-radius: var(--r); background: var(--ink); color: #fff; font: inherit; cursor: pointer; transition: transform .2s var(--pop), box-shadow .2s; }
+.install-cta__cmd:hover { transform: translateY(-1px); box-shadow: 0 12px 26px -16px rgb(0 0 0 / .7); }
+.install-cta__cmd > span { color: var(--sky-2); font-family: var(--mono); }
+.install-cta__cmd code { font-size: .92rem; color: #fff; background: none; border: 0; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.install-cta__cmd b { padding: 6px 12px; border-radius: var(--r-sm); background: #fff; color: var(--ink); font-size: .8rem; font-weight: 600; min-width: 64px; }
+.install-cta__cmd b[data-copied="true"] { background: var(--good); color: #fff; }
+.install-cta__npm { color: var(--ink); font-size: .92rem; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }

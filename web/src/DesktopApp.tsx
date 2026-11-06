@@ -22,6 +22,7 @@ import {
 } from '@paykit/react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import ComponentsPage from './docs/Components'
+import { InstallCta } from './docs/InstallCta'
 import { privateKeyToAccount } from 'viem/accounts'
 import { Mark, PixelSky, PixelWipe } from './theme/pixels'
 import { useBackend, type Backend } from './theme/backend'
@@ -94,6 +95,7 @@ export default function DesktopApp() {
             <p className="eyebrow"><span className="eyebrow__dot" />{meta.eyebrow}</p>
             <h1>{meta.title}</h1>
             <p className="hero__lead">{meta.lead}</p>
+            {page === 'components' && <InstallCta />}
           </div>
         </header>
         {page === 'merchant' && window.location.hash.startsWith('#merchant/demo') && (
