@@ -1,0 +1,59 @@
+{
+  "name": "paykit",
+  "version": "0.1.0",
+  "description": "Accept USDT on Whitechain: server SDK, in-page MetaMask checkout, webhooks, loyalty points, and an agent guide (AGENTS.md). No dependencies.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./checkout": {
+      "types": "./src/checkout.d.ts",
+      "default": "./src/checkout.js"
+    },
+    "./AGENTS.md": "./AGENTS.md",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "paykit": "./bin/paykit.mjs"
+  },
+  "files": [
+    "src",
+    "bin",
+    "AGENTS.md",
+    "README.md"
+  ],
+  "scripts": {
+    "sync": "node scripts/sync-checkout.mjs",
+    "prepack": "node scripts/sync-checkout.mjs",
+    "test": "node scripts/sync-checkout.mjs && node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "payments",
+    "checkout",
+    "usdt",
+    "stablecoin",
+    "crypto",
+    "metamask",
+    "whitechain",
+    "eip-3009",
+    "webhooks",
+    "loyalty",
+    "agents"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jethin10/PayKit.git",
+    "directory": "packages/paykit"
+  },
+  "homepage": "https://github.com/Jethin10/PayKit/tree/main/packages/paykit#readme",
+  "bugs": "https://github.com/Jethin10/PayKit/issues",
+  "license": "MIT"
+}
