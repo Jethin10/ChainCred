@@ -1,0 +1,91 @@
+{
+  "chainId": 1874,
+  "network": "whitechainTestnet",
+  "deployedAt": "2026-11-05T21:33:05.533Z",
+  "deployer": "0x210f0257A119ede458d5985893527cE434518B9e",
+  "deployBlock": 12317987,
+  "contracts": {
+    "MerchantRegistry": "0xF6B60D212abd955a6d4937535f89B5B7b6426C47",
+    "FeeTreasury": "0xeb52e2394ECFbAbFD53F9cF9e50F8c4bC35d84e2",
+    "PaymentRouter": "0xef2f926CF5D57098Ff3e57f65492b74Ac0E2b489"
+  },
+  "constructorArgs": {
+    "MerchantRegistry": [
+      "0x210f0257A119ede458d5985893527cE434518B9e",
+      "0"
+    ],
+    "FeeTreasury": [
+      "0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7",
+      "0x4200000000000000000000000000000000000006",
+      "0xe208cC685cD95D56E8ec6DEC9816476567fc6962",
+      3000,
+      "0x210f0257A119ede458d5985893527cE434518B9e"
+    ],
+    "PaymentRouter": [
+      "0xF6B60D212abd955a6d4937535f89B5B7b6426C47",
+      "0xeb52e2394ECFbAbFD53F9cF9e50F8c4bC35d84e2",
+      "0x210f0257A119ede458d5985893527cE434518B9e"
+    ]
+  },
+  "tokens": {
+    "USDT": "0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7",
+    "WWBT": "0x4200000000000000000000000000000000000006"
+  },
+  "swapRouter": "0xe208cC685cD95D56E8ec6DEC9816476567fc6962",
+  "feeSchedule": {
+    "bps": 100,
+    "minFee": "50000",
+    "maxFee": "25000000"
+  },
+  "refillLimits": {
+    "maxUsdtPerRun": "20000000",
+    "maxUsdtPerDay": "100000000",
+    "minWbtPerUsdt": "10760000000000000",
+    "maxDeadlineWindow": "120"
+  },
+  "relayers": [
+    "0x210f0257A119ede458d5985893527cE434518B9e"
+  ],
+  "domains": {
+    "router": {
+      "name": "PayKit Router",
+      "version": "1"
+    },
+    "registry": {
+      "name": "PayKit Registry",
+      "version": "1"
+    }
+  },
+  "v2": {
+    "deployedAt": "2026-11-06T07:51:11.896Z",
+    "deployBlock": 12355087,
+    "contracts": {
+      "PayKitPoints": "0x97d59a00FdfBea72C9D95d2C43AdAa1938608d5f",
+      "PaymentRouterV2": "0xb3BA57B6FEDb83030244e1fe6DB832dfC77B1c57"
+    },
+    "constructorArgs": {
+      "PayKitPoints": [
+        "0x210f0257A119ede458d5985893527cE434518B9e",
+        "100"
+      ],
+      "PaymentRouterV2": [
+        "0xF6B60D212abd955a6d4937535f89B5B7b6426C47",
+        "0xeb52e2394ECFbAbFD53F9cF9e50F8c4bC35d84e2",
+        "0x97d59a00FdfBea72C9D95d2C43AdAa1938608d5f",
+        "0x210f0257A119ede458d5985893527cE434518B9e"
+      ]
+    },
+    "feeSchedule": {
+      "bps": 100,
+      "minFee": "50000",
+      "maxFee": "25000000"
+    },
+    "maxPointsPerUsdt": "100",
+    "domains": {
+      "router": {
+        "name": "PayKit Router",
+        "version": "2"
+      }
+    }
+  }
+}
