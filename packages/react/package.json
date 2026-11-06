@@ -1,0 +1,43 @@
+{
+  "name": "@paykit/react",
+  "version": "0.1.0",
+  "description": "React components and hooks for PayKit: shops, checkout, installments, user and merchant dashboards on Whitechain.",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "files": [
+    "dist",
+    "src/styles.css",
+    "registry",
+    "bin"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@paykit/js": "0.1.0",
+    "viem": "^2.47.6"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.6",
+    "@paykit/testing": "0.1.0"
+  },
+  "bin": {
+    "paykit-ui": "./bin/add.mjs"
+  }
+}

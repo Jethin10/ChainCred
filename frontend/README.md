@@ -20,4 +20,4 @@ npm run preview    # serves the build
 | `public/` | Fonts, images, videos, prebuilt JS chunks, PayKit icons and OG image. |
 
 CTAs open the PayKit app at `VITE_PAYKIT_APP_URL` (default `http://127.0.0.1:5174`), on the page in the
-hash: `/#shops`, `/#invoice`, `/#me` or `/#merchant`. Set it in `frontend/.env` for another host.
+hash: `/#components`, `/#shops`, `/#invoice`, `/#me` or `/#merchant`. Set it in `frontend/.env` for another host.

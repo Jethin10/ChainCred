@@ -1,0 +1,151 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "paykit",
+  "homepage": "http://localhost:5174",
+  "items": [
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "paykit-checkout",
+      "type": "registry:component",
+      "title": "Checkout",
+      "description": "A checkout card for an existing order session, with amount checks, progress and recoverable errors.",
+      "dependencies": [
+        "@paykit/react@0.1.0",
+        "@paykit/js@0.1.0"
+      ],
+      "files": [
+        {
+          "path": "components/paykit/checkout.tsx",
+          "type": "registry:component",
+          "content": "\"use client\";\r\nimport { useCheckout, errorMessage } from '@paykit/react';\r\nimport { formatUsdt } from '@paykit/js';\r\nimport './paykit-ui.css';\r\n\r\ntype CheckoutProps = {\r\n  sessionId: string; amount: string; label?: string; className?: string; onPaid?: (paymentId: string) => void;\r\n};\r\n\r\nexport function CustomCheckout(props: CheckoutProps) {\r\n  return <SessionCheckout key={props.sessionId} {...props} />;\r\n}\r\n\r\nfunction SessionCheckout({ sessionId, amount, label = 'Pay with USDT', className = '', onPaid }: CheckoutProps) {\r\n  const checkout = useCheckout();\r\n  return <section className={`pkc-card ${className}`} aria-label=\"Checkout\">\r\n    <div className=\"pkc-row\"><span>Order total</span><strong>{formatUsdt(amount)} USDT</strong></div>\r\n    <p className=\"pkc-muted\">One signature. Gas is paid by the payment service.</p>\r\n    <button className=\"pkc-button\" disabled={checkout.busy || checkout.phase === 'done'} onClick={() => {\r\n      checkout.pay({ sessionId }, { expectedAmount: amount }).then((payment) => onPaid?.(payment.paymentId)).catch(() => {});\r\n    }}>{checkout.busy ? 'Processing payment…' : checkout.phase === 'done' ? 'Payment received' : label}</button>\r\n    {checkout.error != null && <p className=\"pkc-error\" role=\"alert\">{errorMessage(checkout.error)}</p>}\r\n    {checkout.payment && <p className=\"pkc-muted\" aria-live=\"polite\">Payment {checkout.payment.status}. Your receipt will update as it settles.</p>}\r\n  </section>;\r\n}\r\n"
+        },
+        {
+          "path": "components/paykit/paykit-ui.css",
+          "target": "components/paykit/paykit-ui.css",
+          "type": "registry:file",
+          "content": "/* Own this stylesheet. Money and signing logic stays in @paykit/react hooks. */\r\n.pkc-card {\r\n  display: grid; gap: 16px; width: 100%; padding: 24px;\r\n  border: 1px solid var(--pk-line, #dce2de); border-radius: var(--pk-radius-lg, 14px);\r\n  background: var(--pk-surface, #fff); color: var(--pk-ink, #28323a); font: inherit;\r\n}\r\n.pkc-card *, .pkc-wallet * { box-sizing: border-box; }\r\n.pkc-card p, .pkc-card h3 { margin: 0; }\r\n.pkc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }\r\n.pkc-title { font-size: 1.1rem; font-weight: 650; line-height: 1.3; }\r\n.pkc-muted { color: var(--pk-muted, #5f6b72); font-size: .875rem; line-height: 1.6; }\r\n.pkc-button {\r\n  padding: 12px 18px; border: 1px solid transparent; border-radius: var(--pk-radius, 10px);\r\n  background: var(--pk-accent, #0f4c45); color: var(--pk-accent-ink, #fff);\r\n  font: inherit; font-weight: 600; cursor: pointer; min-height: 44px;\r\n}\r\n.pkc-button:hover:not(:disabled) { filter: brightness(1.12); }\r\n.pkc-button:disabled { opacity: .6; cursor: default; }\r\n.pkc-button:focus-visible, .pkc-link:focus-visible { outline: 3px solid var(--pk-focus, #1a7f72); outline-offset: 3px; }\r\n.pkc-button--quiet { background: transparent; color: var(--pk-ink, #28323a); border-color: var(--pk-line, #dce2de); }\r\n.pkc-error { color: var(--pk-bad, #b42318); font-size: .875rem; }\r\n.pkc-tag { padding: 4px 9px; border-radius: 6px; background: var(--pk-accent-soft, #e3efec); color: var(--pk-ink, #28323a); font-size: .8rem; }\r\n.pkc-link { color: var(--pk-accent, #0f4c45); text-underline-offset: 3px; }\r\n.pkc-wallet { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }\r\n.pkc-steps { list-style: none; display: flex; padding: 0; margin: 0; gap: 6px; }\r\n.pkc-steps li { flex: 1; border-top: 4px solid var(--pk-line, #dce2de); padding-top: 9px; font-size: .75rem; color: var(--pk-muted, #5f6b72); }\r\n.pkc-steps li[data-complete=\"true\"] { border-color: var(--pk-accent, #0f4c45); color: var(--pk-ink, #28323a); }\r\n.pkc-details { margin: 0; display: grid; gap: 12px; }\r\n.pkc-details div { display: flex; justify-content: space-between; gap: 12px; }\r\n.pkc-details dt { color: var(--pk-muted, #5f6b72); }\r\n.pkc-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }\r\n.pkc-amount { font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 650; }\r\n.pkc-amount span { font-size: .875rem; font-weight: 400; color: var(--pk-muted, #5f6b72); }\r\n.pkc-product-image { width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; }\r\n"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "paykit-payment-status",
+      "type": "registry:component",
+      "title": "Payment status",
+      "description": "Watch a payment move through submitted, included, safe and finalized RPC observations.",
+      "dependencies": [
+        "@paykit/react@0.1.0",
+        "@paykit/js@0.1.0"
+      ],
+      "files": [
+        {
+          "path": "components/paykit/payment-status.tsx",
+          "type": "registry:component",
+          "content": "\"use client\";\r\nimport { usePayment, errorMessage } from '@paykit/react';\r\nimport './paykit-ui.css';\r\n\r\nexport function CustomPaymentStatus({ paymentId, className = '' }: { paymentId: string; className?: string }) {\r\n  const { data, loading, error, refetch } = usePayment(paymentId);\r\n  return <section className={`pkc-card ${className}`} aria-label=\"Payment progress\" aria-live=\"polite\">\r\n    {error != null ? <><p className=\"pkc-error\" role=\"alert\">{errorMessage(error)}</p><button className=\"pkc-button\" onClick={refetch}>Try again</button></>\r\n      : !data ? <p>{loading ? 'Checking payment…' : 'Payment unavailable'}</p>\r\n      : <><div className=\"pkc-row\"><strong>Payment progress</strong><span className=\"pkc-tag\">{data.status}</span></div>\r\n        <p className=\"pkc-muted\">Safe and finalized states are observations reported by the network RPC.</p>\r\n        <ol className=\"pkc-steps\">{(['submitted', 'included', 'safe', 'finalized'] as const).map((status, index, statuses) => <li key={status} data-complete={statuses.indexOf(data.status as typeof status) >= index}>{status}</li>)}</ol>\r\n        {data.explorerUrl && <a className=\"pkc-link\" href={data.explorerUrl} target=\"_blank\" rel=\"noreferrer\">View transaction</a>}</>}\r\n  </section>;\r\n}\r\n"
+        },
+        {
+          "path": "components/paykit/paykit-ui.css",
+          "target": "components/paykit/paykit-ui.css",
+          "type": "registry:file",
+          "content": "/* Own this stylesheet. Money and signing logic stays in @paykit/react hooks. */\r\n.pkc-card {\r\n  display: grid; gap: 16px; width: 100%; padding: 24px;\r\n  border: 1px solid var(--pk-line, #dce2de); border-radius: var(--pk-radius-lg, 14px);\r\n  background: var(--pk-surface, #fff); color: var(--pk-ink, #28323a); font: inherit;\r\n}\r\n.pkc-card *, .pkc-wallet * { box-sizing: border-box; }\r\n.pkc-card p, .pkc-card h3 { margin: 0; }\r\n.pkc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }\r\n.pkc-title { font-size: 1.1rem; font-weight: 650; line-height: 1.3; }\r\n.pkc-muted { color: var(--pk-muted, #5f6b72); font-size: .875rem; line-height: 1.6; }\r\n.pkc-button {\r\n  padding: 12px 18px; border: 1px solid transparent; border-radius: var(--pk-radius, 10px);\r\n  background: var(--pk-accent, #0f4c45); color: var(--pk-accent-ink, #fff);\r\n  font: inherit; font-weight: 600; cursor: pointer; min-height: 44px;\r\n}\r\n.pkc-button:hover:not(:disabled) { filter: brightness(1.12); }\r\n.pkc-button:disabled { opacity: .6; cursor: default; }\r\n.pkc-button:focus-visible, .pkc-link:focus-visible { outline: 3px solid var(--pk-focus, #1a7f72); outline-offset: 3px; }\r\n.pkc-button--quiet { background: transparent; color: var(--pk-ink, #28323a); border-color: var(--pk-line, #dce2de); }\r\n.pkc-error { color: var(--pk-bad, #b42318); font-size: .875rem; }\r\n.pkc-tag { padding: 4px 9px; border-radius: 6px; background: var(--pk-accent-soft, #e3efec); color: var(--pk-ink, #28323a); font-size: .8rem; }\r\n.pkc-link { color: var(--pk-accent, #0f4c45); text-underline-offset: 3px; }\r\n.pkc-wallet { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }\r\n.pkc-steps { list-style: none; display: flex; padding: 0; margin: 0; gap: 6px; }\r\n.pkc-steps li { flex: 1; border-top: 4px solid var(--pk-line, #dce2de); padding-top: 9px; font-size: .75rem; color: var(--pk-muted, #5f6b72); }\r\n.pkc-steps li[data-complete=\"true\"] { border-color: var(--pk-accent, #0f4c45); color: var(--pk-ink, #28323a); }\r\n.pkc-details { margin: 0; display: grid; gap: 12px; }\r\n.pkc-details div { display: flex; justify-content: space-between; gap: 12px; }\r\n.pkc-details dt { color: var(--pk-muted, #5f6b72); }\r\n.pkc-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }\r\n.pkc-amount { font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 650; }\r\n.pkc-amount span { font-size: .875rem; font-weight: 400; color: var(--pk-muted, #5f6b72); }\r\n.pkc-product-image { width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; }\r\n"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "paykit-wallet-button",
+      "type": "registry:component",
+      "title": "Wallet button",
+      "description": "Connect, disconnect and switch networks with your injected or controlled wallet adapter.",
+      "dependencies": [
+        "@paykit/react@0.1.0",
+        "@paykit/js@0.1.0"
+      ],
+      "files": [
+        {
+          "path": "components/paykit/wallet-button.tsx",
+          "type": "registry:component",
+          "content": "\"use client\";\nimport { useState } from 'react';\nimport { useWallet, errorMessage } from '@paykit/react';\nimport './paykit-ui.css';\n\nexport function WalletButton({ className = '' }: { className?: string }) {\n  const wallet = useWallet();\n  const [error, setError] = useState<unknown>(null);\n  const run = (action: () => Promise<unknown>) => { setError(null); void action().catch(setError); };\n  return <div className={`pkc-wallet ${className}`}>\n    {wallet.status !== 'connected' ? <button className=\"pkc-button\" disabled={wallet.status === 'connecting'} onClick={() => run(wallet.connect)}>{wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}</button>\n      : <><span className=\"pkc-tag\">{wallet.address?.slice(0, 6)}…{wallet.address?.slice(-4)}</span>\n        {wallet.wrongNetwork ? <button className=\"pkc-button\" onClick={() => run(wallet.switchNetwork)}>Switch network</button>\n          : <button className=\"pkc-button pkc-button--quiet\" onClick={wallet.disconnect}>Disconnect</button>}</>}\n    {error != null && <p className=\"pkc-error\" role=\"alert\">{errorMessage(error)}</p>}\n  </div>;\n}\n"
+        },
+        {
+          "path": "components/paykit/paykit-ui.css",
+          "target": "components/paykit/paykit-ui.css",
+          "type": "registry:file",
+          "content": "/* Own this stylesheet. Money and signing logic stays in @paykit/react hooks. */\r\n.pkc-card {\r\n  display: grid; gap: 16px; width: 100%; padding: 24px;\r\n  border: 1px solid var(--pk-line, #dce2de); border-radius: var(--pk-radius-lg, 14px);\r\n  background: var(--pk-surface, #fff); color: var(--pk-ink, #28323a); font: inherit;\r\n}\r\n.pkc-card *, .pkc-wallet * { box-sizing: border-box; }\r\n.pkc-card p, .pkc-card h3 { margin: 0; }\r\n.pkc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }\r\n.pkc-title { font-size: 1.1rem; font-weight: 650; line-height: 1.3; }\r\n.pkc-muted { color: var(--pk-muted, #5f6b72); font-size: .875rem; line-height: 1.6; }\r\n.pkc-button {\r\n  padding: 12px 18px; border: 1px solid transparent; border-radius: var(--pk-radius, 10px);\r\n  background: var(--pk-accent, #0f4c45); color: var(--pk-accent-ink, #fff);\r\n  font: inherit; font-weight: 600; cursor: pointer; min-height: 44px;\r\n}\r\n.pkc-button:hover:not(:disabled) { filter: brightness(1.12); }\r\n.pkc-button:disabled { opacity: .6; cursor: default; }\r\n.pkc-button:focus-visible, .pkc-link:focus-visible { outline: 3px solid var(--pk-focus, #1a7f72); outline-offset: 3px; }\r\n.pkc-button--quiet { background: transparent; color: var(--pk-ink, #28323a); border-color: var(--pk-line, #dce2de); }\r\n.pkc-error { color: var(--pk-bad, #b42318); font-size: .875rem; }\r\n.pkc-tag { padding: 4px 9px; border-radius: 6px; background: var(--pk-accent-soft, #e3efec); color: var(--pk-ink, #28323a); font-size: .8rem; }\r\n.pkc-link { color: var(--pk-accent, #0f4c45); text-underline-offset: 3px; }\r\n.pkc-wallet { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }\r\n.pkc-steps { list-style: none; display: flex; padding: 0; margin: 0; gap: 6px; }\r\n.pkc-steps li { flex: 1; border-top: 4px solid var(--pk-line, #dce2de); padding-top: 9px; font-size: .75rem; color: var(--pk-muted, #5f6b72); }\r\n.pkc-steps li[data-complete=\"true\"] { border-color: var(--pk-accent, #0f4c45); color: var(--pk-ink, #28323a); }\r\n.pkc-details { margin: 0; display: grid; gap: 12px; }\r\n.pkc-details div { display: flex; justify-content: space-between; gap: 12px; }\r\n.pkc-details dt { color: var(--pk-muted, #5f6b72); }\r\n.pkc-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }\r\n.pkc-amount { font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 650; }\r\n.pkc-amount span { font-size: .875rem; font-weight: 400; color: var(--pk-muted, #5f6b72); }\r\n.pkc-product-image { width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; }\r\n"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "paykit-product-card",
+      "type": "registry:component",
+      "title": "Product card",
+      "description": "A product card with server-priced amounts and an add-to-cart action. Your catalogue remains optional.",
+      "dependencies": [
+        "@paykit/react@0.1.0",
+        "@paykit/js@0.1.0"
+      ],
+      "files": [
+        {
+          "path": "components/paykit/product-card.tsx",
+          "type": "registry:component",
+          "content": "\"use client\";\nimport { useCart } from '@paykit/react';\nimport { formatUsdt, type Product } from '@paykit/js';\nimport './paykit-ui.css';\n\nexport function CustomProductCard({ product, className = '' }: { product: Product; className?: string }) {\n  const cart = useCart(product.merchantSlug);\n  return <article className={`pkc-card ${className}`}>\n    {product.imageUrl && <img className=\"pkc-product-image\" src={product.imageUrl} alt=\"\" />}\n    <h3 className=\"pkc-title\">{product.name}</h3>\n    {product.description && <p className=\"pkc-muted\">{product.description}</p>}\n    <div className=\"pkc-row\"><strong>{formatUsdt(product.price)} USDT</strong><span className=\"pkc-muted\" aria-live=\"polite\">{cart.count} in cart</span></div>\n    <button className=\"pkc-button\" disabled={!product.active} onClick={() => cart.add(product)}>{product.active ? 'Add to cart' : 'Unavailable'}</button>\n  </article>;\n}\n"
+        },
+        {
+          "path": "components/paykit/paykit-ui.css",
+          "target": "components/paykit/paykit-ui.css",
+          "type": "registry:file",
+          "content": "/* Own this stylesheet. Money and signing logic stays in @paykit/react hooks. */\r\n.pkc-card {\r\n  display: grid; gap: 16px; width: 100%; padding: 24px;\r\n  border: 1px solid var(--pk-line, #dce2de); border-radius: var(--pk-radius-lg, 14px);\r\n  background: var(--pk-surface, #fff); color: var(--pk-ink, #28323a); font: inherit;\r\n}\r\n.pkc-card *, .pkc-wallet * { box-sizing: border-box; }\r\n.pkc-card p, .pkc-card h3 { margin: 0; }\r\n.pkc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }\r\n.pkc-title { font-size: 1.1rem; font-weight: 650; line-height: 1.3; }\r\n.pkc-muted { color: var(--pk-muted, #5f6b72); font-size: .875rem; line-height: 1.6; }\r\n.pkc-button {\r\n  padding: 12px 18px; border: 1px solid transparent; border-radius: var(--pk-radius, 10px);\r\n  background: var(--pk-accent, #0f4c45); color: var(--pk-accent-ink, #fff);\r\n  font: inherit; font-weight: 600; cursor: pointer; min-height: 44px;\r\n}\r\n.pkc-button:hover:not(:disabled) { filter: brightness(1.12); }\r\n.pkc-button:disabled { opacity: .6; cursor: default; }\r\n.pkc-button:focus-visible, .pkc-link:focus-visible { outline: 3px solid var(--pk-focus, #1a7f72); outline-offset: 3px; }\r\n.pkc-button--quiet { background: transparent; color: var(--pk-ink, #28323a); border-color: var(--pk-line, #dce2de); }\r\n.pkc-error { color: var(--pk-bad, #b42318); font-size: .875rem; }\r\n.pkc-tag { padding: 4px 9px; border-radius: 6px; background: var(--pk-accent-soft, #e3efec); color: var(--pk-ink, #28323a); font-size: .8rem; }\r\n.pkc-link { color: var(--pk-accent, #0f4c45); text-underline-offset: 3px; }\r\n.pkc-wallet { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }\r\n.pkc-steps { list-style: none; display: flex; padding: 0; margin: 0; gap: 6px; }\r\n.pkc-steps li { flex: 1; border-top: 4px solid var(--pk-line, #dce2de); padding-top: 9px; font-size: .75rem; color: var(--pk-muted, #5f6b72); }\r\n.pkc-steps li[data-complete=\"true\"] { border-color: var(--pk-accent, #0f4c45); color: var(--pk-ink, #28323a); }\r\n.pkc-details { margin: 0; display: grid; gap: 12px; }\r\n.pkc-details div { display: flex; justify-content: space-between; gap: 12px; }\r\n.pkc-details dt { color: var(--pk-muted, #5f6b72); }\r\n.pkc-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }\r\n.pkc-amount { font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 650; }\r\n.pkc-amount span { font-size: .875rem; font-weight: 400; color: var(--pk-muted, #5f6b72); }\r\n.pkc-product-image { width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; }\r\n"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "paykit-receipt",
+      "type": "registry:component",
+      "title": "Receipt",
+      "description": "An order receipt with paid and refunded totals. It appears after inclusion and keeps tracking finality.",
+      "dependencies": [
+        "@paykit/react@0.1.0",
+        "@paykit/js@0.1.0"
+      ],
+      "files": [
+        {
+          "path": "components/paykit/receipt.tsx",
+          "type": "registry:component",
+          "content": "\"use client\";\nimport { usePayment, errorMessage } from '@paykit/react';\nimport { formatUsdt } from '@paykit/js';\nimport './paykit-ui.css';\n\nexport function PaymentReceipt({ paymentId, className = '' }: { paymentId: string; className?: string }) {\n  const { data: payment, error, loading, refetch } = usePayment(paymentId);\n  if (error != null) return <div role=\"alert\"><p>{errorMessage(error)}</p><button onClick={refetch}>Try again</button></div>;\n  if (!payment) return <p role=\"status\">{loading ? 'Loading receipt…' : 'Receipt unavailable'}</p>;\n  if (!['included', 'safe', 'finalized'].includes(payment.status)) return <p role=\"status\">Payment {payment.status}. A receipt is available after inclusion.</p>;\n  return <article className={`pkc-card ${className}`} aria-label=\"Payment receipt\">\n    <div className=\"pkc-row\"><h3 className=\"pkc-title\">Payment receipt</h3><span className=\"pkc-tag\">{payment.status}</span></div>\n    <p className=\"pkc-muted\">{payment.merchantName}</p>\n    <dl className=\"pkc-details\">\n      <div><dt>Paid</dt><dd>{formatUsdt(payment.gross)} USDT</dd></div>\n      <div><dt>Refunded</dt><dd>{formatUsdt(payment.refunded)} USDT</dd></div>\n      <div><dt>Order</dt><dd>{payment.externalOrderId ?? payment.invoiceId ?? 'Onchain payment'}</dd></div>\n      <div><dt>Gas</dt><dd>Paid by PayKit</dd></div>\n    </dl>\n    {payment.explorerUrl && <a className=\"pkc-link\" href={payment.explorerUrl} target=\"_blank\" rel=\"noreferrer\">View transaction</a>}\n  </article>;\n}\n"
+        },
+        {
+          "path": "components/paykit/paykit-ui.css",
+          "target": "components/paykit/paykit-ui.css",
+          "type": "registry:file",
+          "content": "/* Own this stylesheet. Money and signing logic stays in @paykit/react hooks. */\r\n.pkc-card {\r\n  display: grid; gap: 16px; width: 100%; padding: 24px;\r\n  border: 1px solid var(--pk-line, #dce2de); border-radius: var(--pk-radius-lg, 14px);\r\n  background: var(--pk-surface, #fff); color: var(--pk-ink, #28323a); font: inherit;\r\n}\r\n.pkc-card *, .pkc-wallet * { box-sizing: border-box; }\r\n.pkc-card p, .pkc-card h3 { margin: 0; }\r\n.pkc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }\r\n.pkc-title { font-size: 1.1rem; font-weight: 650; line-height: 1.3; }\r\n.pkc-muted { color: var(--pk-muted, #5f6b72); font-size: .875rem; line-height: 1.6; }\r\n.pkc-button {\r\n  padding: 12px 18px; border: 1px solid transparent; border-radius: var(--pk-radius, 10px);\r\n  background: var(--pk-accent, #0f4c45); color: var(--pk-accent-ink, #fff);\r\n  font: inherit; font-weight: 600; cursor: pointer; min-height: 44px;\r\n}\r\n.pkc-button:hover:not(:disabled) { filter: brightness(1.12); }\r\n.pkc-button:disabled { opacity: .6; cursor: default; }\r\n.pkc-button:focus-visible, .pkc-link:focus-visible { outline: 3px solid var(--pk-focus, #1a7f72); outline-offset: 3px; }\r\n.pkc-button--quiet { background: transparent; color: var(--pk-ink, #28323a); border-color: var(--pk-line, #dce2de); }\r\n.pkc-error { color: var(--pk-bad, #b42318); font-size: .875rem; }\r\n.pkc-tag { padding: 4px 9px; border-radius: 6px; background: var(--pk-accent-soft, #e3efec); color: var(--pk-ink, #28323a); font-size: .8rem; }\r\n.pkc-link { color: var(--pk-accent, #0f4c45); text-underline-offset: 3px; }\r\n.pkc-wallet { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }\r\n.pkc-steps { list-style: none; display: flex; padding: 0; margin: 0; gap: 6px; }\r\n.pkc-steps li { flex: 1; border-top: 4px solid var(--pk-line, #dce2de); padding-top: 9px; font-size: .75rem; color: var(--pk-muted, #5f6b72); }\r\n.pkc-steps li[data-complete=\"true\"] { border-color: var(--pk-accent, #0f4c45); color: var(--pk-ink, #28323a); }\r\n.pkc-details { margin: 0; display: grid; gap: 12px; }\r\n.pkc-details div { display: flex; justify-content: space-between; gap: 12px; }\r\n.pkc-details dt { color: var(--pk-muted, #5f6b72); }\r\n.pkc-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }\r\n.pkc-amount { font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 650; }\r\n.pkc-amount span { font-size: .875rem; font-weight: 400; color: var(--pk-muted, #5f6b72); }\r\n.pkc-product-image { width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; }\r\n"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "paykit-installment-plan",
+      "type": "registry:component",
+      "title": "Installment plan",
+      "description": "A bounded installment offer that checks the displayed total and selected schedule before signing.",
+      "dependencies": [
+        "@paykit/react@0.1.0",
+        "@paykit/js@0.1.0"
+      ],
+      "files": [
+        {
+          "path": "components/paykit/installment-plan.tsx",
+          "type": "registry:component",
+          "content": "\"use client\";\nimport { usePlanCheckout, errorMessage, periodLabel } from '@paykit/react';\nimport { installmentSplit, formatUsdt, type CheckoutInput, type PlanOption } from '@paykit/js';\nimport './paykit-ui.css';\n\nexport function CustomInstallmentPlan({ input, total, option, className = '' }: { input: CheckoutInput; total: string; option: PlanOption; className?: string }) {\n  const plan = usePlanCheckout();\n  const amounts = installmentSplit(BigInt(total), option.count, option.downPaymentPercent ?? 0);\n  return <section className={`pkc-card ${className}`} aria-label=\"Installment plan\">\n    <div className=\"pkc-row\"><h3 className=\"pkc-title\">Pay over time</h3><span className=\"pkc-tag\">{option.count} payments</span></div>\n    <p className=\"pkc-amount\">{formatUsdt(amounts.installmentAmount)} <span>USDT per payment</span></p>\n    <p className=\"pkc-muted\">{option.count} payments, every {periodLabel(option.periodSeconds)}. Total {formatUsdt(total)} USDT.</p>\n    {amounts.downPayment > 0n && <p className=\"pkc-muted\">{formatUsdt(amounts.downPayment)} USDT down payment</p>}\n    <p className=\"pkc-muted\">You sign consent and a bounded token allowance. No customer gas is required.</p>\n    <button className=\"pkc-button\" disabled={plan.busy || plan.phase === 'done'} onClick={() => { void plan.start(input, option, total).catch(() => {}); }}>{plan.busy ? 'Setting up plan…' : plan.phase === 'done' ? 'Plan created' : 'Set up plan'}</button>\n    {plan.error != null && <p className=\"pkc-error\" role=\"alert\">{errorMessage(plan.error)}</p>}\n    {plan.plan && <p className=\"pkc-muted\" role=\"status\">Plan {plan.plan.status}. You can cancel future payments from your account.</p>}\n  </section>;\n}\n"
+        },
+        {
+          "path": "components/paykit/paykit-ui.css",
+          "target": "components/paykit/paykit-ui.css",
+          "type": "registry:file",
+          "content": "/* Own this stylesheet. Money and signing logic stays in @paykit/react hooks. */\r\n.pkc-card {\r\n  display: grid; gap: 16px; width: 100%; padding: 24px;\r\n  border: 1px solid var(--pk-line, #dce2de); border-radius: var(--pk-radius-lg, 14px);\r\n  background: var(--pk-surface, #fff); color: var(--pk-ink, #28323a); font: inherit;\r\n}\r\n.pkc-card *, .pkc-wallet * { box-sizing: border-box; }\r\n.pkc-card p, .pkc-card h3 { margin: 0; }\r\n.pkc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }\r\n.pkc-title { font-size: 1.1rem; font-weight: 650; line-height: 1.3; }\r\n.pkc-muted { color: var(--pk-muted, #5f6b72); font-size: .875rem; line-height: 1.6; }\r\n.pkc-button {\r\n  padding: 12px 18px; border: 1px solid transparent; border-radius: var(--pk-radius, 10px);\r\n  background: var(--pk-accent, #0f4c45); color: var(--pk-accent-ink, #fff);\r\n  font: inherit; font-weight: 600; cursor: pointer; min-height: 44px;\r\n}\r\n.pkc-button:hover:not(:disabled) { filter: brightness(1.12); }\r\n.pkc-button:disabled { opacity: .6; cursor: default; }\r\n.pkc-button:focus-visible, .pkc-link:focus-visible { outline: 3px solid var(--pk-focus, #1a7f72); outline-offset: 3px; }\r\n.pkc-button--quiet { background: transparent; color: var(--pk-ink, #28323a); border-color: var(--pk-line, #dce2de); }\r\n.pkc-error { color: var(--pk-bad, #b42318); font-size: .875rem; }\r\n.pkc-tag { padding: 4px 9px; border-radius: 6px; background: var(--pk-accent-soft, #e3efec); color: var(--pk-ink, #28323a); font-size: .8rem; }\r\n.pkc-link { color: var(--pk-accent, #0f4c45); text-underline-offset: 3px; }\r\n.pkc-wallet { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }\r\n.pkc-steps { list-style: none; display: flex; padding: 0; margin: 0; gap: 6px; }\r\n.pkc-steps li { flex: 1; border-top: 4px solid var(--pk-line, #dce2de); padding-top: 9px; font-size: .75rem; color: var(--pk-muted, #5f6b72); }\r\n.pkc-steps li[data-complete=\"true\"] { border-color: var(--pk-accent, #0f4c45); color: var(--pk-ink, #28323a); }\r\n.pkc-details { margin: 0; display: grid; gap: 12px; }\r\n.pkc-details div { display: flex; justify-content: space-between; gap: 12px; }\r\n.pkc-details dt { color: var(--pk-muted, #5f6b72); }\r\n.pkc-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }\r\n.pkc-amount { font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 650; }\r\n.pkc-amount span { font-size: .875rem; font-weight: 400; color: var(--pk-muted, #5f6b72); }\r\n.pkc-product-image { width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; }\r\n"
+        }
+      ]
+    }
+  ]
+}

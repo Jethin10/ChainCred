@@ -1,0 +1,26 @@
+{
+  "name": "@paykit/testing",
+  "version": "0.1.0",
+  "description": "Isolated PayKit simulated API and test wallets. Never use in production.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@paykit/core": "0.1.0",
+    "@paykit/server": "0.1.0",
+    "viem": "^2.47.6"
+  }
+}

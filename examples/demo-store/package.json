@@ -1,0 +1,23 @@
+{
+  "name": "demo-store",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Mumbai Chai Co.: a separate shop that adds PayKit in ~20 lines (Whitechain Operate requirement).",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5175 --strictPort",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@paykit/react": "0.1.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "@paykit/js": "0.1.0",
+    "viem": "^2.47.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.5",
+    "@paykit/testing": "0.1.0"
+  }
+}
