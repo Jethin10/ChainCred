@@ -34,6 +34,7 @@ import ComponentsPage from './docs/Components'
 import { privateKeyToAccount } from 'viem/accounts'
 import { Mark, PixelSky, PixelWipe } from './theme/pixels'
 import { useBackend, type Backend } from './theme/backend'
+import { PayPage, SubscribePage } from './live/PayPage'
 
 // Public test keys. Never fund them. The merchant key owns the demo shop on the mock and on `npm run server:demo`.
 const MERCHANT_KEY = '0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba'
@@ -42,7 +43,7 @@ const SITE_URL = (import.meta.env.VITE_PAYKIT_SITE_URL as string | undefined) ??
 const REPO_URL = 'https://github.com/Jethin10/PayKit'
 
 type WalletChoice = 'customer' | 'merchant' | 'browser' | 'none'
-type Page = 'components' | 'shops' | 'invoice' | 'me' | 'merchant'
+type Page = 'components' | 'shops' | 'invoice' | 'me' | 'merchant' | 'pay'
 
 const PAGES: Array<{ key: Page; label: string; eyebrow: string; title: string; lead: string }> = [
   { key: 'components', label: 'SDK', eyebrow: '@paykit/react', title: 'Components you own', lead: 'Copy the view, keep the payment logic in the SDK. Every preview runs a real checkout flow on simulated funds.' },
@@ -53,13 +54,24 @@ const PAGES: Array<{ key: Page; label: string; eyebrow: string; title: string; l
 ]
 
 // The landing page (frontend/) links here as /#components, /#shops, /#invoice, /#me or /#merchant.
-const pageFromHash = (): Page => PAGES.find((p) => `#${p.key}` === window.location.hash.split('/')[0])?.key ?? 'components'
+// Pay links from the live PayKit server open #pay/<invoiceId>; plan links open #pay/subscribe/<planId>.
+const PAY_META = { key: 'pay' as const, label: 'Pay', eyebrow: 'Checkout · Whitechain testnet', title: 'Pay with USDT', lead: 'Real test USDT, settled onchain. Sign once in your wallet; PayKit pays the gas.' }
+const pageFromHash = (): Page => {
+  const head = window.location.hash.split('/')[0]
+  if (head === '#pay') return 'pay'
+  return PAGES.find((p) => `#${p.key}` === head)?.key ?? 'components'
+}
+const payTarget = () => {
+  const parts = window.location.hash.slice(1).split('/').slice(1).map(decodeURIComponent)
+  return parts[0] === 'subscribe' ? { kind: 'plan' as const, id: parts[1] ?? '' } : { kind: 'invoice' as const, id: parts[0] ?? '' }
+}
 
 export default function App() {
   const backend = useBackend()
   const [choice, setChoice] = useState<WalletChoice>('customer')
   const [page, setPage] = useState<Page>(pageFromHash)
-  useEffect(() => { const follow = () => setPage(pageFromHash()); window.addEventListener('hashchange', follow); return () => window.removeEventListener('hashchange', follow) }, [])
+  const [, setHash] = useState(window.location.hash)
+  useEffect(() => { const follow = () => { setPage(pageFromHash()); setHash(window.location.hash) }; window.addEventListener('hashchange', follow); return () => window.removeEventListener('hashchange', follow) }, [])
   useEffect(() => { window.scrollTo({ top: 0 }) }, [page])
   const wallet = useMemo<WalletSigner | null>(() => {
     if (choice === 'customer') return fromLocalAccount(privateKeyToAccount(CUSTOMER_KEY), 1874)
@@ -70,7 +82,8 @@ export default function App() {
     }
     return null
   }, [choice])
-  const meta = PAGES.find((p) => p.key === page)!
+  const meta = page === 'pay' ? PAY_META : PAGES.find((p) => p.key === page)!
+  const target = page === 'pay' ? payTarget() : null
 
   return (
     <PayKitProvider key={backend.source} client={backend.client} wallet={wallet} theme="light" onConnectRequest={() => setChoice('customer')} onDisconnectRequest={() => setChoice('none')}>
@@ -78,14 +91,14 @@ export default function App() {
       <div className="app">
         <TopBar page={page} backend={backend} />
         <header className={page === 'components' ? 'hero hero--short' : 'hero'}>
-          <PixelSky seed={PAGES.indexOf(meta)} />
+          <PixelSky seed={page === 'pay' ? 7 : PAGES.findIndex((p) => p.key === page)} />
           <div className="hero__copy" key={page}>
             <p className="eyebrow"><span className="eyebrow__dot" />{meta.eyebrow}</p>
             <h1>{meta.title}</h1>
             <p className="hero__lead">{meta.lead}</p>
           </div>
         </header>
-        {page !== 'components' && (
+        {page !== 'components' && page !== 'pay' && (
           <div className="dock" role="group" aria-label="Preview wallet">
             <div className="dock__label">
               <span className="pixel">Wallet</span>
@@ -99,12 +112,14 @@ export default function App() {
             <ConnectWallet />
           </div>
         )}
-        <main className="app__main" key={`${page}:${backend.source}`}>
+        <main className="app__main" key={`${page}:${backend.source}:${target?.id ?? ''}`}>
           {page === 'components' && <ComponentsPage />}
           {page === 'shops' && <ShopsPage />}
           {page === 'invoice' && <InvoicePage backend={backend} />}
           {page === 'me' && <MyPage />}
           {page === 'merchant' && <MerchantPage />}
+          {target?.kind === 'invoice' && <PayPage invoiceId={target.id} />}
+          {target?.kind === 'plan' && <SubscribePage planId={target.id} />}
         </main>
         <Footer />
       </div>
