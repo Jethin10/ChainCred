@@ -1,0 +1,26 @@
+{
+  "name": "paykit-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PayKit contracts: MerchantRegistry, PaymentRouter, FeeTreasury (Whitechain)",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "preflight": "hardhat run scripts/preflight.js --network whitechainTestnet",
+    "deploy:local": "hardhat run scripts/deploy.js",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network whitechainTestnet",
+    "verify:testnet": "hardhat run scripts/verify.js --network whitechainTestnet",
+    "pay": "hardhat run scripts/pay.js --network whitechainTestnet",
+    "swap": "hardhat run scripts/swap.js --network whitechainTestnet",
+    "refill": "hardhat run scripts/refill.js --network whitechainTestnet",
+    "refund": "hardhat run scripts/refund.js --network whitechainTestnet",
+    "deploy:v2": "hardhat run scripts/deployV2.js --network whitechainTestnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "5.1.0",
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.5",
+    "hardhat": "^2.22.19"
+  }
+}
