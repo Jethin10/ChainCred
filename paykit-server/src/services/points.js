@@ -167,7 +167,8 @@ function createPointsService(store, relayer) {
   /** Points one campaign gives for `gross` (rate, per-order cap, remaining budget, platform cap). */
   function pointsFrom(c, gross, max) {
     const rate = Math.min(c.pointsPerUsdt, max);
-    let pts = Math.floor((Number(gross) * rate) / 1e6);
+    // the epsilon keeps float error from rounding a whole result down (e.g. 50 bonus on 700 USDT -> 49.999…)
+    let pts = Math.floor((Number(gross) * rate) / 1e6 + 1e-9);
     if (c.maxPointsPerOrder) pts = Math.min(pts, c.maxPointsPerOrder);
     if (c.budget) pts = Math.min(pts, Math.max(0, c.budget - (c.issued || 0)));
     return pts;

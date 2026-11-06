@@ -54,12 +54,12 @@ function sdk() {
 
 // Routes only paykit-server has. Paths both APIs share (/v1/invoices, /v1/payments, /v1/plans,
 // /v1/refunds) go to paykit-server when the caller uses its keys (pk_test_/pk_live_ merchant keys,
-// adm_ admin token); everything else is the SDK API.
+// ms_ wallet sign-in sessions, adm_ admin token); everything else is the SDK API.
 const NATIVE = [
   /^\/health$/,
   /^\/v1\/public\//,
   /^\/v1\/admin\//,
-  /^\/v1\/merchants\/me$/,
+  /^\/v1\/merchants\/me(\/|$)/,
   /^\/v1\/webhooks\//,
   /^\/v1\/subscriptions(\/|$)/,
   /^\/v1\/exports\/payments\.csv$/,
@@ -73,7 +73,7 @@ function isNative(req) {
   if (NATIVE.some((r) => r.test(path))) return true;
   if (req.method === "POST" && path === "/v1/merchants") return true;
   const bearer = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  return SHARED.test(path) && /^(pk_test_|pk_live_|adm_)/.test(bearer);
+  return SHARED.test(path) && /^(pk_test_|pk_live_|adm_|ms_)/.test(bearer);
 }
 
 async function readBody(req) {

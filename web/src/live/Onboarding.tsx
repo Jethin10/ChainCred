@@ -1,27 +1,157 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getAddress } from 'viem'
 import {
-  api, connectWallet, errorText, hasWallet, onboardingMessage, short, signMessage, SERVER_URL,
-  type Campaign, type Merchant, type MerchantInvoice, type Onboarded, type Reward,
+  api, connectWallet, errorText, hasWallet, knownAccount, loginMessage, onAccountsChanged, onboardingMessage, short, signMessage, sleep, SERVER_URL,
+  type Merchant, type MerchantInvoice, type Onboarded, type Session, type SignedIn, type WalletLookup,
 } from './server'
+import { Campaigns } from './Campaigns'
 
-const KEY_STORE = 'paykit:merchant-key'
-const readKey = () => { try { return localStorage.getItem(KEY_STORE) } catch { return null } }
-const saveKey = (k: string | null) => { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE) } catch { /* private mode */ } }
+// The console signs in with the merchant's wallet: one free signature gives a session for about a
+// week, and while it lasts a connected wallet opens the console straight away. API keys are only
+// for the merchant's own server.
+const SESSION_STORE = 'paykit:merchant-session'
+const LEGACY_KEY_STORE = 'paykit:merchant-key'
+const readSession = (): Session | null => {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_STORE) || 'null') as Session | null
+    return s && s.token && Date.parse(s.expiresAt) > Date.now() + 60_000 ? s : null
+  } catch { return null }
+}
+const saveSession = (s: Session | null) => {
+  try {
+    if (s) localStorage.setItem(SESSION_STORE, JSON.stringify(s)); else localStorage.removeItem(SESSION_STORE)
+    localStorage.removeItem(LEGACY_KEY_STORE)
+  } catch { /* private mode */ }
+}
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 const money = (v: string | number) => `${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
 
-/** The live merchant side: onboarding for new businesses, then their console. */
+type View =
+  | { kind: 'loading' }
+  | { kind: 'signed-out' } // no wallet connected
+  | { kind: 'new'; address: string } // connected wallet, not a merchant yet
+  | { kind: 'returning'; address: string; name: string } // connected merchant wallet, needs one signature
+  | { kind: 'console'; session: Session }
+
+/** The live merchant side: wallet sign-in, onboarding for new businesses, then their console. */
 export function MerchantLive() {
-  const [key, setKey] = useState<string | null>(readKey)
+  const [view, setView] = useState<View>({ kind: 'loading' })
   const [fresh, setFresh] = useState<Onboarded | null>(null)
-  if (fresh) return <Welcome result={fresh} onOpen={(remember) => { if (remember) saveKey(fresh.apiKey); setKey(fresh.apiKey); setFresh(null) }} />
-  if (key) return <Console apiKey={key} onSignOut={() => { saveKey(null); setKey(null) }} />
+  const [signing, setSigning] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const autoTried = useRef(new Set<string>())
+
+  const signIn = useCallback(async (address: string) => {
+    setSigning(true)
+    setError(null)
+    try {
+      const time = new Date().toISOString()
+      const signature = await signMessage(address, loginMessage(address, time))
+      const r = await api<SignedIn>('/v1/public/merchants/login', { method: 'POST', body: { address, time, signature } })
+      saveSession(r.session)
+      setView({ kind: 'console', session: r.session })
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      setSigning(false)
+    }
+  }, [])
+
+  /** Decides what to show for the wallet the site can see (`auto` asks for the sign-in signature right away). */
+  const resolve = useCallback(async (account: string | null, auto: boolean) => {
+    const s = readSession()
+    if (s && (!account || same(account, s.address))) { setView({ kind: 'console', session: s }); return }
+    if (s) saveSession(null) // a different wallet is connected now
+    if (!account) { setView({ kind: 'signed-out' }); return }
+    const address = getAddress(account)
+    let found: WalletLookup
+    try {
+      found = await api<WalletLookup>(`/v1/public/merchants/by-wallet/${address}`)
+    } catch (e) {
+      setError(errorText(e))
+      setView({ kind: 'signed-out' })
+      return
+    }
+    if (!found.merchant) { setView({ kind: 'new', address }); return }
+    setView({ kind: 'returning', address, name: found.name ?? 'your shop' })
+    if (auto && !autoTried.current.has(address)) {
+      autoTried.current.add(address)
+      void signIn(address)
+    }
+  }, [signIn])
+
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      await sleep(150) // let EIP-6963 wallets announce themselves
+      const account = await knownAccount()
+      if (alive) await resolve(account, true)
+    })()
+    const off = onAccountsChanged((account) => { setFresh(null); setError(null); void resolve(account, true) })
+    return () => { alive = false; off() }
+  }, [resolve])
+
+  const connect = async () => {
+    setError(null)
+    try { await resolve(await connectWallet(), true) } catch (e) { setError(errorText(e)) }
+  }
+  const signOut = async () => { saveSession(null); setError(null); await resolve(await knownAccount(), false) }
+  const expired = async () => {
+    saveSession(null)
+    const account = await knownAccount()
+    if (account) autoTried.current.delete(getAddress(account))
+    setError('Your sign-in expired. Sign once more to continue.')
+    await resolve(account, true)
+  }
+
+  if (fresh) {
+    return <Welcome result={fresh} onOpen={() => {
+      const s = fresh.session ?? null
+      setFresh(null)
+      if (s) { saveSession(s); setView({ kind: 'console', session: s }) } else void resolve(fresh.merchant.payoutAddress, true)
+    }} />
+  }
+  if (view.kind === 'loading') return <div className="pk-panel onb-gate"><p className="pk-muted">Checking your wallet…</p></div>
+  if (view.kind === 'console') return <Console key={view.session.token} session={view.session} onSignOut={signOut} onExpired={expired} />
+
   return (
     <div className="onb">
-      <KeyLogin onKey={(k) => { saveKey(k); setKey(k) }} />
-      <Wizard onDone={setFresh} />
+      <WalletGate view={view} signing={signing} error={error} onConnect={connect} onSignIn={signIn} />
+      {view.kind !== 'returning' && <Wizard payout={view.kind === 'new' ? view.address : null} onDone={(r) => { if (r.session) saveSession(r.session); setFresh(r) }} />}
       <Vision />
     </div>
+  )
+}
+
+function WalletGate({ view, signing, error, onConnect, onSignIn }: {
+  view: Extract<View, { kind: 'signed-out' | 'new' | 'returning' }>
+  signing: boolean; error: string | null
+  onConnect: () => void; onSignIn: (address: string) => void
+}) {
+  return (
+    <section className="onb-gate pk-panel" aria-label="Merchant sign-in">
+      {view.kind === 'signed-out' && (
+        <div className="onb-gate__row">
+          <div><b>Already a merchant?</b><span className="pk-muted">Connect your payout wallet and your console opens. No API key needed.</span></div>
+          <button type="button" className="pk-button pk-button--secondary" onClick={onConnect}>{hasWallet() ? 'Connect MetaMask' : 'Get MetaMask'}</button>
+        </div>
+      )}
+      {view.kind === 'new' && (
+        <div className="onb-gate__row">
+          <div><b><span className="onb-wallet__dot" /> {short(view.address)} connected</b><span className="pk-muted">This wallet has no merchant account yet. Create one below and it becomes your payout wallet and your sign-in.</span></div>
+        </div>
+      )}
+      {view.kind === 'returning' && (
+        <div className="onb-gate__row">
+          <div>
+            <b>Welcome back, {view.name}</b>
+            <span className="pk-muted">{signing ? 'Approve the sign-in in MetaMask. It is free and moves no money.' : `Signed in as ${short(view.address)}. Sign once to open your console; it stays open on this device for a week.`}</span>
+          </div>
+          <button type="button" className="pk-button pk-button--primary" disabled={signing} onClick={() => onSignIn(view.address)}>{signing ? 'Waiting for MetaMask…' : 'Open my console'}</button>
+        </div>
+      )}
+      {error && <p className="onb-error" role="alert">{error}</p>}
+    </section>
   )
 }
 
@@ -88,13 +218,15 @@ const STEPS = [
 const normalizeUrl = (v: string) => { const t = v.trim(); return !t ? '' : /^https?:\/\//i.test(t) ? t : `https://${t}` }
 const urlOk = (v: string) => { if (!v) return true; try { return new URL(normalizeUrl(v)).hostname.includes('.') } catch { return false } }
 
-function Wizard({ onDone }: { onDone: (r: Onboarded) => void }) {
+function Wizard({ payout, onDone }: { payout: string | null; onDone: (r: Onboarded) => void }) {
   const [step, setStep] = useState(0)
-  const [f, setF] = useState<Form>(START)
+  const [f, setF] = useState<Form>(() => ({ ...START, payout }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tried, setTried] = useState(false)
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }))
+  // a wallet connected from the sign-in bar becomes the payout wallet, unless one is already picked
+  useEffect(() => { if (payout) setF((x) => (x.payout ? x : { ...x, payout })) }, [payout])
 
   // What is still missing on a step, in plain words. Shown after a click, never a silent disabled button.
   const problems = (s: number): Partial<Record<'name' | 'website' | 'payout' | 'webhook' | 'reward', string>> => {
@@ -284,8 +416,7 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
 
 // ── after sign-up ──
 
-function Welcome({ result, onOpen }: { result: Onboarded; onOpen: (remember: boolean) => void }) {
-  const [remember, setRemember] = useState(true)
+function Welcome({ result, onOpen }: { result: Onboarded; onOpen: () => void }) {
   const [copied, setCopied] = useState<string | null>(null)
   const copy = (label: string, v: string) => { void navigator.clipboard?.writeText(v).then(() => setCopied(label)) }
   const curl = `curl -X POST ${SERVER_URL}/v1/invoices \\
@@ -298,6 +429,7 @@ function Welcome({ result, onOpen }: { result: Onboarded; onOpen: (remember: boo
       <h2>Welcome, {result.merchant.name}</h2>
       <p className="pk-muted">Registered on Whitechain. {result.merchant.registerTx && <a className="pk-link" href={result.merchant.registerTx} target="_blank" rel="noreferrer">See the registration</a>}</p>
       {result.warnings.length > 0 && <div className="pk-state pk-state--info"><div className="pk-state__body">{result.warnings.join(' ')}</div></div>}
+      <p>Your console opens whenever you connect <b>{short(result.merchant.payoutAddress)}</b>. The keys below are only for your own server.</p>
       <div className="onb-secret">
         <div><span className="onb-field__label">API key (shown once)</span><code>{result.apiKey}</code></div>
         <button type="button" className="pk-button pk-button--secondary" onClick={() => copy('key', result.apiKey)}>{copied === 'key' ? 'Copied' : 'Copy'}</button>
@@ -306,53 +438,42 @@ function Welcome({ result, onOpen }: { result: Onboarded; onOpen: (remember: boo
         <div><span className="onb-field__label">Webhook signing secret</span><code>{result.webhookSecret}</code></div>
         <button type="button" className="pk-button pk-button--secondary" onClick={() => copy('secret', result.webhookSecret)}>{copied === 'secret' ? 'Copied' : 'Copy'}</button>
       </div>
-      <p className="pk-muted">Keep both on your server. Anyone with the API key can create invoices for you.</p>
+      <p className="pk-muted">Keep both on your server. Anyone with the API key can create invoices for you. Lost it? Make a new one in the console.</p>
       <div className="onb-code"><div className="onb-code__bar"><span>Create an invoice from your server</span><button type="button" onClick={() => copy('curl', curl)}>{copied === 'curl' ? 'Copied' : 'Copy'}</button></div><pre><code>{curl}</code></pre></div>
       <p className="pk-muted">The response has a <code>payUrl</code>: send your customer there. They pay on PayKit and come back to your <code>successUrl</code>.</p>
-      <label className="onb-toggle"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /><span>Keep my key in this browser to open the console</span></label>
-      <button type="button" className="pk-button pk-button--primary" onClick={() => onOpen(remember)}>Open my console</button>
+      <button type="button" className="pk-button pk-button--primary" onClick={onOpen}>Open my console</button>
     </section>
-  )
-}
-
-function KeyLogin({ onKey }: { onKey: (k: string) => void }) {
-  const [k, setK] = useState('')
-  const [bad, setBad] = useState(false)
-  return (
-    <form className="onb-login" onSubmit={(e) => { e.preventDefault(); if (/^pk_(test|live)_/.test(k.trim())) onKey(k.trim()); else setBad(true) }}>
-      <span>Already a merchant?</span>
-      <input value={k} onChange={(e) => { setK(e.target.value); setBad(false) }} placeholder="Paste your API key (pk_test_…)" aria-label="API key" />
-      <button type="submit" className="pk-button pk-button--secondary">Open console</button>
-      {bad && <span className="onb-error">API keys start with pk_test_ or pk_live_.</span>}
-    </form>
   )
 }
 
 // ── console ──
 
-function Console({ apiKey, onSignOut }: { apiKey: string; onSignOut: () => void }) {
+function Console({ session, onSignOut, onExpired }: { session: Session; onSignOut: () => void; onExpired: () => void }) {
+  const token = session.token
   const [me, setMe] = useState<Merchant | null>(null)
   const [invoices, setInvoices] = useState<MerchantInvoice[]>([])
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [rewards, setRewards] = useState<Reward[]>([])
   const [error, setError] = useState<string | null>(null)
   const [draft, setDraft] = useState({ amount: '', reference: '', description: '', successUrl: '' })
   const [created, setCreated] = useState<MerchantInvoice | null>(null)
   const [busy, setBusy] = useState(false)
 
+  /** A 401 means the session ended (expired, or signed out everywhere): back to wallet sign-in. */
+  const onAuthError = useCallback((e: unknown) => {
+    if ((e as { status?: number }).status === 401) { onExpired(); return true }
+    return false
+  }, [onExpired])
+
   const load = useCallback(async () => {
     try {
-      const [m, inv, c, r] = await Promise.all([
-        api<Merchant>('/v1/merchants/me', { key: apiKey }),
-        api<{ data: MerchantInvoice[] }>('/v1/invoices', { key: apiKey }),
-        api<{ data: Campaign[] }>('/v1/points/campaigns', { key: apiKey }).catch(() => ({ data: [] })),
-        api<{ data: Reward[] }>('/v1/points/rewards', { key: apiKey }).catch(() => ({ data: [] })),
+      const [m, inv] = await Promise.all([
+        api<Merchant>('/v1/merchants/me', { key: token }),
+        api<{ data: MerchantInvoice[] }>('/v1/invoices', { key: token }),
       ])
-      setMe(m); setInvoices(inv.data); setCampaigns(c.data); setRewards(r.data); setError(null)
+      setMe(m); setInvoices(inv.data); setError(null)
     } catch (e) {
-      setError(errorText(e))
+      if (!onAuthError(e)) setError(errorText(e))
     }
-  }, [apiKey])
+  }, [token, onAuthError])
   useEffect(() => { void load() }, [load])
 
   const paid = useMemo(() => invoices.reduce((n, i) => n + Number(i.amountPaid || 0), 0), [invoices])
@@ -363,19 +484,19 @@ function Console({ apiKey, onSignOut }: { apiKey: string; onSignOut: () => void 
     setBusy(true)
     setError(null)
     try {
-      const inv = await api<MerchantInvoice>('/v1/invoices', { method: 'POST', key: apiKey, body: { amount: draft.amount, reference: draft.reference || undefined, description: draft.description || undefined, successUrl: draft.successUrl || undefined } })
+      const inv = await api<MerchantInvoice>('/v1/invoices', { method: 'POST', key: token, body: { amount: draft.amount, reference: draft.reference || undefined, description: draft.description || undefined, successUrl: draft.successUrl || undefined } })
       setCreated(inv)
       setDraft({ amount: '', reference: '', description: '', successUrl: draft.successUrl })
       void load()
     } catch (err) {
-      setError(errorText(err))
+      if (!onAuthError(err)) setError(errorText(err))
     } finally {
       setBusy(false)
     }
   }
 
   if (!me && error) {
-    return <div className="pk-state pk-state--error"><p className="pk-state__title">Can't open the console</p><div className="pk-state__body">{error} <button type="button" className="pk-link" onClick={onSignOut}>Use another key</button></div></div>
+    return <div className="pk-state pk-state--error"><p className="pk-state__title">Can't open the console</p><div className="pk-state__body">{error} <button type="button" className="pk-link" onClick={() => void load()}>Try again</button> · <button type="button" className="pk-link" onClick={onSignOut}>Sign out</button></div></div>
   }
 
   return (
@@ -387,10 +508,12 @@ function Console({ apiKey, onSignOut }: { apiKey: string; onSignOut: () => void 
         <div className="onb-console__stats">
           <div><span>Collected</span><b>{money(paid)}</b></div>
           <div><span>Invoices</span><b>{invoices.length}</b></div>
-          <div><span>Payouts to</span><b>{me ? short(me.payoutAddress) : '…'}</b></div>
+          <div><span>Payouts to</span><b>{short(session.address)}</b></div>
         </div>
         <button type="button" className="pk-link" onClick={onSignOut}>Sign out</button>
       </header>
+
+      <Campaigns token={token} onAuthError={onAuthError} />
 
       <div className="columns">
         <section className="pk-panel">
@@ -412,14 +535,7 @@ function Console({ apiKey, onSignOut }: { apiKey: string; onSignOut: () => void 
           {error && <div className="pk-state pk-state--error" role="alert"><div className="pk-state__body">{error}</div></div>}
         </section>
 
-        <section className="pk-panel">
-          <h3 className="pk-panel__title">Loyalty</h3>
-          {campaigns.length === 0 && rewards.length === 0 && <p className="pk-muted">No points programme yet.</p>}
-          <ul className="receipts receipts--compact">
-            {campaigns.map((c) => <li key={c.id} className="receipt"><div className="receipt__main"><b>{c.name}</b><span className="receipt__meta">{c.pointsPerUsdt} points per USDT · {c.issued} issued</span></div><div className="receipt__side"><span className="pk-tag">{c.status ?? 'active'}</span></div></li>)}
-            {rewards.map((r) => <li key={r.id} className="receipt"><div className="receipt__main"><b>{r.name}</b><span className="receipt__meta">{r.label} · {r.redeemed} redeemed</span></div><div className="receipt__side"><span className="pk-tag">{r.status ?? 'active'}</span></div></li>)}
-          </ul>
-        </section>
+        <ApiAccess token={token} onAuthError={onAuthError} onSignOut={onSignOut} />
       </div>
 
       <section className="pk-panel">
@@ -436,5 +552,47 @@ function Console({ apiKey, onSignOut }: { apiKey: string; onSignOut: () => void 
         )}
       </section>
     </div>
+  )
+}
+
+/** API key for the merchant's server: make a new one (the old one stops working), sign out everywhere. */
+function ApiAccess({ token, onAuthError, onSignOut }: { token: string; onAuthError: (e: unknown) => boolean; onSignOut: () => void }) {
+  const [confirm, setConfirm] = useState<'rotate' | 'everywhere' | null>(null)
+  const [key, setKey] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const rotate = async () => {
+    if (confirm !== 'rotate') { setConfirm('rotate'); return }
+    setBusy(true); setError(null); setConfirm(null)
+    try { setKey((await api<{ apiKey: string }>('/v1/merchants/me/api-key', { method: 'POST', key: token })).apiKey); setCopied(false) }
+    catch (e) { if (!onAuthError(e)) setError(errorText(e)) }
+    finally { setBusy(false) }
+  }
+  const everywhere = async () => {
+    if (confirm !== 'everywhere') { setConfirm('everywhere'); return }
+    setBusy(true); setError(null); setConfirm(null)
+    try { await api('/v1/merchants/me/sign-out-everywhere', { method: 'POST', key: token }); onSignOut() }
+    catch (e) { if (!onAuthError(e)) setError(errorText(e)) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <section className="pk-panel">
+      <h3 className="pk-panel__title">API access</h3>
+      <p className="pk-muted">Your server creates invoices with an API key (<code>Authorization: Bearer pk_test_…</code>). It is shown only once. Lost it, or think it leaked? Make a new one: the old key stops working immediately.</p>
+      {key && (
+        <div className="onb-secret">
+          <div><span className="onb-field__label">New API key (shown once)</span><code>{key}</code></div>
+          <button type="button" className="pk-button pk-button--secondary" onClick={() => { void navigator.clipboard?.writeText(key).then(() => setCopied(true)) }}>{copied ? 'Copied' : 'Copy'}</button>
+        </div>
+      )}
+      <div className="camp__form-actions">
+        <button type="button" className="pk-button pk-button--secondary" disabled={busy} onClick={rotate}>{confirm === 'rotate' ? 'Click again: old key stops working' : 'Make a new API key'}</button>
+        <button type="button" className="pk-link" disabled={busy} onClick={everywhere}>{confirm === 'everywhere' ? 'Click again to sign out all devices' : 'Sign out on all devices'}</button>
+      </div>
+      {error && <p className="onb-error">{error}</p>}
+    </section>
   )
 }
