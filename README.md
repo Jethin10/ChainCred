@@ -1,10 +1,116 @@
 # PayKit
 
-USDT commerce SDK for Whitechain. Merchants keep their existing website and order system. Customers authorize payments without buying WBT for gas; the PayKit service submits transactions.
+Gasless USDT checkout and loyalty for shops on Whitechain. A merchant drops PayKit into an existing
+store in about 20 lines. The customer pays in USDT with one MetaMask signature and never needs WBT for
+gas. The sale settles on Whitechain straight into the merchant's own wallet. After the first payment,
+PayKit handles refunds, subscriptions and instalments, signed webhooks, an accountant's CSV export, and
+loyalty points the customer can spend at any PayKit shop.
 
-## Installation
+**Live:** [website](https://paykit-landing-one.vercel.app) · [app (PWA)](https://paykit-landing-one.vercel.app/app/) ·
+demo shops [Kettle & Leaf](https://kettle-and-leaf-five.vercel.app) and [Paper Lantern Books](https://paper-lantern-books.vercel.app) ·
+npm [`usepaykit`](https://www.npmjs.com/package/usepaykit)
 
-### Add PayKit to your app (one command)
+## Why this needs onchain stablecoin settlement on Whitechain
+
+**A card or bank rail can't give a shop final, self-custodied payment from any customer in the world,
+for a 2 USDT order, in seconds, with a receipt and a refund that anyone can check without trusting us.
+USDT settling on Whitechain can.**
+
+- **Final and self-custodied.** The router pays the merchant's registered payout wallet in the same
+  transaction as the customer's payment. There is no acquirer, no payout delay, no rolling reserve and no chargeback window.
+- **Small and cross-border.** Whitechain is an L2, so fees are tiny. PayKit takes 1% (0.05 USDT minimum),
+  so a 2.50 USDT sale is worth taking, and any customer with USDT can pay without card networks or currency conversion.
+- **Enforced by the contract, not by us.** `PaymentRouterV2` checks the merchant's signed quote, the amount,
+  the fee cap and the payer's EIP-3009 signature. It can only send a refund back to the original payment's
+  refund address, and never more than was paid. Receipts are read straight from the chain.
+- **One signature, no gas.** USDT on Whitechain supports EIP-3009 (`receiveWithAuthorization`). The customer
+  signs, and the PayKit relayer submits and pays the WBT. The fee treasury swaps USDT fees to WBT to refill the relayer.
+- **Loyalty that travels.** Points earned at one shop are spendable as a discount at another. The router
+  applies the discount in the same settlement, so no shop has to trust another's private ledger.
+
+## Proof on Whitechain (testnet, chain 1874)
+
+Payments in the main flow use Whitechain's test USDT, [`0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7`](https://explorer.testnet.whitechain.io/address/0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7).
+
+| What | Explorer |
+|---|---|
+| **Shop checkout, main flow**: a Kettle & Leaf order paid in the store's in-page PayKit checkout, through `PaymentRouterV2`. The customer pays 2.50 USDT: 2.45 USDT to the shop, 0.05 USDT fee, +25 loyalty points. | [`0xa16314b1…6fb20a`](https://explorer.testnet.whitechain.io/tx/0xa16314b1bbb6c38715a766399743ef172ac9db84c9d4de7fffa4c18d956fb20a) |
+| First payment through the original router (2 USDT) | [`0x4550d2f8…681635`](https://explorer.testnet.whitechain.io/tx/0x4550d2f892ed5c41c9a278431b516d677583e126251d2600f1b6770d9f681635) |
+| Refund of that payment, back to the payer's refund address | [`0xe47ba3db…28c049`](https://explorer.testnet.whitechain.io/tx/0xe47ba3dbd8b132fe3389e1e2f294bea8edfbb654336f1d81fad5ad673a28c049) |
+
+All contracts are deployed and verified on the Whitechain explorer:
+
+| Contract | Address |
+|---|---|
+| `PaymentRouterV2`: payments, discounts, refunds, plans (used by the live flow) | [`0xb3BA57B6FEDb83030244e1fe6DB832dfC77B1c57`](https://explorer.testnet.whitechain.io/address/0xb3BA57B6FEDb83030244e1fe6DB832dfC77B1c57) |
+| `PayKitPoints`: non-transferable loyalty points (PKP) | [`0x97d59a00FdfBea72C9D95d2C43AdAa1938608d5f`](https://explorer.testnet.whitechain.io/address/0x97d59a00FdfBea72C9D95d2C43AdAa1938608d5f) |
+| `MerchantRegistry`: merchants, payout wallets, quote signers | [`0xF6B60D212abd955a6d4937535f89B5B7b6426C47`](https://explorer.testnet.whitechain.io/address/0xF6B60D212abd955a6d4937535f89B5B7b6426C47) |
+| `FeeTreasury`: protocol fees, USDT→WBT refills for the relayer | [`0xeb52e2394ECFbAbFD53F9cF9e50F8c4bC35d84e2`](https://explorer.testnet.whitechain.io/address/0xeb52e2394ECFbAbFD53F9cF9e50F8c4bC35d84e2) |
+| `PaymentRouter` (first version, kept for older payments) | [`0xef2f926CF5D57098Ff3e57f65492b74Ac0E2b489`](https://explorer.testnet.whitechain.io/address/0xef2f926CF5D57098Ff3e57f65492b74Ac0E2b489) |
+
+Sources: [`paykit-contracts/contracts`](paykit-contracts/contracts). Addresses and constructor arguments: [`paykit-contracts/deployments/1874.json`](paykit-contracts/deployments/1874.json).
+
+## Architecture
+
+```
+ Shop website (any stack)                    PayKit                                   Whitechain (1874)
+ ─────────────────────────                   ──────                                   ─────────────────
+ server: usepaykit ── POST /v1/invoices ──▶  paykit-server (Vercel, Express)           MerchantRegistry
+ browser: openCheckout({ invoiceId }) ──────▶  · prices nothing; reads the invoice      PaymentRouterV2 ── USDT ──▶ merchant payout wallet
+   1. MetaMask signs EIP-3009 (no gas)        · signs the quote with the merchant's    PayKitPoints (earn / redeem)
+   2. ── signature ─────────────────────────▶   signer key                             FeeTreasury (fees → WBT refill)
+                                              · relayer submits pay() and pays WBT ──▶
+ webhook endpoint ◀── signed invoice.paid ──  · observer reads PaymentSettled ◀──────
+                                              · Postgres (Neon): invoices, quotes,
+ PayKit app / PWA (customer + merchant)        payments, refunds, plans, points
+   wallet: receipts, points, refunds ◀──────  · public receipts are re-checked
+   merchant console: invoices, campaigns,       against the chain
+   API keys, wallet sign-in
+```
+
+| Part | Folder | What it does |
+|---|---|---|
+| Contracts | [`paykit-contracts/`](paykit-contracts/README.md) | Solidity (Hardhat): registry, routers, points, fee treasury. Deploy and verify scripts. |
+| Payment server | [`paykit-server/`](paykit-server/README.md) | Express on Vercel, Postgres (Neon), ethers v6. Merchant API (`pk_test_` keys or wallet sign-in sessions), public checkout API, quote signing, relayer, chain observer, signed webhooks with retries, CSV export, points campaigns and rewards. Loyalty can also be mirrored to [Arkiv](paykit-server/ARKIV.md) (`POINTS_BACKEND=arkiv`). |
+| SDK on npm | [`packages/paykit/`](packages/paykit/README.md) | `usepaykit`: server client, `verifyWebhook`, in-page checkout (`usepaykit/checkout`), CLI, MCP server, and one-command setup for coding agents. |
+| In-page checkout | [`packages/embed/`](packages/embed/) | The MetaMask checkout dialog shops open on their own page. No framework, no dependencies. |
+| App and PWA | [`web/`](web/README.md) | Customer wallet (receipts, points, invoices), shops directory, merchant sign-up and console, hosted pay pages, React component gallery. Installable PWA with QR scan and device unlock. |
+| Demo shops | [`stores/`](stores/) | Two separate storefronts that create invoices server-side and take payment in place: the "separate demo app" integration. |
+| Website | [`frontend/`](frontend/) | Landing page; ships the app at `/app/`. |
+| React SDK packages | [`packages/`](packages/README.md) | `@paykit/react` components and hooks, plus core/js/node/next libraries (local workspace packages). |
+
+### Payment flow
+
+1. The shop's server creates an invoice with its merchant key. The price comes from the shop's own order data.
+2. The shop's page calls `openCheckout({ invoiceId })`. The customer connects MetaMask, which switches to Whitechain, and picks a points reward if they have one.
+3. PayKit returns a quote signed by the merchant's signer key, and EIP-3009 typed data for the exact USDT amount.
+4. The customer signs once in MetaMask. The relayer submits `PaymentRouterV2.pay`, and the router moves USDT to the merchant's payout wallet, takes the fee, applies the discount and records points.
+5. The observer reads `PaymentSettled`. PayKit marks the invoice paid and sends a signed `invoice.paid` webhook. The customer's receipt shows the explorer link.
+6. Later: the merchant refunds, which goes back to the payer onchain. Plans collect instalments with a permit. Accountants download `exports/payments.csv`.
+
+## Setup
+
+Node 24 and npm. Test tokens come from the Whitechain faucet: WBT for deploying, USDT for paying.
+
+```sh
+npm ci                                   # whole monorepo
+# Payment server (needs a Postgres URL; without one it runs on an in-memory store)
+cd paykit-server && npm install
+cp .env.example .env                     # Windows: copy .env.example .env
+npm run gen-secrets                      # paste ADMIN_TOKEN and MASTER_KEY into .env, add RPC and keys
+npm start                                # http://localhost:8787/health
+# App (another terminal, repo root)
+VITE_PAYKIT_API_URL=http://localhost:8787 npm run dev     # http://localhost:5174
+# Website
+npm run frontend                                          # http://localhost:5176
+```
+
+- **Contracts:** `cd paykit-contracts && npm install`, then `npx hardhat run scripts/deploy.js --network whitechainTestnet`, `scripts/deployV2.js` (router V2 + points) and `scripts/verify.js` ([details](paykit-contracts/README.md)). `npm run contracts:check` compares the SDK with a deployment.
+- **A demo shop:** `node stores/build.mjs kettle-leaf`. It needs a merchant API key as `STORE_API_KEY`; create a merchant in the app under **Merchant**.
+- **SDK packages:** `npm run sdk:build && npm run sdk:test`.
+- **Offline demo:** `npm run server:demo` starts the SDK API on a simulated chain (no funds, port 8787).
+
+## Add PayKit to your app (one command)
 
 ```sh
 npx usepaykit@latest init
@@ -20,7 +126,7 @@ This command:
 
 Then ask your agent: *"Add PayKit checkout to this app."* The agent guide is [`packages/paykit/AGENTS.md`](packages/paykit/AGENTS.md): drag it into any chat, or run `npx usepaykit agents`.
 
-### Mobile PWA
+## Mobile app (PWA)
 
 **Android installer:** download **PayKit-Android.apk** from
 [GitHub Releases](https://github.com/Jethin10/PayKit/releases/latest), open it
@@ -47,7 +153,7 @@ The Android APK is a launcher for the hosted PWA, using Android's browser engine
 Camera access and device unlock need a supported device and a secure origin.
 [Mobile setup](web/MOBILE.md) · [Android installer source and build](android/README.md).
 
-### Run the PWA locally
+### Run the app locally
 
 Use Node 24 and run these commands from the repository root:
 
@@ -61,7 +167,7 @@ Open **http://localhost:4174/#wallet**. The production build includes the servic
 worker; the development server does not register it. Use `localhost` for device
 unlock rather than a numeric IP address.
 
-## Live
+## Live sites and deployment
 
 | What | URL |
 |---|---|
@@ -78,8 +184,8 @@ against the same server: `paykit-server` also hosts the SDK API (`packages/serve
 wallets, its state kept in Neon.
 
 The two demo companies are their own websites: checkout creates a PayKit invoice with the store's
-merchant key (server-side), the customer pays it on the PayKit site with MetaMask, and comes back
-to the store. Points earned at one store can be spent at the other; the Wallet page on the PayKit
+merchant key (server-side), and the customer pays it in PayKit's checkout dialog on the store's own
+page with MetaMask. Points earned at one store can be spent at the other; the Wallet page on the PayKit
 site lists every invoice, receipt and point across stores. Build one with
 `node stores/build.mjs <kettle-leaf|paper-lantern> [other store url]`, then `vercel deploy --prebuilt --prod`
 from `stores/out/<slug>` (the project needs `STORE` and `STORE_API_KEY`).
@@ -100,52 +206,52 @@ cd ../frontend && VITE_PAYKIT_APP_URL=/app npm run build && node scripts/vercel-
 cd .. && node scripts/redirect-old-app.mjs && cd web && vercel deploy --prebuilt --prod
 ```
 
-## Start here
+## Merchant integration (about 20 lines)
 
-- [Merchant integration and customization](packages/README.md)
-- [Existing-store Next.js example](examples/next-store/README.md)
-- [Canonical specification](plan.md)
-- [Implementation status and validation boundaries](research/SDK-IMPLEMENTATION-STATUS.md)
+The demo shops in [`stores/`](stores/) are separate apps that integrate PayKit exactly like this.
 
-Use Node 24 and npm:
+```js
+// server: create the invoice from your own order (never trust a price from the browser)
+import { PayKit, verifyWebhook } from "usepaykit";
+const paykit = new PayKit();                       // PAYKIT_API_KEY from env
+app.post("/api/checkout", async (req, res) => {
+  const order = await createOrder(req.body);       // your code
+  const invoice = await paykit.invoices.create({ amount: order.total, reference: order.id });
+  res.json({ invoiceId: invoice.id });
+});
+// server: fulfil from the signed webhook
+app.post("/api/paykit/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  const event = await verifyWebhook(req.body, req.get("paykit-signature"), process.env.PAYKIT_WEBHOOK_SECRET);
+  if (event.type === "invoice.paid") await markPaid(event.data.invoice.reference);
+  res.sendStatus(200);
+});
 
-```sh
-npm ci
-npm run sdk:build
-npm run sdk:typecheck
-npm run sdk:test
-npm run demo
+// browser: pay on your own page, no redirect
+import { openCheckout } from "usepaykit/checkout";
+const { invoiceId } = await (await fetch("/api/checkout", { method: "POST", body: JSON.stringify(cart) })).json();
+const result = await openCheckout({ invoiceId });   // MetaMask → one signature → settled on Whitechain
 ```
 
-## Run the whole thing
+Merchants get their `PAYKIT_API_KEY` and webhook secret by signing up in the app under **Merchant** (one wallet signature, no gas).
+React apps can instead use the copyable components in [`packages/react`](packages/README.md), with a `CheckoutButton`, invoices, receipts and plans.
 
-| Command | Port | What |
-|---|---|---|
-| `npm run server:demo` | 8787 | PayKit API on a simulated chain, with demo shops |
-| `npm run dev` | 5174 | App: SDK components, Shops, Invoice, Payments, Merchant (`web/`) |
-| `npm run frontend` | 5176 | Landing page (`frontend/`) |
+## Current limitations
 
-The landing page's calls to action open the app. The app proxies `/v1` to the API and shows **Live API** when it answers, or uses an in-browser mock when it doesn't. Both share one design: pixel-dithered sky, Da Vinci italic headings, Geist text. See [web/README.md](web/README.md) for configuration, and the integration guide for merchant keys, verified webhooks and real-service configuration.
+- **Testnet only.** Whitechain Sepolia (1874) with test USDT and WBT. There is no audit, and no mainnet deployment yet.
+- **Hosted keys.** PayKit's server holds the relayer key and each merchant's quote-signer key, encrypted with `MASTER_KEY`. Funds never pass through PayKit: USDT goes straight from the customer to the merchant's payout wallet, and refunds are funded by the merchant. But a server compromise could sign quotes for registered merchants until their signer is rotated.
+- **The merchant console doesn't do everything the API does yet.** Refunds, CSV export and subscription plans are in the API and the contracts. The console has invoices, campaigns and rewards, keys and wallet sign-in, but no refund button, export button or plan editor yet. The refund in the table above was made with [`paykit-contracts/scripts/refund.js`](paykit-contracts/scripts/refund.js).
+- **No reminders.** Invoices with a due date show as `overdue`, but PayKit doesn't email or notify the payer.
+- **Two simulated areas, both labelled "test mode".** The React component gallery and the merchant "Demo dashboard" tab run on simulated settlement. Real payments happen in the shop checkouts and on `#pay/<invoiceId>` links.
+- **Settlement is detected after the fact.** On Vercel there's no long-running listener. The observer catches up after each request and on a daily cron, so a webhook can arrive a few seconds after the transaction confirms.
+- **Small payments have a floor.** The protocol's 0.05 USDT minimum fee, under a merchant's 3% fee cap, sets the smallest invoice at about 1.67 USDT.
+- **Wallets.** The checkout is built and tested for MetaMask (EIP-6963), desktop and mobile. Other EIP-1193 wallets may work but haven't been tested.
+- **Arkiv points backend is optional.** With `POINTS_BACKEND=arkiv`, points are mirrored to Arkiv. Its queries sometimes stall, and the server then falls back to Postgres ([details](paykit-server/ARKIV.md)). The deployment uses the on-chain `PayKitPoints` backend.
 
-`backend/`, `contracts/` and `compose.yaml` are the generic local toolchain starter (FastAPI, Hardhat/Foundry, Postgres, Redis). `scripts/verify.ps1` checks it; see [SETUP_STATUS.md](SETUP_STATUS.md).
+## More docs
 
-## Contracts, loyalty points and MCP
+- [Merchant integration and customization](packages/README.md) · [Existing-store Next.js example](examples/next-store/README.md)
+- [Specification](plan.md) · [SDK implementation status](research/SDK-IMPLEMENTATION-STATUS.md) · [Contracts integration review](research/CONTRACTS-INTEGRATION.md)
+- [Payment server](paykit-server/README.md) · [Arkiv loyalty backend](paykit-server/ARKIV.md) · [MCP server for AI agents](packages/mcp/README.md)
+- [Mobile app](web/MOBILE.md) · [Android installer](android/README.md) · [App configuration](web/README.md)
 
-- The PayKit contracts are in [contracts/paykit](contracts/paykit/README.md). [Integration review](research/CONTRACTS-INTEGRATION.md): what was fixed, what is still missing (the `libraries/` and `interfaces/` files), and the go-live checklist.
-- `npm run contracts:check` compares the SDK with a deployment (read-only).
-- Universal loyalty points (PaymentRouterV2 + PayKitPoints): earn at any shop, spend as discounts at any other. Demo: Mumbai Chai Co. gives 10 PKP per USDT.
-- `npm run mcp` starts the [PayKit MCP server](packages/mcp/README.md) for AI agents.
-
-## Merchant integration
-
-Create a session on your backend with `@paykit/node`, render `PayKitProvider` and `CheckoutButton` from `@paykit/react`, and fulfill orders from verified `payment.finalized` webhooks. Server-derived prices, order references and stable operation keys keep retries tied to the same order.
-
-React components are optional. Headless APIs and hooks support custom UI. Styles are opt-in and can be themed with CSS variables. The Components tab has live previews, source/style copy buttons, prop references and install instructions. Run `npm run ui:add -- checkout --cwd "../your-store"` to install local SDK packages and copy a complete customizable component. [Copy-and-paste guide](packages/react/registry/README.md).
-
-## Scope and validation
-
-The current operator service uses a single-process transactional SQLite store, durable relay jobs, signed webhooks and finalized event reconciliation. The standalone observer reconstructs public event ledgers. Fee refills are opt-in and require actual gas measurements.
-
-Contracts are maintained separately by their owner and are not part of this SDK change. Deployed ABI/signature compatibility and real payment, refund, installment and refill writes require testnet validation with that deployment. No audit or verified mainnet compatibility is claimed.
-
-The landing page is in `frontend/`, the app and SDK showcase in `web/`, and separate store examples in `examples/`.
+`backend/`, `contracts/` and `compose.yaml` are a generic local toolchain starter (FastAPI, Hardhat/Foundry, Postgres, Redis), not part of the payment flow. See [SETUP_STATUS.md](SETUP_STATUS.md).
