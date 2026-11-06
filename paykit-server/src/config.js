@@ -67,6 +67,29 @@ const config = {
     defaultGraceSec: Number(env("DEFAULT_GRACE_SEC", "259200")), // 3 days
   },
 
+  // universal points: "chain" = PayKitPoints token on Whitechain, "arkiv" = lots and spends on Arkiv
+  pointsBackend: env("POINTS_BACKEND", "chain") === "arkiv" ? "arkiv" : "chain",
+  // platform cap on points per USDT when there is no PayKitPoints contract to read it from
+  maxPointsPerUsdt: Number(env("MAX_POINTS_PER_USDT", "100")),
+  // how long earned points stay spendable (Arkiv's max entity lifetime is ~182 days)
+  pointValidityDays: Math.min(Number(env("POINT_VALIDITY_DAYS", "180")), 182),
+  arkiv: {
+    backend: env("ARKIV_BACKEND", "rabdi"), // "rabdi" (testnet) or "memory" (local runs and tests)
+    chainId: Number(env("ARKIV_CHAIN_ID", "7794095")),
+    rpcUrl: env("ARKIV_RPC_URL"), // default: the SDK's Rabdi RPC (with ARKIV_ACCESS_KEY)
+    accessKey: env("ARKIV_ACCESS_KEY", ""),
+    explorerUrl: env("ARKIV_EXPLORER_URL", "https://rabdi.explorer.arkiv.network").replace(/\/$/, ""),
+    // how an entity page is linked; {key} is replaced. Open one entity in the explorer and copy its address-bar URL here.
+    entityUrl: env("ARKIV_ENTITY_URL", ""),
+    funderKey: env("ARKIV_FUNDER_KEY"), // PRIVATE key of a wallet with tGLM; tops up shop accounts
+    topupMinWei: env("ARKIV_TOPUP_MIN_WEI", "20000000000000000"), // 0.02 tGLM
+    topupWei: env("ARKIV_TOPUP_WEI", "100000000000000000"), // 0.1 tGLM
+    gas: env("ARKIV_GAS", "1500000"),
+    pollMs: Number(env("ARKIV_POLL_MS", "3000")),
+    queryTimeoutMs: Number(env("ARKIV_QUERY_TIMEOUT_MS", "6000")), // Arkiv queries sometimes stall for minutes; give up early and fall back to Postgres
+    maxAttempts: Number(env("ARKIV_MAX_ATTEMPTS", "20")),
+  },
+
   refill: {
     enabled: env("REFILL_ENABLED", "true") === "true",
     intervalMin: Number(env("REFILL_INTERVAL_MIN", "30")),

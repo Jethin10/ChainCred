@@ -12,16 +12,20 @@
     "gen-secrets": "node scripts/gen-secrets.js",
     "demo:subscription": "node scripts/demo-subscription.js",
     "demo:points": "node scripts/demo-points.js",
-    "bundle-contracts": "node scripts/bundle-contracts.js"
+    "bundle-contracts": "node scripts/bundle-contracts.js",
+    "test:arkiv": "node scripts/test-arkiv.js",
+    "bench:arkiv": "node scripts/bench-arkiv.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@arkiv-network/sdk": "^1.0.1",
     "@vercel/functions": "^3.11.0",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
     "express": "^4.21.2",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "viem": "^2.57.16"
   }
 }

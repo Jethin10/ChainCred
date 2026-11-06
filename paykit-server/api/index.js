@@ -23,6 +23,8 @@ function catchUp(svc, force = false) {
     await svc.observer.catchUp(8000).catch((e) => console.error("[catch-up] observer:", e.message));
     await svc.subscriptions.tick().catch((e) => console.error("[catch-up] scheduler:", e.message));
     await svc.webhooks.tick().catch((e) => console.error("[catch-up] webhooks:", e.message));
+    await svc.arkivSync.tick().catch((e) => console.error("[catch-up] arkiv:", e.message));
+    await svc.payments.resettlePoints().catch((e) => console.error("[catch-up] points:", e.message));
   })().finally(() => { running = null; });
   return running;
 }

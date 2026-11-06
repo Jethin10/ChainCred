@@ -12,6 +12,8 @@ const { createPointsService } = require("./services/points");
 const { createObserver } = require("./observer");
 const { createRefill } = require("./refill");
 const { createApi } = require("./api");
+const { createArkiv } = require("./arkiv");
+const { createArkivSync } = require("./services/arkivSync");
 
 async function boot() {
   const net = await provider.getNetwork();
@@ -28,14 +30,17 @@ async function boot() {
   const relayer = createRelayer(store);
   const webhooks = createWebhooks(store);
   const merchants = createMerchantService(store, relayer, webhooks);
-  const points = createPointsService(store, relayer);
+  const arkiv = createArkiv();
+  if (arkiv.enabled && !config.routerV2) throw new Error("POINTS_BACKEND=arkiv needs ROUTER_V2_ADDRESS (discounts settle through PaymentRouterV2)");
+  const arkivSync = createArkivSync(store, arkiv);
+  const points = createPointsService(store, relayer, arkiv, arkivSync);
   const payments = createPaymentService(store, relayer, merchants, webhooks, points);
   const subscriptions = createSubscriptionService(store, relayer, merchants, webhooks, points);
   const observer = createObserver(store, payments, subscriptions, points);
   const refill = createRefill(store, relayer);
-  const app = createApi({ store, relayer, merchants, payments, subscriptions, points, webhooks, observer, refill });
+  const app = createApi({ store, relayer, merchants, payments, subscriptions, points, webhooks, observer, refill, arkivSync });
 
-  return { app, store, relayer, webhooks, merchants, points, payments, subscriptions, observer, refill, isOwner };
+  return { app, store, relayer, webhooks, merchants, points, payments, subscriptions, observer, refill, arkivSync, isOwner };
 }
 
 module.exports = { boot };

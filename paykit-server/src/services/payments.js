@@ -163,6 +163,12 @@ function createPaymentService(store, relayer, merchants, webhooks, points) {
   // ───────────────────────── checkout: quote -> sign -> authorize ─────────────────────────
 
   async function createQuote(invoiceId, body) {
+    // a quote that spends points holds them, so build those one at a time per wallet
+    if (body && body.rewardId && body.payer) return points.withWallet(body.payer, () => buildQuote(invoiceId, body));
+    return buildQuote(invoiceId, body);
+  }
+
+  async function buildQuote(invoiceId, body) {
     const inv = await store.get("invoices", invoiceId);
     if (!inv) throw new HttpError(404, "not_found", "Invoice not found");
     const merchant = await store.get("merchants", inv.merchantId);
@@ -207,11 +213,14 @@ function createPaymentService(store, relayer, merchants, webhooks, points) {
       validUntil,
     };
     if (r.version === 2) {
+      // Arkiv mode: the router settles the discount (and names the reward) but mints/burns no points;
+      // the points are written to Arkiv once the payment settles
+      const chainPoints = points.onchain;
       Object.assign(q, {
         discount,
-        pointsEarned: BigInt(earn.points),
-        campaignId: earn.campaign ? earn.campaign.idHash : ethers.ZeroHash,
-        pointsRedeemed: BigInt(pointsRedeemed),
+        pointsEarned: chainPoints ? BigInt(earn.points) : 0n,
+        campaignId: chainPoints && earn.campaign ? earn.campaign.idHash : ethers.ZeroHash,
+        pointsRedeemed: chainPoints ? BigInt(pointsRedeemed) : 0n,
         rewardId: reward ? reward.idHash : ethers.ZeroHash,
       });
     }
@@ -532,15 +541,47 @@ function createPaymentService(store, relayer, merchants, webhooks, points) {
     return publicRefund(updated);
   }
 
+  /**
+   * Arkiv mode safety net: if another process (an older deployment sharing this database, a crash half way)
+   * settled a payment on-chain without writing its points, finish the job. Idempotent; only looks at
+   * payments from after Arkiv points were switched on.
+   */
+  async function resettlePoints({ limit = 200 } = {}) {
+    if (points.onchain || !points.enabled) return { checked: 0, fixed: 0 };
+    let since = (await store.get("kv", "points.arkivSince"))?.since;
+    if (!since) {
+      since = new Date(Date.now() - 12 * 3600_000).toISOString();
+      await store.upsert("kv", { id: "points.arkivSince", since });
+    }
+    const rows = await store.find("payments", {}, { limit });
+    let checked = 0;
+    let fixed = 0;
+    for (const p of rows) {
+      if (p.offchainSettled || (p.settledAt || "") < since) continue;
+      checked++;
+      const quote = await store.findOne("quotes", { paymentKey: p.id });
+      const sub = p.planKey ? await store.findOne("subscriptions", { planKey: p.planKey }) : null;
+      await points.settleOffchain(p, quote, sub);
+      fixed++;
+    }
+    if (fixed) console.log(`[points] finished the points of ${fixed} payment(s) that were settled without them`);
+    return { checked, fixed };
+  }
+
   // ───────────────────────── chain events (called by the observer) ─────────────────────────
 
   async function onPaymentSettled(ev) {
-    if (await store.get("payments", ev.paymentId)) return; // already processed
-    const merchant = await store.get("merchants", ev.merchantId);
     const quote = await store.findOne("quotes", { paymentKey: ev.paymentId });
-    const inv = quote ? await store.get("invoices", quote.invoiceId) : null;
     const isPlan = ev.planId && ev.planId !== ethers.ZeroHash;
     const sub = isPlan ? await store.findOne("subscriptions", { planKey: ev.planId }) : null;
+    const existing = await store.get("payments", ev.paymentId);
+    if (existing) {
+      // already processed; finish the Arkiv points if an earlier run stopped half way (idempotent)
+      if (!points.onchain) await points.settleOffchain(existing, quote, sub);
+      return;
+    }
+    const merchant = await store.get("merchants", ev.merchantId);
+    const inv = quote ? await store.get("invoices", quote.invoiceId) : null;
 
     const p = await store.insert("payments", {
       id: ev.paymentId,
@@ -585,9 +626,14 @@ function createPaymentService(store, relayer, merchants, webhooks, points) {
       invoicePaid = paid >= BigInt(inv.amount);
     }
     console.log(`[observer] payment ${ev.paymentId.slice(0, 10)}… ${fmtUsdt(ev.gross)} USDT settled${inv ? ` for ${inv.id}` : ""}`);
+    let settled = p;
+    if (!points.onchain) {
+      await points.settleOffchain(p, quote, sub);
+      settled = await store.get("payments", p.id);
+    }
     if (merchant) {
       await webhooks.enqueue(merchant, "payment.settled", {
-        payment: publicPayment(p),
+        payment: publicPayment(settled),
         invoice: updatedInv ? publicInvoice(updatedInv, merchant) : null,
         subscriptionId: sub ? sub.id : null,
       });
@@ -597,7 +643,10 @@ function createPaymentService(store, relayer, merchants, webhooks, points) {
 
   async function onRefundSettled(ev) {
     const p = await store.get("payments", ev.paymentId);
-    if (p && (p.refundIds || []).includes(ev.refundId)) return; // already processed
+    if (p && (p.refundIds || []).includes(ev.refundId)) {
+      if (!points.onchain) await points.refundOffchain(ev.paymentId, ev.cumulativeRefunded); // idempotent
+      return; // already processed
+    }
     const merchant = p ? await store.get("merchants", p.merchantId) : null;
     let r = await store.findOne("refunds", { refundId: ev.refundId });
     if (r) {
@@ -614,6 +663,7 @@ function createPaymentService(store, relayer, merchants, webhooks, points) {
       }
     }
     console.log(`[observer] refund ${ev.refundId.slice(0, 10)}… ${fmtUsdt(ev.amount)} USDT settled`);
+    if (p && !points.onchain) await points.refundOffchain(ev.paymentId, ev.cumulativeRefunded);
     if (merchant) {
       await webhooks.enqueue(merchant, "refund.settled", {
         refund: r
@@ -662,6 +712,7 @@ function createPaymentService(store, relayer, merchants, webhooks, points) {
     createRefund,
     authorizeRefund,
     onPaymentSettled,
+    resettlePoints,
     onRefundSettled,
     exportCsv,
   };

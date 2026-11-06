@@ -2,7 +2,7 @@ const express = require("express");
 const config = require("./config");
 const { HttpError } = require("./util");
 
-function createApi({ store, relayer, merchants, payments, subscriptions, points, webhooks, observer, refill }) {
+function createApi({ store, relayer, merchants, payments, subscriptions, points, webhooks, observer, refill, arkivSync }) {
   const app = express();
   app.disable("x-powered-by");
   app.use(express.json({ limit: "100kb" }));
@@ -50,6 +50,8 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
           usdt: config.usdt,
         },
         pointsEnabled: points.enabled,
+        points: { enabled: points.enabled, backend: points.backend },
+        arkiv: await arkivSync.status().catch((e) => ({ enabled: true, error: e.message })),
       });
     })
   );
@@ -68,6 +70,9 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
     res.json(ev);
   }));
   app.post("/v1/admin/refill/run", requireAdmin, wrap(async (req, res) => res.json(await refill.run({ force: !!req.body?.force }))));
+  app.get("/v1/admin/arkiv", requireAdmin, wrap(async (req, res) => res.json(await arkivSync.status())));
+  app.post("/v1/admin/points/resettle", requireAdmin, wrap(async (req, res) => res.json(await payments.resettlePoints({ limit: 500 }))));
+  app.post("/v1/admin/arkiv/tick", requireAdmin, wrap(async (req, res) => res.json({ ...(await arkivSync.tick()), ...(await arkivSync.status()) })));
   app.get("/v1/admin/refill/runs", requireAdmin, wrap(async (req, res) => res.json(await store.find("refill_runs", {}, { limit: 50 }))));
 
   // ───────────── merchant (API key) ─────────────
@@ -155,8 +160,8 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
     "/v1/public/invoices/:id/offers",
     wrap(async (req, res) => res.json(await payments.offersForInvoice(req.params.id, { payer: req.query.payer, amount: req.query.amount })))
   );
-  app.get("/v1/public/points/:wallet", wrap(async (req, res) => res.json(await points.publicWallet(req.params.wallet))));
-  app.get("/v1/public/rewards", wrap(async (req, res) => res.json({ data: await points.marketplace() })));
+  app.get("/v1/public/points/:wallet", wrap(async (req, res) => res.json(await points.publicWallet(req.params.wallet, { verify: req.query.verify === "1" }))));
+  app.get("/v1/public/rewards", wrap(async (req, res) => res.json({ data: await points.marketplace({ maxPoints: req.query.maxPoints, source: req.query.source }) })));
   app.post("/v1/public/invoices/:id/quote", wrap(async (req, res) => res.status(201).json(await payments.createQuote(req.params.id, req.body || {}))));
   app.get("/v1/public/quotes/:id", wrap(async (req, res) => res.json(await payments.getQuote(req.params.id))));
   app.post("/v1/public/quotes/:id/authorize", wrap(async (req, res) => res.status(202).json(await payments.authorizeQuote(req.params.id, req.body || {}))));

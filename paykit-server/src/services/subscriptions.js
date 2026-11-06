@@ -232,16 +232,20 @@ function createSubscriptionService(store, relayer, merchants, webhooks, points) 
     // v2: points on every charge, from the shop's best campaign that applies to subscriptions
     let perCharge = { points: 0, campaign: null };
     let atSignup = { points: 0, campaign: null };
+    let plannedPoints = { perCharge: 0, atSignup: 0, campaignDocId: null };
     if (r.version === 2) {
       // one campaign per plan (it is one onchain campaignId): the best one for the recurring charge,
       // applied to the sign-up charge too; fall back to the best for the sign-up charge alone
       perCharge = await points.bestCampaign(merchant.id, amount, payer, "subscriptions");
       const campaign = perCharge.campaign || (downPayment > 0n ? (await points.bestCampaign(merchant.id, downPayment, payer, "subscriptions")).campaign : null);
       atSignup = { points: await points.campaignPoints(campaign, downPayment), campaign };
+      // the points the plan promises; onchain only with POINTS_BACKEND=chain (Arkiv mode writes them per charge)
+      plannedPoints = { perCharge: perCharge.campaign ? perCharge.points : 0, atSignup: atSignup.points, campaignDocId: campaign ? campaign.id : null };
+      const chainPoints = points.onchain;
       Object.assign(terms, {
-        pointsPerCharge: BigInt(perCharge.campaign ? perCharge.points : 0),
-        downPaymentPoints: BigInt(atSignup.points),
-        campaignId: campaign ? campaign.idHash : ethers.ZeroHash,
+        pointsPerCharge: BigInt(chainPoints ? plannedPoints.perCharge : 0),
+        downPaymentPoints: BigInt(chainPoints ? plannedPoints.atSignup : 0),
+        campaignId: chainPoints && campaign ? campaign.idHash : ethers.ZeroHash,
       });
     }
     const termsTypes = r.version === 2 ? T.types.PlanTermsV2 : T.types.PlanTerms;
@@ -268,8 +272,9 @@ function createSubscriptionService(store, relayer, merchants, webhooks, points) 
       payer,
       planKey: T.planKeyOf(merchant.id, localPlanId),
       router: r.address,
-      pointsPerCharge: Number(terms.pointsPerCharge || 0n),
-      downPaymentPoints: Number(terms.downPaymentPoints || 0n),
+      pointsPerCharge: plannedPoints.perCharge,
+      downPaymentPoints: plannedPoints.atSignup,
+      campaignDocId: plannedPoints.campaignDocId,
       terms: toJson(terms),
       termsHash,
       merchantSig,
@@ -290,8 +295,8 @@ function createSubscriptionService(store, relayer, merchants, webhooks, points) 
         then: `${fmtUsdt(amount)} USDT every ${plan.interval} x ${count}`,
         total: fmtUsdt(total),
         firstScheduledCharge: iso(terms.firstDue),
-        pointsPerCharge: Number(terms.pointsPerCharge || 0n),
-        pointsAtSignup: Number(terms.downPaymentPoints || 0n),
+        pointsPerCharge: plannedPoints.perCharge,
+        pointsAtSignup: plannedPoints.atSignup,
       },
       schedule: schedule(sub),
       // sign both with eth_signTypedData_v4 (add EIP712Domain to types for MetaMask). No gas.
