@@ -19,7 +19,17 @@ npm run sdk:test
 npm run demo
 ```
 
-The demo uses simulated payments until configured with a real API. `npm run dev` opens the SDK showcase. `npm run server:demo` starts the local simulated payment service. See the integration guide for merchant keys, verified webhooks and real-service configuration.
+## Run the whole thing
+
+| Command | Port | What |
+|---|---|---|
+| `npm run server:demo` | 8787 | PayKit API on a simulated chain, with demo shops |
+| `npm run dev` | 5174 | App: SDK components, Shops, Invoice, Payments, Merchant (`web/`) |
+| `npm run frontend` | 5176 | Landing page (`frontend/`) |
+
+The landing page's calls to action open the app. The app proxies `/v1` to the API and shows **Live API** when it answers, or uses an in-browser mock when it doesn't. Both share one design: pixel-dithered sky, Da Vinci italic headings, Geist text. See [web/README.md](web/README.md) for configuration, and the integration guide for merchant keys, verified webhooks and real-service configuration.
+
+`backend/`, `contracts/` and `compose.yaml` are the generic local toolchain starter (FastAPI, Hardhat/Foundry, Postgres, Redis). `scripts/verify.ps1` checks it; see [SETUP_STATUS.md](SETUP_STATUS.md).
 
 ## Merchant integration
 
@@ -33,4 +43,4 @@ The current operator service uses a single-process transactional SQLite store, d
 
 Contracts are maintained separately by their owner and are not part of this SDK change. Deployed ABI/signature compatibility and real payment, refund, installment and refill writes require testnet validation with that deployment. No audit or verified mainnet compatibility is claimed.
 
-The existing `frontend/` landing page is preserved. The SDK showcase and separate store examples are under `web/` and `examples/`.
+The landing page is in `frontend/`, the app and SDK showcase in `web/`, and separate store examples in `examples/`.

@@ -1,0 +1,26 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "hardhat build",
+    "test": "hardhat test",
+    "typecheck": "tsc --noEmit",
+    "node": "hardhat node --hostname 127.0.0.1",
+    "forge:test": "forge test"
+  },
+  "devDependencies": {
+    "hardhat": "^3.21.2",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
+    "@nomicfoundation/hardhat-ignition": "^3.1.8",
+    "@types/node": "^24.19.2",
+    "forge-std": "https://github.com/foundry-rs/forge-std/archive/refs/tags/v1.17.0.tar.gz",
+    "typescript": "~6.0.3",
+    "viem": "^2.47.6"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "dotenv": "^17.0.0"
+  }
+}
