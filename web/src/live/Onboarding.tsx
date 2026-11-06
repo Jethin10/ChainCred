@@ -18,9 +18,9 @@ export function MerchantLive() {
   if (key) return <Console apiKey={key} onSignOut={() => { saveKey(null); setKey(null) }} />
   return (
     <div className="onb">
-      <Vision />
-      <Wizard onDone={setFresh} />
       <KeyLogin onKey={(k) => { saveKey(k); setKey(k) }} />
+      <Wizard onDone={setFresh} />
+      <Vision />
     </div>
   )
 }
@@ -78,29 +78,46 @@ const START: Form = {
 }
 const CATEGORIES = ['Café & food', 'Books & media', 'Fashion', 'Electronics', 'Home & living', 'Services', 'Other']
 const ACCENTS = ['#0a0a0a', '#1f3d2b', '#13182a', '#7a3b1d', '#0b63ce', '#9c2f6b']
-const STEPS = ['Business', 'Payouts', 'Loyalty', 'Brand', 'Review'] as const
+const STEPS = [
+  { title: 'Your shop', why: 'How customers will see you on invoices and receipts.' },
+  { title: 'Get paid', why: 'The wallet your sales go to. It also proves the account is yours.' },
+  { title: 'Make it yours', why: 'Your colour and a loyalty offer. Good defaults are already set: change anything or keep them.' },
+] as const
+
+/** Adds https:// when someone types a bare domain. */
+const normalizeUrl = (v: string) => { const t = v.trim(); return !t ? '' : /^https?:\/\//i.test(t) ? t : `https://${t}` }
+const urlOk = (v: string) => { if (!v) return true; try { return new URL(normalizeUrl(v)).hostname.includes('.') } catch { return false } }
 
 function Wizard({ onDone }: { onDone: (r: Onboarded) => void }) {
   const [step, setStep] = useState(0)
   const [f, setF] = useState<Form>(START)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tried, setTried] = useState(false)
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }))
 
-  const valid = [
-    f.name.trim().length >= 2 && (!f.website || /^https?:\/\//.test(f.website)),
-    !!f.payout && (!f.webhookUrl || /^https?:\/\//.test(f.webhookUrl)),
-    !f.rewardOn || (f.rewardName.trim().length > 1 && Number(f.rewardValue) > 0 && f.rewardCost > 0),
-    /^#[0-9a-fA-F]{6}$/.test(f.accent),
-    true,
-  ]
+  // What is still missing on a step, in plain words. Shown after a click, never a silent disabled button.
+  const problems = (s: number): Partial<Record<'name' | 'website' | 'payout' | 'webhook' | 'reward', string>> => {
+    if (s === 0) return { ...(f.name.trim().length < 2 ? { name: 'Add your shop name.' } : {}), ...(!urlOk(f.website) ? { website: 'That website does not look right, for example yourshop.com' } : {}) }
+    if (s === 1) return { ...(!f.payout ? { payout: 'Connect the wallet you want to be paid in.' } : {}), ...(!urlOk(f.webhookUrl) ? { webhook: 'That URL does not look right.' } : {}) }
+    return f.pointsOn && f.rewardOn && !(f.rewardName.trim().length > 1 && Number(f.rewardValue) > 0 && f.rewardCost > 0) ? { reward: 'Give the reward a name, a value and a points cost, or turn it off.' } : {}
+  }
+  const shown = tried ? problems(step) : {}
+
+  const next = () => {
+    if (Object.keys(problems(step)).length) { setTried(true); return }
+    setTried(false)
+    setStep(step + 1)
+  }
 
   const connect = async () => {
     setError(null)
+    if (!hasWallet()) { window.open('https://metamask.io/download/', '_blank', 'noopener'); return }
     try { set('payout', getAddress(await connectWallet())) } catch (e) { setError(errorText(e)) }
   }
 
   const submit = async () => {
+    for (const s of [0, 1, 2]) if (Object.keys(problems(s)).length) { setStep(s); setTried(true); return }
     if (!f.payout) return
     setBusy(true)
     setError(null)
@@ -112,8 +129,8 @@ function Wizard({ onDone }: { onDone: (r: Onboarded) => void }) {
         method: 'POST',
         body: {
           name, payoutAddress: f.payout, time, signature,
-          webhookUrl: f.webhookUrl || undefined,
-          profile: { website: f.website || null, category: f.category, tagline: f.tagline || null, accent: f.accent },
+          webhookUrl: normalizeUrl(f.webhookUrl) || undefined,
+          profile: { website: normalizeUrl(f.website) || null, category: f.category, tagline: f.tagline || null, accent: f.accent },
           campaign: f.pointsOn ? { pointsPerUsdt: f.pointsPerUsdt } : undefined,
           reward: f.pointsOn && f.rewardOn ? { name: f.rewardName, pointsCost: f.rewardCost, type: f.rewardType, value: f.rewardType === 'percent_off' ? Number(f.rewardValue) : f.rewardValue, minSpend: f.rewardMin || undefined } : undefined,
         },
@@ -126,108 +143,110 @@ function Wizard({ onDone }: { onDone: (r: Onboarded) => void }) {
     }
   }
 
+  const last = step === STEPS.length - 1
   return (
-    <section className="onb-wizard pk-panel" aria-label="Merchant sign-up">
-      <ol className="onb-steps">
-        {STEPS.map((s, i) => (
-          <li key={s} aria-current={i === step ? 'step' : undefined} data-done={i < step || undefined}>
-            <button type="button" onClick={() => i <= step && setStep(i)} disabled={i > step}><span>{i + 1}</span>{s}</button>
-          </li>
-        ))}
-      </ol>
+    <section className="onb-wizard pk-panel" aria-label="Create a merchant account">
+      <div className="onb-promise">
+        <div>
+          <h3>Create your merchant account</h3>
+          <p>You get an API key for your server, a branded payment page, and a place in the PayKit points network. Free: one wallet signature, no gas, about two minutes.</p>
+        </div>
+        <ol className="onb-dots" aria-label="Progress">
+          {STEPS.map((s, i) => <li key={s.title} data-state={i < step ? 'done' : i === step ? 'now' : 'next'}><span>{i + 1}</span>{s.title}</li>)}
+        </ol>
+      </div>
       <div className="onb-body">
         <div className="onb-form">
+          <div className="onb-step-head">
+            <span className="onb-step-count">Step {step + 1} of {STEPS.length}</span>
+            <h3>{STEPS[step].title}</h3>
+            <p className="pk-muted">{STEPS[step].why}</p>
+          </div>
+
           {step === 0 && (
             <>
-              <h3>Tell customers who you are</h3>
-              <Field label="Business name" hint="Shown on every invoice and receipt.">
-                <input value={f.name} maxLength={80} onChange={(e) => set('name', e.target.value)} placeholder="Kettle & Leaf" autoFocus />
+              <Field label="Shop name" error={shown.name}>
+                <input value={f.name} maxLength={80} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Kettle & Leaf" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') next() }} />
               </Field>
-              <Field label="Category">
-                <select value={f.category} onChange={(e) => set('category', e.target.value)}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
-              </Field>
-              <Field label="Website" hint="Optional. Customers can go back to it from the pay page.">
-                <input value={f.website} onChange={(e) => set('website', e.target.value)} placeholder="https://yourshop.com" inputMode="url" />
-              </Field>
-              <Field label="Tagline" hint="Optional. One line under your name.">
-                <input value={f.tagline} maxLength={140} onChange={(e) => set('tagline', e.target.value)} placeholder="Single-estate teas, packed by hand." />
+              <div className="onb-grid">
+                <Field label="Website" hint="optional" error={shown.website}>
+                  <input value={f.website} onChange={(e) => set('website', e.target.value)} onBlur={(e) => set('website', normalizeUrl(e.target.value))} placeholder="yourshop.com" inputMode="url" />
+                </Field>
+                <Field label="Category">
+                  <select value={f.category} onChange={(e) => set('category', e.target.value)}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
+                </Field>
+              </div>
+              <Field label="One-line description" hint="optional">
+                <input value={f.tagline} maxLength={140} onChange={(e) => set('tagline', e.target.value)} placeholder="e.g. Single-estate teas, packed by hand." />
               </Field>
             </>
           )}
+
           {step === 1 && (
             <>
-              <h3>Where your money goes</h3>
-              <p className="pk-muted">Every sale settles straight into this wallet. It also signs your sign-up, so it has to be a wallet you control.</p>
               {f.payout ? (
-                <div className="onb-wallet"><span className="onb-wallet__dot" /><b>{short(f.payout)}</b><span className="pk-muted">Payout wallet</span><button type="button" className="pk-link" onClick={connect}>Change</button></div>
+                <div className="onb-wallet"><span className="onb-wallet__dot" /><b>{short(f.payout)}</b><span className="pk-muted">Sales go here</span><button type="button" className="pk-link" onClick={connect}>Use another wallet</button></div>
               ) : (
-                <button type="button" className="pk-button pk-button--primary" onClick={connect}>{hasWallet() ? 'Connect your payout wallet' : 'Install MetaMask'}</button>
+                <button type="button" className="onb-connect" onClick={connect}>
+                  <span className="onb-connect__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16v11H4zM4 7l2-3h12l2 3M16 13h2" /></svg></span>
+                  <span className="onb-connect__text"><b>{hasWallet() ? 'Connect MetaMask' : 'Get MetaMask (free), then come back'}</b><span>Your USDT sales settle straight into this wallet.</span></span>
+                </button>
               )}
-              <Field label="Webhook URL" hint="Optional. We POST signed events here when you're paid (payment.confirmed, refunds, points).">
-                <input value={f.webhookUrl} onChange={(e) => set('webhookUrl', e.target.value)} placeholder="https://yourshop.com/api/paykit" inputMode="url" />
-              </Field>
+              {shown.payout && <p className="onb-error">{shown.payout}</p>}
+              <details className="onb-more">
+                <summary>Developer option: webhook URL</summary>
+                <Field label="Webhook URL" hint="we POST signed events here when you are paid" error={shown.webhook}>
+                  <input value={f.webhookUrl} onChange={(e) => set('webhookUrl', e.target.value)} onBlur={(e) => set('webhookUrl', normalizeUrl(e.target.value))} placeholder="yourshop.com/api/paykit" inputMode="url" />
+                </Field>
+              </details>
             </>
           )}
+
           {step === 2 && (
             <>
-              <h3>Join the points network</h3>
-              <p className="pk-muted">Points are universal: customers earn them at any PayKit shop and spend them at any other. You fund the points you give and the discounts you offer.</p>
-              <label className="onb-toggle"><input type="checkbox" checked={f.pointsOn} onChange={(e) => set('pointsOn', e.target.checked)} /><span>Give points on every purchase</span></label>
-              {f.pointsOn && (
-                <>
-                  <Field label={`Points per 1 USDT spent: ${f.pointsPerUsdt}`} hint="10 is a good default. The platform cap is 100.">
-                    <input type="range" min={1} max={50} value={f.pointsPerUsdt} onChange={(e) => set('pointsPerUsdt', Number(e.target.value))} />
-                  </Field>
-                  <label className="onb-toggle"><input type="checkbox" checked={f.rewardOn} onChange={(e) => set('rewardOn', e.target.checked)} /><span>Offer a reward customers can spend points on</span></label>
-                  {f.rewardOn && (
-                    <div className="onb-grid">
-                      <Field label="Reward name"><input value={f.rewardName} maxLength={60} onChange={(e) => set('rewardName', e.target.value)} /></Field>
-                      <Field label="Type">
-                        <select value={f.rewardType} onChange={(e) => { const t = e.target.value as Form['rewardType']; set('rewardType', t); set('rewardValue', t === 'percent_off' ? '10' : '1') }}>
-                          <option value="fixed_off">Amount off (USDT)</option>
-                          <option value="percent_off">Percent off</option>
-                        </select>
-                      </Field>
-                      <Field label={f.rewardType === 'percent_off' ? 'Percent off' : 'USDT off'}><input value={f.rewardValue} inputMode="decimal" onChange={(e) => set('rewardValue', e.target.value)} /></Field>
-                      <Field label="Costs (points)"><input type="number" min={1} value={f.rewardCost} onChange={(e) => set('rewardCost', Number(e.target.value))} /></Field>
-                      <Field label="Minimum order (USDT)" hint="Optional."><input value={f.rewardMin} inputMode="decimal" onChange={(e) => set('rewardMin', e.target.value)} /></Field>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
-          {step === 3 && (
-            <>
-              <h3>Make the checkout yours</h3>
-              <p className="pk-muted">Your colour frames your invoices on PayKit. Pick one, or enter your brand colour.</p>
-              <div className="onb-swatches" role="radiogroup" aria-label="Brand colour">
-                {ACCENTS.map((c) => <button key={c} type="button" role="radio" aria-checked={f.accent === c} aria-label={c} style={{ background: c }} onClick={() => set('accent', c)} />)}
-                <label className="onb-swatches__custom"><input type="color" value={f.accent} onChange={(e) => set('accent', e.target.value)} aria-label="Custom colour" /><span>{f.accent}</span></label>
+              <div className="onb-section">
+                <span className="onb-field__label">Brand colour</span>
+                <div className="onb-swatches" role="radiogroup" aria-label="Brand colour">
+                  {ACCENTS.map((c) => <button key={c} type="button" role="radio" aria-checked={f.accent === c} aria-label={c} style={{ background: c }} onClick={() => set('accent', c)} />)}
+                  <label className="onb-swatches__custom"><input type="color" value={f.accent} onChange={(e) => set('accent', e.target.value)} aria-label="Custom colour" /><span>{f.accent}</span></label>
+                </div>
               </div>
+              <div className="onb-section">
+                <label className="onb-toggle"><input type="checkbox" checked={f.pointsOn} onChange={(e) => set('pointsOn', e.target.checked)} /><span>Give customers PayKit points <span className="pk-muted">(spendable at any PayKit shop)</span></span></label>
+                {f.pointsOn && (
+                  <>
+                    <Field label={`${f.pointsPerUsdt} points per 1 USDT spent`}>
+                      <input type="range" min={1} max={50} value={f.pointsPerUsdt} onChange={(e) => set('pointsPerUsdt', Number(e.target.value))} />
+                    </Field>
+                    <label className="onb-toggle"><input type="checkbox" checked={f.rewardOn} onChange={(e) => set('rewardOn', e.target.checked)} /><span>Let customers spend points with you</span></label>
+                    {f.rewardOn && (
+                      <div className="onb-reward">
+                        <input aria-label="Reward name" value={f.rewardName} maxLength={60} onChange={(e) => set('rewardName', e.target.value)} />
+                        <span className="onb-reward__row">
+                          <span>Costs</span><input aria-label="Points cost" type="number" min={1} value={f.rewardCost} onChange={(e) => set('rewardCost', Number(e.target.value))} /><span>points for</span>
+                          <input aria-label="Value" value={f.rewardValue} inputMode="decimal" onChange={(e) => set('rewardValue', e.target.value)} />
+                          <select aria-label="Type" value={f.rewardType} onChange={(e) => { const t = e.target.value as Form['rewardType']; set('rewardType', t); set('rewardValue', t === 'percent_off' ? '10' : '1') }}>
+                            <option value="fixed_off">USDT off</option>
+                            <option value="percent_off">% off</option>
+                          </select>
+                        </span>
+                        {shown.reward && <p className="onb-error">{shown.reward}</p>}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <p className="pk-muted onb-fine">Next, MetaMask shows a short message to sign. It is free and moves no money. Then we register your shop on Whitechain (about 15 seconds).</p>
             </>
           )}
-          {step === 4 && (
-            <>
-              <h3>Check and sign</h3>
-              <dl className="onb-review">
-                <dt>Business</dt><dd>{f.name}{f.category ? ` · ${f.category}` : ''}</dd>
-                {f.website && <><dt>Website</dt><dd>{f.website}</dd></>}
-                <dt>Payouts to</dt><dd>{f.payout ? short(f.payout) : '-'}</dd>
-                <dt>Webhooks</dt><dd>{f.webhookUrl || 'Not now'}</dd>
-                <dt>Points</dt><dd>{f.pointsOn ? `${f.pointsPerUsdt} per USDT` : 'Off'}</dd>
-                <dt>Reward</dt><dd>{f.pointsOn && f.rewardOn ? `${f.rewardName}: ${f.rewardCost} points` : 'None'}</dd>
-              </dl>
-              <p className="pk-muted">Signing is free: MetaMask shows a short message, no transaction. PayKit then registers you on Whitechain (about 15 seconds).</p>
-            </>
-          )}
+
           {error && <div className="pk-state pk-state--error" role="alert"><p className="pk-state__title">Not done yet</p><div className="pk-state__body">{error}</div></div>}
           <div className="onb-nav">
-            {step > 0 && <button type="button" className="pk-button pk-button--secondary" onClick={() => setStep(step - 1)} disabled={busy}>Back</button>}
-            {step < STEPS.length - 1 ? (
-              <button type="button" className="pk-button pk-button--primary" disabled={!valid[step]} onClick={() => setStep(step + 1)}>Continue</button>
+            {step > 0 && <button type="button" className="pk-button pk-button--secondary" onClick={() => { setTried(false); setStep(step - 1) }} disabled={busy}>Back</button>}
+            {!last ? (
+              <button type="button" className="pk-button pk-button--primary" onClick={next}>Continue</button>
             ) : (
-              <button type="button" className="pk-button pk-button--primary" disabled={busy || !valid.every(Boolean)} onClick={submit}>{busy ? 'Registering on Whitechain…' : 'Sign and create my account'}</button>
+              <button type="button" className="pk-button pk-button--primary" disabled={busy} onClick={submit}>{busy ? 'Creating your account…' : 'Create my account'}</button>
             )}
           </div>
         </div>
@@ -259,8 +278,8 @@ function Preview({ f }: { f: Form }) {
   )
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return <label className="onb-field"><span className="onb-field__label">{label}</span>{children}{hint && <span className="onb-field__hint">{hint}</span>}</label>
+function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
+  return <label className={error ? 'onb-field onb-field--bad' : 'onb-field'}><span className="onb-field__label">{label}{hint && <span className="onb-field__hint"> · {hint}</span>}</span>{children}{error && <span className="onb-error">{error}</span>}</label>
 }
 
 // ── after sign-up ──
@@ -298,11 +317,13 @@ function Welcome({ result, onOpen }: { result: Onboarded; onOpen: (remember: boo
 
 function KeyLogin({ onKey }: { onKey: (k: string) => void }) {
   const [k, setK] = useState('')
+  const [bad, setBad] = useState(false)
   return (
-    <form className="onb-login" onSubmit={(e) => { e.preventDefault(); if (/^pk_(test|live)_/.test(k.trim())) onKey(k.trim()) }}>
-      <span>Already on PayKit?</span>
-      <input value={k} onChange={(e) => setK(e.target.value)} placeholder="Paste your API key (pk_test_…)" aria-label="API key" />
-      <button type="submit" className="pk-button pk-button--secondary" disabled={!/^pk_(test|live)_/.test(k.trim())}>Open console</button>
+    <form className="onb-login" onSubmit={(e) => { e.preventDefault(); if (/^pk_(test|live)_/.test(k.trim())) onKey(k.trim()); else setBad(true) }}>
+      <span>Already a merchant?</span>
+      <input value={k} onChange={(e) => { setK(e.target.value); setBad(false) }} placeholder="Paste your API key (pk_test_…)" aria-label="API key" />
+      <button type="submit" className="pk-button pk-button--secondary">Open console</button>
+      {bad && <span className="onb-error">API keys start with pk_test_ or pk_live_.</span>}
     </form>
   )
 }
@@ -338,6 +359,7 @@ function Console({ apiKey, onSignOut }: { apiKey: string; onSignOut: () => void 
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!(Number(draft.amount) >= 2)) { setError('Enter an amount of at least 2 USDT.'); return }
     setBusy(true)
     setError(null)
     try {
@@ -374,11 +396,11 @@ function Console({ apiKey, onSignOut }: { apiKey: string; onSignOut: () => void 
         <section className="pk-panel">
           <h3 className="pk-panel__title">New invoice</h3>
           <form className="onb-invoice" onSubmit={create}>
-            <Field label="Amount (USDT)" hint="At least 2 USDT."><input required inputMode="decimal" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} placeholder="12.50" /></Field>
+            <Field label="Amount (USDT)" hint="at least 2"><input inputMode="decimal" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} placeholder="12.50" /></Field>
             <Field label="Reference"><input value={draft.reference} onChange={(e) => setDraft({ ...draft, reference: e.target.value })} placeholder="ORDER-1042" /></Field>
             <Field label="Description"><input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="2× Masala chai" /></Field>
             <Field label="Return link" hint="Optional. Where customers go after paying."><input value={draft.successUrl} onChange={(e) => setDraft({ ...draft, successUrl: e.target.value })} placeholder="https://yourshop.com/thanks" /></Field>
-            <button type="submit" className="pk-button pk-button--primary" disabled={busy || !(Number(draft.amount) > 0)}>{busy ? 'Creating…' : 'Create invoice'}</button>
+            <button type="submit" className="pk-button pk-button--primary" disabled={busy}>{busy ? 'Creating…' : 'Create invoice'}</button>
           </form>
           {created && (
             <div className="onb-created">
