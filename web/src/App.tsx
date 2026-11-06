@@ -6,24 +6,18 @@ import {
   fromLocalAccount,
   InstallmentPlanPicker,
   InvoiceCreator,
-  InvoiceView,
   LoyaltySettings,
   MerchantGate,
   MerchantGrid,
-  PaymentHistory,
   PaymentsTable,
   PayKitProvider,
   PayoutSettings,
-  PlanList,
   PlansTable,
-  PointsCard,
   ProductManager,
-  RefundList,
   RefundsTable,
   SalesSummary,
   SignerSettings,
   SplitSettings,
-  UpcomingPayments,
   useMerchantInvoices,
   useProducts,
   WebhookSettings,
@@ -35,6 +29,7 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { Mark, PixelSky, PixelWipe } from './theme/pixels'
 import { useBackend, type Backend } from './theme/backend'
 import { PayPage, SubscribePage } from './live/PayPage'
+import { Companies, WalletPage } from './live/WalletPage'
 
 // Public test keys. Never fund them. The merchant key owns the demo shop on the mock and on `npm run server:demo`.
 const MERCHANT_KEY = '0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba'
@@ -43,22 +38,23 @@ const SITE_URL = (import.meta.env.VITE_PAYKIT_SITE_URL as string | undefined) ??
 const REPO_URL = 'https://github.com/Jethin10/PayKit'
 
 type WalletChoice = 'customer' | 'merchant' | 'browser' | 'none'
-type Page = 'components' | 'shops' | 'invoice' | 'me' | 'merchant' | 'pay'
+type Page = 'components' | 'shops' | 'wallet' | 'merchant' | 'pay'
 
 const PAGES: Array<{ key: Page; label: string; eyebrow: string; title: string; lead: string }> = [
   { key: 'components', label: 'SDK', eyebrow: '@paykit/react', title: 'Components you own', lead: 'Copy the view, keep the payment logic in the SDK. Every preview runs a real checkout flow on simulated funds.' },
-  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Every shop here proved it owns its domain. Pay with one signature; you never need gas.' },
-  { key: 'invoice', label: 'Invoice', eyebrow: 'Payment links', title: 'Invoices, paid in parts', lead: 'Switch to the merchant wallet to create an invoice with a 30% deposit, then back to the customer to pay it in two parts.' },
-  { key: 'me', label: 'Payments', eyebrow: 'Your wallet', title: 'Everything you paid', lead: "What you've paid with this wallet, what's coming up, and refunds you've received." },
+  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Companies with PayKit at checkout. Pay with one signature, never need gas, and earn points you can spend at any of them.' },
+  { key: 'wallet', label: 'Wallet', eyebrow: 'Your invoices', title: 'One wallet, every shop', lead: 'Invoices, receipts and points from every company that takes PayKit. Real test USDT on Whitechain.' },
   { key: 'merchant', label: 'Merchant', eyebrow: 'Dashboard', title: 'Your shop, in one place', lead: 'Use the merchant wallet to see Mumbai Chai Co., or any other wallet to try sign-up.' },
 ]
 
-// The landing page (frontend/) links here as /#components, /#shops, /#invoice, /#me or /#merchant.
+// The landing page (frontend/) links here as /#components, /#shops, /#invoice, /#me or /#merchant;
+// #invoice and #me now open the wallet (where customers find their invoices).
 // Pay links from the live PayKit server open #pay/<invoiceId>; plan links open #pay/subscribe/<planId>.
 const PAY_META = { key: 'pay' as const, label: 'Pay', eyebrow: 'Checkout · Whitechain testnet', title: 'Pay with USDT', lead: 'Real test USDT, settled onchain. Sign once in your wallet; PayKit pays the gas.' }
 const pageFromHash = (): Page => {
   const head = window.location.hash.split('/')[0]
   if (head === '#pay') return 'pay'
+  if (head === '#invoice' || head === '#me') return 'wallet'
   return PAGES.find((p) => `#${p.key}` === head)?.key ?? 'components'
 }
 const payTarget = () => {
@@ -99,7 +95,7 @@ export default function App() {
             <p className="hero__lead">{meta.lead}</p>
           </div>
         </header>
-        {page !== 'components' && page !== 'pay' && (
+        {(page === 'shops' || page === 'merchant') && (
           <div className="dock" role="group" aria-label="Preview wallet">
             <div className="dock__label">
               <span className="pixel">Wallet</span>
@@ -117,8 +113,7 @@ export default function App() {
         <main className="app__main" key={`${page}:${backend.source}:${target?.id ?? ''}`}>
           {page === 'components' && <ComponentsPage liveClient={backend.source === 'live' ? backend.client : null} />}
           {page === 'shops' && <ShopsPage />}
-          {page === 'invoice' && <InvoicePage backend={backend} />}
-          {page === 'me' && <MyPage />}
+          {page === 'wallet' && <WalletPage />}
           {page === 'merchant' && <MerchantPage />}
           {target?.kind === 'invoice' && <PayPage invoiceId={target.id} />}
           {target?.kind === 'plan' && <SubscribePage planId={target.id} />}
@@ -217,7 +212,13 @@ function Footer() {
 function ShopsPage() {
   return (
     <section className="page">
-      <MerchantGrid />
+      <Companies />
+      <section className="page__section">
+        <p className="eyebrow eyebrow--ink">SDK test shops</p>
+        <h2>Try the SDK without spending anything</h2>
+        <p className="page__lead">These demo shops run on the PayKit SDK in test mode: the full checkout, simulated settlement, no real funds.</p>
+        <MerchantGrid />
+      </section>
       <PlanDemo />
     </section>
   )
@@ -242,64 +243,6 @@ function PlanDemo() {
           ]}
         />
       </div>
-    </section>
-  )
-}
-
-function InvoicePage({ backend }: { backend: Backend }) {
-  const [selected, setSelected] = useState<string | null>(null)
-  const invoices = backend.mock ? backend.mock.db.invoices : []
-  const id = selected ?? new URLSearchParams(location.search).get('invoice') ?? invoices[0]?.id ?? null
-  return (
-    <section className="page">
-      <div className="split">
-        <div className="narrow">
-          {id ? (
-            <InvoiceView invoiceId={id} />
-          ) : (
-            <div className="pk-state pk-state--info">
-              <p className="pk-state__title">No invoice open.</p>
-              <div className="pk-state__body">
-                Create one on the <a href="#merchant">Merchant</a> page with the merchant wallet, then open its link{backend.source === 'live' ? ' (it adds ?invoice=… to this page)' : ''}.
-              </div>
-            </div>
-          )}
-        </div>
-        {invoices.length > 1 && (
-          <label className="field">
-            <span className="pixel">Show invoice</span>
-            <select value={id ?? ''} onChange={(e) => setSelected(e.target.value)}>
-              {invoices.map((i) => <option key={i.id} value={i.id}>{i.number}</option>)}
-            </select>
-          </label>
-        )}
-      </div>
-    </section>
-  )
-}
-
-function MyPage() {
-  return (
-    <section className="page">
-      <PointsCard />
-      <div className="columns">
-        <section className="pk-panel">
-          <h2 className="pk-panel__title">Coming up</h2>
-          <UpcomingPayments />
-        </section>
-        <section className="pk-panel">
-          <h2 className="pk-panel__title">Installment plans</h2>
-          <PlanList />
-        </section>
-      </div>
-      <section className="pk-panel">
-        <h2 className="pk-panel__title">History</h2>
-        <PaymentHistory />
-      </section>
-      <section className="pk-panel">
-        <h2 className="pk-panel__title">Refunds</h2>
-        <RefundList />
-      </section>
     </section>
   )
 }

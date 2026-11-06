@@ -647,7 +647,34 @@ function createPaymentService(store, relayer, merchants, webhooks, points) {
     return [header, ...rows].map((row) => row.map(esc).join(",")).join("\n") + "\n";
   }
 
+  /**
+   * Everything a wallet paid, across every shop: the payment, its invoice and shop, and its points.
+   * Public by design (the same data is onchain); powers the wallet page on the PayKit site.
+   */
+  async function walletActivity(address) {
+    const payer = parseAddress(address, "address");
+    const payments = await store.find("payments", { payer }, { limit: 100 });
+    const merchantsById = new Map();
+    const invoicesById = new Map();
+    const out = [];
+    for (const p of payments) {
+      if (!merchantsById.has(p.merchantId)) merchantsById.set(p.merchantId, await store.get("merchants", p.merchantId));
+      if (p.invoiceId && !invoicesById.has(p.invoiceId)) invoicesById.set(p.invoiceId, await store.get("invoices", p.invoiceId));
+      const merchant = merchantsById.get(p.merchantId);
+      const inv = p.invoiceId ? invoicesById.get(p.invoiceId) : null;
+      out.push({
+        ...publicPayment(p),
+        merchant: merchant ? { id: merchant.id, name: merchant.name } : { id: p.merchantId },
+        invoice: inv ? publicInvoice(inv, merchant) : null,
+        txUrl: p.txUrl || null,
+        settledAt: p.settledAt || p.createdAt || null,
+      });
+    }
+    return { wallet: payer, data: out };
+  }
+
   return {
+    walletActivity,
     createInvoice,
     getInvoiceFor,
     listInvoices,

@@ -133,6 +133,18 @@ async function grant(eth: Eip1193): Promise<string[]> {
   return ask<string[]>(eth, 'eth_accounts')
 }
 
+/** The account this site may already use, without prompting (null when not connected). */
+export async function knownAccount(): Promise<string | null> {
+  const eth = provider()
+  if (!eth) return null
+  try {
+    const accounts = (await eth.request({ method: 'eth_accounts' })) as string[]
+    return accounts[0] ?? null
+  } catch {
+    return null
+  }
+}
+
 export async function connectWallet(): Promise<string> {
   window.dispatchEvent(new Event('eip6963:requestProvider'))
   const eth = provider()
@@ -205,3 +217,47 @@ export function errorText(e: unknown): string {
   if (typeof msg === 'string' && msg) return code !== undefined ? `${msg} (wallet error ${code})` : msg
   try { return JSON.stringify(e) } catch { return String(e) }
 }
+
+// ── wallet page shapes ──
+export type Activity = {
+  id: string
+  merchant: { id: string; name?: string }
+  invoice: { id: string; reference: string | null; description: string | null; amount: string; status: string } | null
+  reference: string | null
+  gross: string
+  fee: string
+  discount: string
+  pointsEarned: number
+  pointsRedeemed: number
+  refunded: string
+  kind: string
+  txUrl: string | null
+  settledAt: string | null
+}
+export type PointsWallet = {
+  balance: number
+  lifetimeEarned: number
+  lifetimeRedeemed: number
+  history: Array<{ type: string; amount: number; merchantName: string | null; at: string; txUrl: string | null }>
+}
+export type MarketReward = { id: string; merchant: { name: string }; name: string; label: string; pointsCost: number }
+
+/** The demo companies that sell through PayKit (their own websites). */
+export const COMPANIES = [
+  {
+    name: 'Kettle & Leaf',
+    url: (import.meta.env.VITE_STORE_KETTLE_URL as string | undefined) || 'https://kettle-and-leaf-five.vercel.app',
+    blurb: 'Single-estate teas from Assam to Kashmir, packed by hand in Mumbai.',
+    kind: 'Tea house',
+    reward: '20 points → 1 USDT off',
+    tone: 'tea',
+  },
+  {
+    name: 'Paper Lantern Books',
+    url: (import.meta.env.VITE_STORE_LANTERN_URL as string | undefined) || 'https://paper-lantern-books.vercel.app',
+    blurb: 'An independent bookshop for slow readers and night owls.',
+    kind: 'Bookshop',
+    reward: '25 points → 15% off',
+    tone: 'books',
+  },
+] as const

@@ -9,12 +9,21 @@ USDT commerce SDK for Whitechain. Merchants keep their existing website and orde
 | Landing page (`frontend/`) | https://paykit-landing-one.vercel.app |
 | App and SDK gallery (`web/`) | https://paykit-app.vercel.app |
 | PayKit server (`paykit-server/`, Whitechain testnet) | https://paykit-server.vercel.app/health |
+| Demo company: Kettle & Leaf (`stores/`) | https://kettle-and-leaf-five.vercel.app |
+| Demo company: Paper Lantern Books (`stores/`) | https://paper-lantern-books.vercel.app |
 
 Invoices and plans created on the server link to the app's hosted pages: `#pay/<invoiceId>` pays real
 test USDT with one wallet signature, `#pay/subscribe/<planId>` starts a plan. The rest of the app runs
 against the same server: `paykit-server` also hosts the SDK API (`packages/server`, bundled by
 `npm run bundle-sdk` in `paykit-server`), with demo shops and simulated settlement for the preview
 wallets, its state kept in Neon.
+
+The two demo companies are their own websites: checkout creates a PayKit invoice with the store's
+merchant key (server-side), the customer pays it on the PayKit site with MetaMask, and comes back
+to the store. Points earned at one store can be spent at the other; the Wallet page on the PayKit
+site lists every invoice, receipt and point across stores. Build one with
+`node stores/build.mjs <kettle-leaf|paper-lantern> [other store url]`, then `vercel deploy --prebuilt --prod`
+from `stores/out/<slug>` (the project needs `STORE` and `STORE_API_KEY`).
 
 Redeploy (Vercel CLI, logged in): `paykit-server` with `npm run bundle-sdk && vercel deploy --prod`; the two sites are built
 locally and shipped prebuilt:

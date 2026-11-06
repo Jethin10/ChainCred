@@ -23,6 +23,20 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
 
   const load = useCallback(() => api<Invoice>(`/v1/public/invoices/${encodeURIComponent(invoiceId)}`).then(setInvoice, (e) => setError(errorText(e))), [invoiceId])
   useEffect(() => { void load() }, [load])
+  // After paying, go back to the shop's order page (the shop set successUrl on the invoice).
+  const [returnIn, setReturnIn] = useState<number | null>(null)
+  const back = invoice?.successUrl ?? null
+  useEffect(() => {
+    if (step !== 'done' || !back) return
+    let n = 5
+    setReturnIn(n)
+    const id = window.setInterval(() => {
+      n -= 1
+      setReturnIn(n)
+      if (n <= 0) { window.clearInterval(id); window.location.href = back }
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [step, back])
   useEffect(() => {
     if (!account) return
     api<Offers>(`/v1/public/invoices/${encodeURIComponent(invoiceId)}/offers?payer=${account}`).then(setOffers, () => setOffers(null))
@@ -94,7 +108,8 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
             {usdt(receipt.onchain.gross)} reached {invoice.merchant?.name ?? 'the merchant'}
             {receipt.payment && receipt.payment.pointsEarned > 0 ? `, and you earned ${receipt.payment.pointsEarned} points` : ''}.{' '}
             {status?.txUrl && <a className="pk-link" href={status.txUrl} target="_blank" rel="noreferrer">View transaction</a>}
-            {invoice.successUrl && <> · <a className="pk-link" href={invoice.successUrl}>Back to the shop</a></>}
+            {invoice.successUrl && <><br /><a className="pk-button pk-button--primary livepay__back" href={invoice.successUrl}>Back to {invoice.merchant?.name ?? 'the shop'}{returnIn !== null && returnIn > 0 ? ` (${returnIn})` : ''}</a></>}
+            <br /><a className="pk-link" href="#wallet">See it in your PayKit wallet</a>
           </State>
         ) : due <= 0 ? (
           <State kind="info" title="This invoice is already paid." />
