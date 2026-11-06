@@ -5,7 +5,7 @@
     "category": "Payments",
     "exportName": "CustomCheckout",
     "hook": "useCheckout",
-    "description": "A checkout card for an existing order session, with amount checks, progress and recoverable errors.",
+    "description": "A checkout card with press-and-hold to pay, live Sign → Relay → Settle progress, and a plain-language view of what is signed.",
     "props": [
       {
         "name": "sessionId",
@@ -32,6 +32,12 @@
         "required": false
       },
       {
+        "name": "holdMs",
+        "type": "number",
+        "description": "How long to hold before confirming. Defaults to 900 ms.",
+        "required": false
+      },
+      {
         "name": "className",
         "type": "string",
         "description": "Optional wrapper class for your site.",
@@ -46,7 +52,7 @@
     "category": "Payments",
     "exportName": "CustomPaymentStatus",
     "hook": "usePayment",
-    "description": "Watch a payment move through submitted, included, safe and finalized RPC observations.",
+    "description": "A pixel track that follows a payment from sent to final, with a live timer and recoverable errors.",
     "props": [
       {
         "name": "paymentId",
@@ -69,7 +75,7 @@
     "category": "Wallet",
     "exportName": "WalletButton",
     "hook": "useWallet",
-    "description": "Connect, disconnect and switch networks with your injected or controlled wallet adapter.",
+    "description": "A wallet pill with a pixel identicon and a menu to copy, switch network or disconnect.",
     "props": [
       {
         "name": "className",
@@ -86,7 +92,7 @@
     "category": "Commerce",
     "exportName": "CustomProductCard",
     "hook": "useCart",
-    "description": "A product card with server-priced amounts and an add-to-cart action. Your catalogue remains optional.",
+    "description": "A product card whose add button turns into a quantity stepper, with pixel art when there is no photo.",
     "props": [
       {
         "name": "product",
@@ -109,7 +115,7 @@
     "category": "Payments",
     "exportName": "PaymentReceipt",
     "hook": "usePayment",
-    "description": "An order receipt with paid and refunded totals. It appears after inclusion and keeps tracking finality.",
+    "description": "A receipt that prints in, gets stamped, and lets customers copy the transaction reference.",
     "props": [
       {
         "name": "paymentId",
@@ -132,7 +138,7 @@
     "category": "Commerce",
     "exportName": "CustomInstallmentPlan",
     "hook": "usePlanCheckout",
-    "description": "A bounded installment offer that checks the displayed total and selected schedule before signing.",
+    "description": "An installment plan with an interactive payment schedule and press-and-hold confirmation.",
     "props": [
       {
         "name": "input",
@@ -151,6 +157,12 @@
         "type": "PlanOption",
         "description": "Count, periodSeconds and optional downPaymentPercent.",
         "required": true
+      },
+      {
+        "name": "holdMs",
+        "type": "number",
+        "description": "How long to hold before confirming. Defaults to 900 ms.",
+        "required": false
       },
       {
         "name": "className",
