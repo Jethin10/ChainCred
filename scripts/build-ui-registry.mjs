@@ -6,7 +6,9 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const source = resolve(root, 'packages/react/registry');
 const destination = resolve(root, 'web/public/r');
 const catalog = JSON.parse(readFileSync(resolve(source, 'catalog.json'), 'utf8'));
-const css = readFileSync(resolve(source, 'paykit-ui.css'), 'utf8');
+// LF everywhere, so the output is identical on Windows and Unix checkouts.
+const read = (file) => readFileSync(resolve(source, file), 'utf8').replace(/\r\n/g, '\n');
+const css = read('paykit-ui.css');
 const origin = process.env.PAYKIT_REGISTRY_ORIGIN ?? 'http://localhost:5174';
 mkdirSync(destination, { recursive: true });
 const items = catalog.map(({ id, title, description }) => ({
@@ -14,7 +16,7 @@ const items = catalog.map(({ id, title, description }) => ({
   name: `paykit-${id}`, type: 'registry:component', title, description,
   dependencies: ['@paykit/react@0.1.0', '@paykit/js@0.1.0'],
   files: [
-    { path: `components/paykit/${id}.tsx`, type: 'registry:component', content: readFileSync(resolve(source, `${id}.tsx`), 'utf8') },
+    { path: `components/paykit/${id}.tsx`, type: 'registry:component', content: read(`${id}.tsx`) },
     { path: 'components/paykit/paykit-ui.css', target: 'components/paykit/paykit-ui.css', type: 'registry:file', content: css },
   ],
 }));
