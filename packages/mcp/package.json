@@ -1,0 +1,39 @@
+{
+  "name": "@paykit/mcp",
+  "version": "0.1.0",
+  "description": "PayKit as a Model Context Protocol server: AI agents browse shops, check out, spend loyalty points and pay in USDT with a capped agent wallet.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "paykit-mcp": "./bin/paykit-mcp.mjs"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --conditions=source --test test/*.test.ts",
+    "start": "node --conditions=source src/main.ts"
+  },
+  "dependencies": {
+    "@paykit/js": "0.1.0",
+    "@paykit/node": "0.1.0",
+    "viem": "^2.47.6"
+  },
+  "devDependencies": {
+    "@paykit/server": "0.1.0",
+    "@paykit/testing": "0.1.0"
+  }
+}

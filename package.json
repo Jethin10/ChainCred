@@ -15,9 +15,9 @@
     "chain": "anvil --host 127.0.0.1 --port 8545 --silent",
     "contracts:build": "npm --prefix contracts run build",
     "contracts:test": "npm --prefix contracts run test",
-    "sdk:build": "npm run build -w @paykit/core -w @paykit/observer -w @paykit/server -w @paykit/testing -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/react",
-    "sdk:typecheck": "npm run typecheck -w @paykit/core -w @paykit/observer -w @paykit/server -w @paykit/testing -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/react",
-    "sdk:test": "npm test -w @paykit/core -w @paykit/observer -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/server -w @paykit/react",
+    "sdk:build": "npm run build -w @paykit/core -w @paykit/observer -w @paykit/server -w @paykit/testing -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/react -w @paykit/mcp",
+    "sdk:typecheck": "npm run typecheck -w @paykit/core -w @paykit/observer -w @paykit/server -w @paykit/testing -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/react -w @paykit/mcp",
+    "sdk:test": "npm test -w @paykit/core -w @paykit/observer -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/server -w @paykit/react -w @paykit/mcp",
     "demo": "npm run dev --workspace demo-store",
     "server": "npm start -w @paykit/server",
     "server:demo": "npm run demo -w @paykit/server",
@@ -27,7 +27,8 @@
     "sdk:consumer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-sdk-consumer.ps1",
     "ui:add": "node packages/react/bin/add.mjs",
     "ui:test": "node --test scripts/test-ui-installer.mjs",
-    "contracts:check": "node --conditions=source scripts/check-contracts.ts"
+    "contracts:check": "node --conditions=source scripts/check-contracts.ts",
+    "mcp": "npm start -w @paykit/mcp"
   },
   "engines": {
     "node": ">=24 <25"
