@@ -90,6 +90,7 @@ export default function App() {
       <PixelWipe trigger={page} />
       <div className="app">
         <TopBar page={page} backend={backend} />
+        {backend.testMode && page !== 'pay' && <TestModeNotice />}
         <header className={page === 'components' ? 'hero hero--short' : 'hero'}>
           <PixelSky seed={page === 'pay' ? 7 : PAGES.findIndex((p) => p.key === page)} />
           <div className="hero__copy" key={page}>
@@ -102,7 +103,8 @@ export default function App() {
           <div className="dock" role="group" aria-label="Preview wallet">
             <div className="dock__label">
               <span className="pixel">Wallet</span>
-              <span>{backend.source === 'live' ? 'Signs real requests to your PayKit API, settled on a simulated chain.' : 'Simulated in your browser. Nothing touches a chain.'}</span>
+              <span>{backend.source === 'live' ? 'Real requests to the live PayKit API, in test mode: orders here never move real funds.' : 'Simulated in your browser. Nothing touches a chain.'}</span>
+              {backend.testMode && <span className="testmode" title="Orders here are simulated. Real USDT only moves on hosted pay links.">Test mode · no real funds</span>}
             </div>
             <div className="dock__chips" role="radiogroup" aria-label="Choose wallet">
               {([['customer', 'Customer'], ['merchant', 'Merchant'], ['browser', 'Browser'], ['none', 'Off']] as const).map(([value, label]) => (
@@ -159,7 +161,7 @@ function TopBar({ page, backend }: { page: Page; backend: Backend }) {
           title={backend.reachable ? `PayKit API at ${backend.apiUrl}` : 'Start the API with npm run server:demo to go live'}
         >
           <span className="source__dot" aria-hidden="true" />
-          <span className="pixel">{live ? 'Live API' : backend.reachable === null ? 'Checking' : 'Simulated'}</span>
+          <span className="pixel">{live ? (backend.testMode ? 'Live · test mode' : 'Live API') : backend.reachable === null ? 'Checking' : 'Simulated'}</span>
           <span className="source__hint">{live ? 'use mock' : backend.reachable ? 'go live' : 'API offline'}</span>
         </button>
         <a className="cta" href={SITE_URL}>Home</a>
@@ -167,6 +169,26 @@ function TopBar({ page, backend }: { page: Page; backend: Backend }) {
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11 11 5M6 5h5v5" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>
         </a>
       </div>
+    </div>
+  )
+}
+
+// Shown once: payments in the SDK section run end to end, but in test mode, so no funds move.
+const NOTICE_KEY = 'paykit:test-mode-notice'
+function TestModeNotice() {
+  const [open, setOpen] = useState(() => { try { return localStorage.getItem(NOTICE_KEY) !== 'seen' } catch { return true } })
+  const close = () => { setOpen(false); try { localStorage.setItem(NOTICE_KEY, 'seen') } catch { /* private mode */ } }
+  useEffect(() => {
+    if (!open) return
+    const id = window.setTimeout(close, 9000)
+    return () => window.clearTimeout(id)
+  }, [open])
+  if (!open) return null
+  return (
+    <div className="testnotice" role="status">
+      <span className="testnotice__dot" aria-hidden="true" />
+      <p><strong>Test mode.</strong> Orders here go through the full payment flow, but responses are simulated: no USDT or WBT leaves your wallet. Real payments only happen on pay links.</p>
+      <button type="button" className="testnotice__close" onClick={close} aria-label="Dismiss">Got it</button>
     </div>
   )
 }

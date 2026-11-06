@@ -38,7 +38,30 @@ function statelessChain(): ChainAdapter {
   };
 }
 
-export async function createSdkHost({ query, siweDomains }: { query: Query; siweDomains?: string[] }) {
+/**
+ * `mode` is the safety flag for everything the SDK section does. "test" (the only mode) means orders
+ * placed through the SDK API never move funds: nothing is broadcast, and every payment is addressed
+ * to a placeholder router, so even a real wallet signature can't be used to pull USDT. Real money
+ * only moves through paykit-server's hosted pay links (/v1/public/*).
+ */
+export type SdkMode = "test";
+
+/** Every SDK response says it is test mode (header); status and config also say it in the body. */
+async function markTestMode(request: Request, response: Response): Promise<Response> {
+  const headers = new Headers(response.headers);
+  headers.set("x-paykit-mode", "test");
+  headers.set("access-control-expose-headers", "x-paykit-mode");
+  const path = new URL(request.url).pathname;
+  if (request.method === "GET" && response.ok && (path === "/v1/status" || path === "/v1/config")) {
+    const body = { ...(await response.json()), testMode: true, mode: "test", fundsMove: false };
+    headers.delete("content-length");
+    return new Response(JSON.stringify(body), { status: response.status, headers });
+  }
+  return new Response(response.body, { status: response.status, headers });
+}
+
+export async function createSdkHost({ query, siweDomains, mode = "test" }: { query: Query; siweDomains?: string[]; mode?: string }) {
+  if (mode !== "test") throw new Error(`PAYKIT_SDK_MODE=${mode} is not supported: the SDK API only runs in test mode (no real funds)`);
   await query("CREATE SCHEMA IF NOT EXISTS paykit");
   await query("CREATE TABLE IF NOT EXISTS paykit.sdk_state (id text PRIMARY KEY, version bigint NOT NULL, body text NOT NULL, updated_at timestamptz NOT NULL DEFAULT now())");
 
@@ -120,8 +143,9 @@ export async function createSdkHost({ query, siweDomains }: { query: Query; siwe
       await sync();
       const response = await api.handle(request);
       await flush();
-      return response;
+      return markTestMode(request, response);
     },
+    mode: "test" as SdkMode,
     /**
      * Keeps relays, plan jobs and webhooks moving after a response, until nothing is in flight
      * (bounded). Pass the promise to Vercel's waitUntil.

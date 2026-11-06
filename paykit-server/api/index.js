@@ -45,7 +45,8 @@ function sdk() {
       pool.on("error", (e) => console.error("[sdk] pg pool error:", e.message));
       const siweDomains = (process.env.SDK_SIWE_DOMAINS || "paykit-app.vercel.app,localhost:5174,127.0.0.1:5174")
         .split(",").map((d) => d.trim()).filter(Boolean);
-      return createSdkHost({ query: (text, params) => pool.query(text, params), siweDomains });
+      // PAYKIT_SDK_MODE: "test" (default, and the only mode): SDK orders never move real funds.
+      return createSdkHost({ query: (text, params) => pool.query(text, params), siweDomains, mode: process.env.PAYKIT_SDK_MODE || "test" });
     })().catch((e) => { sdkReady = null; throw e; });
   }
   return sdkReady;
