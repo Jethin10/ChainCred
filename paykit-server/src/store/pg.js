@@ -101,7 +101,7 @@ async function createPgStore(url, unpooledUrl, tables) {
       if (!rows[0]) throw new Error(`${t}/${id} not found`);
       return rowToDoc(rows[0]);
     },
-    async find(t, filter = {}, { limit = 100, order = "desc" } = {}) {
+    async find(t, filter = {}, { limit = 100, offset = 0, order = "desc" } = {}) {
       const { merchantId, ...rest } = filter;
       const where = [];
       const args = [];
@@ -114,8 +114,9 @@ async function createPgStore(url, unpooledUrl, tables) {
         where.push(`data @> $${args.length}::jsonb`);
       }
       args.push(limit);
+      args.push(offset);
       const sql = `SELECT * FROM ${tbl(t)} ${where.length ? "WHERE " + where.join(" AND ") : ""}
-                   ORDER BY created_at ${order === "asc" ? "ASC" : "DESC"} LIMIT $${args.length}`;
+                   ORDER BY created_at ${order === "asc" ? "ASC" : "DESC"}, id ${order === "asc" ? "ASC" : "DESC"} LIMIT $${args.length - 1} OFFSET $${args.length}`;
       const { rows } = await pool.query(sql, args);
       return rows.map(rowToDoc);
     },

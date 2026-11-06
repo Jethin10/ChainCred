@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { api, COMPANIES, connectWallet, errorText, hasWallet, isMobileWallet, knownAccount, short, type Activity, type MarketReward, type PointsWallet } from '../live/server'
+import { api, connectWallet, errorText, hasWallet, isMobileWallet, knownAccount, short, type Activity, type MarketReward, type PointsWallet } from '../live/server'
 import { BrandMark } from '../live/BrandMark'
 import { PixelSky } from '../theme/pixels'
 import { Icon, type IconName } from './icons'
@@ -69,7 +69,7 @@ export function Home() {
   useEffect(() => {
     const life = new AbortController()
     void knownAccount().then((a) => { if (!life.signal.aborted && a) setAddress((cur) => cur || a) })
-    void api<{ data: MarketReward[] }>('/v1/public/rewards', { signal: life.signal }).then((r) => setRewards(r.data.filter((x) => COMPANIES.some((c) => c.name === x.merchant.name))), () => {})
+    void api<{ data: MarketReward[] }>('/v1/public/rewards', { signal: life.signal }).then((r) => setRewards(r.data), () => {})
     return () => life.abort()
   }, [])
   const load = useCallback(async (account: string, signal?: AbortSignal) => {

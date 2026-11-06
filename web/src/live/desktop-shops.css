@@ -9,6 +9,8 @@
 .shop-emblem--books { --emblem-cut: #f1e8e9; background: #f1e8e9; color: #9a6571; }
 
 /* Shared docs-layout additions */
+.shop-card__shot:has(> .shop-emblem) { display: grid; place-items: center; background: var(--mist); }
+.partner-window:has(> .shop-emblem) { display: grid; place-items: center; min-height: 220px; }
 .docs-tabs a { border-radius: var(--r); padding: 9px 18px; color: var(--ink-2); font-size: .9rem; text-decoration: none; transition: background-color .2s, color .2s; }
 .docs-tabs a:hover { color: var(--ink); background: #fff; }
 .docs-tabs a[aria-selected="true"] { color: #fff; background: var(--ink); }

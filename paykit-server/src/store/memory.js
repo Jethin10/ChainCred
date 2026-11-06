@@ -39,10 +39,10 @@ function createMemoryStore(tables) {
       m.set(id, d);
       return clone(d);
     },
-    async find(t, filter = {}, { limit = 100, order = "desc" } = {}) {
+    async find(t, filter = {}, { limit = 100, offset = 0, order = "desc" } = {}) {
       const rows = [...table(t).values()].filter((d) => matches(d, filter));
-      rows.sort((a, b) => (order === "asc" ? 1 : -1) * a.createdAt.localeCompare(b.createdAt));
-      return clone(rows.slice(0, limit));
+      rows.sort((a, b) => (order === "asc" ? 1 : -1) * (a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)));
+      return clone(rows.slice(offset, offset + limit));
     },
     async findOne(t, filter) {
       return (await this.find(t, filter, { limit: 1 }))[0] || null;

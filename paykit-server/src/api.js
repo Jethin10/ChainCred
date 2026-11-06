@@ -184,6 +184,10 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
   app.post("/v1/public/subscriptions/:id/authorize", wrap(async (req, res) => res.status(202).json(await subscriptions.authorize(req.params.id, req.body || {}))));
   app.post("/v1/public/subscriptions/:id/cancel-request", wrap(async (req, res) => res.json(await subscriptions.cancelRequest(req.params.id))));
   app.post("/v1/public/subscriptions/:id/cancel", wrap(async (req, res) => res.status(202).json(await subscriptions.cancelByPayer(req.params.id, req.body || {}))));
+  app.get("/v1/public/merchants", wrap(async (req, res) => {
+    res.set("cache-control", "no-store");
+    res.json(await merchants.directory(req.query));
+  }));
   // Self-serve merchant onboarding: signed by the payout wallet; also sets up points and a reward.
   app.post("/v1/public/merchants/onboard", wrap(async (req, res) => {
     const body = req.body || {};

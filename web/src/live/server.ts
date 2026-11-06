@@ -272,27 +272,7 @@ export type PointsWallet = {
   lifetimeRedeemed: number
   history: Array<{ type: string; amount: number; merchantName: string | null; at: string; txUrl: string | null }>
 }
-export type MarketReward = { id: string; merchant: { name: string }; name: string; label: string; pointsCost: number }
-
-/** The demo companies that sell through PayKit (their own websites). */
-export const COMPANIES = [
-  {
-    name: 'Kettle & Leaf',
-    url: (import.meta.env.VITE_STORE_KETTLE_URL as string | undefined) || 'https://kettle-and-leaf-five.vercel.app',
-    blurb: 'Single-estate teas from Assam to Kashmir, packed by hand in Mumbai.',
-    kind: 'Tea house',
-    reward: '20 points → 1 USDT off',
-    tone: 'tea',
-  },
-  {
-    name: 'Paper Lantern Books',
-    url: (import.meta.env.VITE_STORE_LANTERN_URL as string | undefined) || 'https://paper-lantern-books.vercel.app',
-    blurb: 'An independent bookshop for slow readers and night owls.',
-    kind: 'Bookshop',
-    reward: '25 points → 15% off',
-    tone: 'books',
-  },
-] as const
+export type MarketReward = { id: string; merchant: { id: string; name: string }; name: string; label: string; pointsCost: number }
 
 // ── merchant onboarding + console ──
 export type Merchant = { id: string; name: string; payoutAddress: string; webhookUrl: string | null; profile: MerchantProfile | null; registerTx: string | null; createdAt: string }

@@ -6,7 +6,7 @@
 //   insert(table, doc)                  doc.id required; merchantId optional
 //   get(table, id)                      -> doc | null
 //   update(table, id, patch)            shallow merge, returns the new doc
-//   find(table, filter, {limit, order}) filter = {merchantId?, ...equality on doc fields}
+//   find(table, filter, {limit, offset, order}) filter = {merchantId?, ...equality on doc fields}
 //   findOne(table, filter)
 //   upsert(table, doc)
 //   close()

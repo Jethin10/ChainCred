@@ -15,6 +15,7 @@
     "bundle-contracts": "node scripts/bundle-contracts.js",
     "bundle-sdk": "cd .. && npx vite build --config paykit-server/sdk/vite.config.mjs",
     "test:arkiv": "node scripts/test-arkiv.js",
+    "test:directory": "node --test scripts/test-directory.js",
     "bench:arkiv": "node scripts/bench-arkiv.js"
   },
   "engines": {

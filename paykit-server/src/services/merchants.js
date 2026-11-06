@@ -63,6 +63,21 @@ Sign in to my PayKit merchant console. This is free and moves no money.`;
 }
 
 function createMerchantService(store, relayer, webhooks) {
+  async function directory({ limit = 100, offset = 0 } = {}) {
+    limit = Number(limit);
+    offset = Number(offset);
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100 || !Number.isSafeInteger(offset) || offset < 0) {
+      throw new HttpError(400, "invalid_pagination", "Use limit 1–100 and a non-negative integer offset");
+    }
+    const rows = await store.find("merchants", {}, { limit: limit + 1, offset, order: "asc" });
+    return {
+      data: rows.slice(0, limit).map((m) => ({ id: m.id, name: m.name, profile: m.profile ? {
+        website: m.profile.website || null, category: m.profile.category || null,
+        tagline: m.profile.tagline || null, accent: m.profile.accent || null,
+      } : null, createdAt: m.createdAt })),
+      hasMore: rows.length > limit,
+    };
+  }
   /** Issues a session for a merchant. `sv` lets a key rotation or sign-out-everywhere revoke old ones. */
   function issueSession(m) {
     const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SEC;
@@ -225,7 +240,7 @@ function createMerchantService(store, relayer, webhooks) {
   }
 
   return {
-    create, onboard, byApiKey, update, signerOf, publicMerchant, sendTestWebhook,
+    create, onboard, byApiKey, update, signerOf, publicMerchant, sendTestWebhook, directory,
     login, lookupWallet, bySession, issueSession, rotateApiKey, signOutEverywhere,
   };
 }
