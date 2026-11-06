@@ -25,6 +25,15 @@
       /* Footer: sized to its content (no full-screen area below the links). */
       .block.screen:has(> footer.e154gxt60) { height: auto !important; min-height: 0 !important; }
       footer.e154gxt60 { position: relative !important; inset: auto !important; }
+      /* Work section (product cards + clips): room between clips and a visible frame so light clips
+         don't blend into the page or each other. */
+      section.e5sioty0 { column-gap: 32px !important; }
+      section.e5sioty0 .wall { gap: 22px !important; }
+
+      section.e5sioty0 .tile, section.e5sioty0 .card { background: #f3f6f9;
+        box-shadow: 0 0 0 1px rgb(10 10 10 / .12), 0 14px 30px -18px rgb(0 40 80 / .45) !important; }
+      section.e5sioty0 .lift:hover .tile, section.e5sioty0 .lift:hover .card { box-shadow: 0 0 0 1px rgb(0 163 255 / .55), 0 18px 36px -18px rgb(0 60 120 / .5) !important; }
+      section.e5sioty0 .caption { margin-top: 18px !important; margin-bottom: 36px !important; }
       /* Navbar: the same pill as the PayKit app (white, soft shadow, pixel mark, black pill on hover). */
       .left .pill { background: rgb(255 255 255 / .92) !important; border-radius: 10px !important; padding: 6px !important; gap: 2px !important;
         backdrop-filter: blur(10px); box-shadow: 0 1px 0 rgb(0 0 0 / .04), 0 8px 30px rgb(0 60 120 / .12) !important; }
