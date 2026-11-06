@@ -31,10 +31,19 @@ export function seedDemo(db: PayKitDb, owner: Address, network: NetworkConfig): 
     ["pixel-studio", "Website build", "1000000000"],
     ["byte-books", "Solidity handbook", "19990000"],
   ];
+  seedDemoLoyalty(db);
+  for (const [merchantSlug, name, price] of products) {
+    db.products.push({ id: `prod_${++db.counter}`, merchantSlug, sku: null, name, description: null, imageUrl: null, price, token: "USDT", active: true });
+  }
+}
+
+/** Demo loyalty programs. Also backfills demo databases created before points existed. */
+export function seedDemoLoyalty(db: PayKitDb): void {
   // Loyalty: Mumbai Chai Co. gives 10 points per USDT; 25 points buys 1 USDT off.
   // Points are only ever minted by real (simulated) payments: pay first, then redeem.
   const chai = (name: string) => rewardIdFor("chai-co", name.toLowerCase());
-  db.loyalty = {
+  db.loyalty ??= {};
+  Object.assign(db.loyalty, {
     "chai-co": {
       enabled: true,
       pointsPerUsdt: 10,
@@ -44,8 +53,5 @@ export function seedDemo(db: PayKitDb, owner: Address, network: NetworkConfig): 
       ],
     },
     "byte-books": { enabled: true, pointsPerUsdt: 5, rewards: [{ id: rewardIdFor("byte-books", "2 usdt off"), name: "2 USDT off", pointsCost: "40", discount: "2000000", active: true }] },
-  };
-  for (const [merchantSlug, name, price] of products) {
-    db.products.push({ id: `prod_${++db.counter}`, merchantSlug, sku: null, name, description: null, imageUrl: null, price, token: "USDT", active: true });
-  }
+  });
 }

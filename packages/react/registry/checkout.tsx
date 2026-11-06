@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { useCheckout, errorMessage } from '@paykit/react';
+import { useCheckout, useCheckoutRewards, errorMessage } from '@paykit/react';
 import { formatUsdt } from '@paykit/js';
 import './paykit-ui.css';
 
@@ -14,8 +14,15 @@ export function CustomCheckout(props: CheckoutProps) {
 
 const PHASES = ['Sign', 'Relay', 'Settle'] as const;
 
-function SessionCheckout({ sessionId, amount, label = 'Pay with USDT', holdMs = 900, className = '', onPaid }: CheckoutProps) {
+function SessionCheckout({ sessionId, amount: listed, label = 'Pay with USDT', holdMs = 900, className = '', onPaid }: CheckoutProps) {
   const checkout = useCheckout();
+  const rewards = useCheckoutRewards(sessionId);
+  const quote = rewards.session?.quote;
+  const applied = rewards.session?.reward ?? null;
+  // With a reward the server re-quotes; pay exactly the re-signed amount it shows.
+  const amount = applied && quote ? quote.gross : listed;
+  const earns = quote?.pointsEarned && quote.pointsEarned !== '0' ? quote.pointsEarned : null;
+  const offers = rewards.program?.enabled ? rewards.program.rewards : [];
   const done = checkout.phase === 'done';
   const included = checkout.payment && ['included', 'safe', 'finalized'].includes(checkout.payment.status);
   const step = done ? 3 : checkout.phase === 'processing' ? (included ? 2 : 1) : checkout.busy ? 0 : -1;
@@ -23,11 +30,26 @@ function SessionCheckout({ sessionId, amount, label = 'Pay with USDT', holdMs = 
 
   return <section className={`pkc-card ${className}`} aria-label="Checkout">
     <div className="pkc-row"><span className="pkc-eyebrow">Order total</span><span className="pkc-tag">USDT · Whitechain</span></div>
-    <p className="pkc-total" aria-label={`${formatUsdt(amount)} USDT`}><Digits value={formatUsdt(amount)} /><small>USDT</small></p>
+    <p className="pkc-total" aria-label={`${formatUsdt(amount)} USDT`}><Digits key={amount} value={formatUsdt(amount)} /><small>USDT</small>{applied && <s className="pkc-was">{formatUsdt(listed)}</s>}</p>
     <ul className="pkc-lines">
       <li><span>Network fee</span><span className="pkc-free">Covered by PayKit</span></li>
+      {applied && <li><span>{applied.name}</span><span>−{formatUsdt(applied.discount)} USDT · {applied.pointsCost} PKP</span></li>}
+      {earns && <li><span>You earn</span><span className="pkc-earn">+{earns} PKP</span></li>}
       <li><span>You sign</span><span>Once, no gas</span></li>
     </ul>
+    {offers.length > 0 && !done && !checkout.busy && <fieldset className="pkc-coupons" disabled={rewards.busy}>
+      <legend className="pkc-eyebrow">Spend points{rewards.balance !== null ? ` · you have ${rewards.balance} PKP` : ''}</legend>
+      {offers.map((r) => {
+        const on = applied?.id.toLowerCase() === r.id.toLowerCase();
+        const short = rewards.balance !== null && rewards.balance < BigInt(r.pointsCost) ? BigInt(r.pointsCost) - rewards.balance : null;
+        return <button key={r.id} type="button" className="pkc-coupon" aria-pressed={on} disabled={!on && short !== null}
+          onClick={() => { void rewards.apply(on ? null : r.id as `0x${string}`).catch(() => {}); }}>
+          <span className="pkc-coupon__name">{r.name}</span>
+          <span className="pkc-coupon__cost">{short !== null ? `${short} PKP short` : `${r.pointsCost} PKP`}</span>
+        </button>;
+      })}
+    </fieldset>}
+    {rewards.error != null && <p className="pkc-error" role="alert">{errorMessage(rewards.error)}</p>}
     {step >= 0 && <ol className="pkc-phases" aria-label="Payment progress">
       {PHASES.map((name, index) => <li key={name} data-state={index < step ? 'done' : index === step ? 'active' : 'todo'}>{name}</li>)}
     </ol>}

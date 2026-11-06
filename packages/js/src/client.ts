@@ -36,6 +36,8 @@ import {
   zLoyaltyProgram,
   zMerchantLoyalty,
   zPointsSummary,
+  zPointsBalance,
+  type PointsBalance,
   type LoyaltyProgram,
   type LoyaltyProgramUpdate,
   type PointsSummary,
@@ -229,6 +231,8 @@ export class PayKitClient {
     get: async (slug: string): Promise<Merchant> => parse(zMerchant, await this.http.get(routes.merchant(slug)), "merchant"),
     products: async (slug: string): Promise<Product[]> =>
       parse(zPage(zProduct), await this.http.get(routes.merchantProducts(slug)), "products").data,
+    /** Any wallet's PayKit points balance (public, like the onchain token balance). */
+    points: async (address: Address): Promise<PointsBalance> => parse(zPointsBalance, await this.http.get(routes.pointsOf(address)), "points balance"),
     /** The shop's loyalty program: earn rate and the rewards points can buy. */
     loyalty: async (slug: string): Promise<LoyaltyProgram> => parse(zLoyaltyProgram, await this.http.get(routes.merchantLoyalty(slug)), "loyalty program"),
   };

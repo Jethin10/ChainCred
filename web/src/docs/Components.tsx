@@ -32,6 +32,20 @@ const session = await paykit.checkout.createSession({
 
 const ACCENTS: Array<[string, string]> = [['Ink', '#0a0a0a'], ['Sky', '#0077d9'], ['Chai', '#a3541d'], ['Mint', '#0f7a5a'], ['Berry', '#b4235a']]
 
+// The test wallet earns points the honest way: one earlier purchase (45 USDT → 450 PKP at Mumbai Chai Co.).
+const earnedPoints = new WeakMap<PayKitClient, Promise<unknown>>()
+function earnPreviewPoints(client: PayKitClient) {
+  let job = earnedPoints.get(client)
+  if (!job) {
+    job = client.merchants.products('chai-co').then((list) => {
+      const box = list.find((p) => p.name.includes('subscription'))
+      return box ? client.checkout.pay({ merchant: 'chai-co', items: [{ productId: box.id, quantity: 1 }] }, testWallet, { wait: { until: 'included', intervalMs: 25 } }) : null
+    }).catch(() => null)
+    earnedPoints.set(client, job)
+  }
+  return job
+}
+
 function idFromHash() { return catalog.find((item) => item.id === location.hash.split('/')[1])?.id ?? 'checkout' }
 
 export default function ComponentsPage() {
@@ -85,6 +99,7 @@ function ComponentWorkbench({ client }: { client: PayKitClient }) {
   useEffect(() => {
     const controller = new AbortController()
     async function prepare() {
+      if (selectedId === 'checkout') await earnPreviewPoints(client)
       const [product] = await client.merchants.products('chai-co')
       if (controller.signal.aborted) return
       if (!product) throw new Error('Preview product unavailable')

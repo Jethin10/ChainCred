@@ -112,6 +112,28 @@
 .pkc-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .pkc-mono { font-family: ui-monospace, 'Geist Mono', monospace; font-size: .8em; }
 
+/* points: coupons are tickets you tear off; unaffordable ones stay locked */
+.pkc-was { margin-left: 4px; font-size: 1rem; font-weight: 500; color: var(--_muted); letter-spacing: 0; animation: pkc-in .3s var(--_ease); }
+.pkc-earn { font-family: var(--_pixel); font-size: .78rem; color: var(--_sky); }
+.pkc-coupons { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.pkc-coupons legend { margin-bottom: 8px; padding: 0; }
+.pkc-coupon {
+  position: relative; display: grid; gap: 4px; padding: 12px 14px; border: 1.5px dashed var(--_line); border-radius: 14px;
+  background: var(--_surface); color: var(--_ink); font: inherit; text-align: left; cursor: pointer;
+  transition: transform .3s var(--_spring), border-color .2s, background-color .2s, box-shadow .25s;
+}
+.pkc-coupon::before, .pkc-coupon::after { content: ''; position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: var(--pk-paper, #f3f9ff); border: 1.5px dashed var(--_line); }
+.pkc-coupon::before { left: -7px; clip-path: inset(0 0 0 50%); }
+.pkc-coupon::after { right: -7px; clip-path: inset(0 50% 0 0); }
+.pkc-coupon:hover:not(:disabled) { transform: translateY(-2px) rotate(-1deg); border-color: var(--_ink); }
+.pkc-coupon:active:not(:disabled) { transform: scale(.96); }
+.pkc-coupon[aria-pressed="true"] { border-style: solid; border-color: var(--_ink); background: var(--_dither), var(--_soft); box-shadow: 4px 4px 0 var(--_sky); animation: pkc-pop .35s var(--_spring); }
+.pkc-coupon:disabled { cursor: not-allowed; opacity: .55; }
+.pkc-coupons:disabled .pkc-coupon { cursor: progress; }
+.pkc-coupon__name { font-weight: 600; font-size: .9rem; }
+.pkc-coupon__cost { font-family: var(--_pixel); font-size: .66rem; color: var(--_muted); }
+.pkc-coupon[aria-pressed="true"] .pkc-coupon__cost { color: var(--_ink); }
+
 /* success burst */
 .pkc-burst { position: absolute; left: 50%; bottom: 52px; width: 0; height: 0; pointer-events: none; }
 .pkc-burst i { position: absolute; width: 8px; height: 8px; background: var(--_sky); animation: pkc-burst .8s steps(8) forwards; }

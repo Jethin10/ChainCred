@@ -73,6 +73,9 @@ export const zPointsSummary = z.object({
 });
 export type PointsSummary = z.infer<typeof zPointsSummary>;
 
+export const zPointsBalance = z.object({ wallet: zAddress, balance: z.string().regex(/^\d+$/), source: z.enum(["chain", "ledger"]) });
+export type PointsBalance = z.infer<typeof zPointsBalance>;
+
 /** The merchant's own view: `available` is false until the API runs PaymentRouterV2 with PayKitPoints. */
 export const zMerchantLoyalty = zLoyaltyProgram.extend({ available: z.boolean() });
 export type MerchantLoyalty = z.infer<typeof zMerchantLoyalty>;

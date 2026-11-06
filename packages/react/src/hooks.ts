@@ -2,6 +2,11 @@
 
 import {
   type CheckoutInput,
+  type CheckoutSession,
+  type LoyaltyProgram,
+  type LoyaltyProgramUpdate,
+  type MerchantLoyalty,
+  type PointsSummary,
   type DomainChallenge,
   type Invoice,
   type Merchant,
@@ -239,6 +244,54 @@ export function useMyRefunds() {
   return useQuery<Refund[]>(useSessionKey("me-refunds"), () => client.me.refunds().then((p) => p.data));
 }
 
+/** The signed-in wallet's universal PayKit points and history. */
+export function usePoints() {
+  const { client } = usePayKit();
+  return useQuery<PointsSummary>(useSessionKey("me-points"), () => client.me.points(), { refetchMs: 10_000 });
+}
+
+/** A shop's loyalty program (earn rate and rewards). */
+export function useLoyaltyProgram(slug: string | null) {
+  const { client } = usePayKit();
+  return useQuery<LoyaltyProgram>(slug ? `loyalty:${slug}` : null, () => client.merchants.loyalty(slug!));
+}
+
+/**
+ * Points rewards for one checkout session: the connected wallet's balance, the shop's rewards,
+ * and `apply(rewardId | null)`, which re-quotes the session. Pay the returned `session.quote.gross`.
+ */
+export function useCheckoutRewards(sessionId: string) {
+  const { client, wallet, connect, invalidate } = usePayKit();
+  const base = useQuery<CheckoutSession>(`checkout-session:${sessionId}`, () => client.checkout.getSession(sessionId));
+  const [override, setOverride] = useState<CheckoutSession | null>(null);
+  const session = override ?? base.data ?? null;
+  const program = useLoyaltyProgram(session?.merchant.slug ?? null);
+  const address = wallet.address ?? null;
+  const balance = useQuery<bigint>(address ? `points-of:${address}` : null, () => client.merchants.points(address as Address).then((b) => BigInt(b.balance)), { refetchMs: 15_000 });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const apply = useCallback(
+    async (rewardId: Hex | null) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const signer = await connect();
+        const next = await client.checkout.applyReward(sessionId, rewardId, await signer.getAddress());
+        setOverride(next);
+        invalidate();
+        return next;
+      } catch (e) {
+        setError(e);
+        throw e;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [client, connect, invalidate, sessionId],
+  );
+  return { session, program: program.data ?? null, balance: balance.data ?? null, apply, busy, error, loading: base.loading };
+}
+
 export function useCancelPlan() {
   const { client, connect, invalidate } = usePayKit();
   return useCallback(
@@ -275,6 +328,21 @@ export function useMerchantAccount() {
     [client, connect, invalidate],
   );
   return { ...q, signup };
+}
+
+/** The merchant's loyalty program, with `save(update)`. */
+export function useMerchantLoyalty() {
+  const { client, invalidate } = usePayKit();
+  const q = useQuery<MerchantLoyalty>(useMerchantKey("merchant-loyalty"), () => client.merchant.loyalty.get());
+  const save = useCallback(
+    async (update: LoyaltyProgramUpdate) => {
+      const next = await client.merchant.loyalty.update(update);
+      invalidate();
+      return next;
+    },
+    [client, invalidate],
+  );
+  return { ...q, save };
 }
 
 export function useMerchantStats() {

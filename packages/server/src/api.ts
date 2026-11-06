@@ -1146,6 +1146,11 @@ export function createPayKitApi(options: PayKitApiOptions): PayKitApi {
       return { ...program, enabled: pointsOn && program.enabled, rewards: program.rewards.filter((r) => r.active) };
     }
     if ((mm = match("POST", /^\/v1\/checkout\/sessions\/([^/]+)\/reward$/))) return applyReward(arg(mm), body);
+    if ((mm = match("GET", /^\/v1\/points\/(0x[0-9a-fA-F]{40})$/))) {
+      const wallet = getAddress(arg(mm));
+      const b = await pointsBalance(wallet);
+      return { wallet, balance: b.balance.toString(), source: b.source };
+    }
     if ((mm = match("GET", /^\/v1\/merchants\/([^/]+)\/products$/))) {
       const slug = arg(mm);
       restricted(slug);

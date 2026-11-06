@@ -522,3 +522,20 @@ textarea.pk-input { resize: vertical; min-height: 64px; }
   .pk-line-edit > .pk-input { flex: 1 1 100%; max-width: none; }
   .pk-modal__body { padding: 16px; }
 }
+
+/* ---------- loyalty points ---------- */
+
+.pk-points__head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.pk-points__label { margin: 0; font-size: 0.82rem; color: var(--pk-muted); }
+.pk-points__balance { margin: 2px 0 0; font-size: 2.4rem; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.pk-points__balance span { margin-left: 6px; font-size: 0.85rem; font-weight: 500; color: var(--pk-muted); }
+.pk-points__stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 0; }
+.pk-points__stats div { padding: 10px 12px; border-radius: var(--pk-radius-sm); background: var(--pk-paper); }
+.pk-points__stats dt { font-size: 0.78rem; color: var(--pk-muted); }
+.pk-points__stats dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pk-points__delta { font-weight: 600; font-variant-numeric: tabular-nums; }
+.pk-switch-row { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; }
+.pk-switch-row input { width: 18px; height: 18px; accent-color: var(--pk-accent); }
+.pk-range { width: 100%; accent-color: var(--pk-accent); }
+.pk-reward-edit { display: grid; grid-template-columns: minmax(0, 1fr) 84px 96px auto auto; gap: 8px; align-items: center; }
+@media (max-width: 520px) { .pk-reward-edit { grid-template-columns: 1fr 1fr; } }

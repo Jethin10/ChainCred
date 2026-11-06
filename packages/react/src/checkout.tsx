@@ -125,6 +125,20 @@ export function ReceiptView({ payment }: { payment: Payment }) {
             <Amount value={payment.gross} />
           </dd>
         </div>
+        {payment.discount && payment.discount !== "0" && (
+          <div>
+            <dt>Points discount{payment.pointsRedeemed ? ` (${payment.pointsRedeemed} PKP)` : ""}</dt>
+            <dd>
+              −<Amount value={payment.discount} />
+            </dd>
+          </div>
+        )}
+        {payment.pointsEarned && payment.pointsEarned !== "0" && (
+          <div>
+            <dt>Points earned</dt>
+            <dd>+{payment.pointsEarned} PKP</dd>
+          </div>
+        )}
         {payment.refunded !== "0" && (
           <div>
             <dt>Refunded</dt>

@@ -37,6 +37,8 @@ export const routes = {
   myPlans: () => "/v1/me/plans",
   myRefunds: () => "/v1/me/refunds",
   myPoints: () => "/v1/me/points",
+  /** Public points balance of any wallet (PayKitPoints balances are public onchain). */
+  pointsOf: (address: string) => `/v1/points/${e(address)}`,
 
   // Merchant dashboard (owner-wallet session) and server SDK (secret key) share these
   merchantSignup: () => "/v1/portal/merchants",
