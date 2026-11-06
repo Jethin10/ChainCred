@@ -5,7 +5,7 @@ import { scanEvents } from "@paykit/observer";
  * Function names and arguments follow the interface in @paykit/core (abi.ts, plan.md §8).
  * If the deployed contracts differ, this is the one file to adjust.
  */
-import { merchantRegistryAbi, paymentRouterAbi, feeTreasuryAbi, requireContract, requireUsdt, usdtAbi, type NetworkConfig } from "@paykit/core";
+import { merchantRegistryAbi, paymentRouterV1Abi, paymentRouterV2Abi, feeTreasuryAbi, payKitPointsAbi, planV1Message, quoteV1Message, requireContract, requireUsdt, routerVersionOf, usdtAbi, withPlanDefaults, withQuoteDefaults, type NetworkConfig } from "@paykit/core";
 import {
   BaseError,
   ContractFunctionRevertedError,
@@ -47,6 +47,8 @@ export interface ViemChainOptions {
 export function createViemChain(options: ViemChainOptions): ChainAdapter {
   const { network } = options;
   const router = requireContract(network, "router");
+  const v2 = routerVersionOf(network) === "2";
+  const paymentRouterAbi = v2 ? paymentRouterV2Abi : paymentRouterV1Abi;
   const registry = requireContract(network, "registry");
   const usdt = requireUsdt(network).address;
   const transport = http(options.rpcUrl ?? network.chain.rpcUrls.default.http[0]);
@@ -156,21 +158,26 @@ export function createViemChain(options: ViemChainOptions): ChainAdapter {
   return {
     pay: ({ quote, merchantSignature, auth }) =>
       write(relayer, router, paymentRouterAbi, "pay", [
-        quote,
+        v2 ? withQuoteDefaults(quote) : quoteV1Message(quote),
         merchantSignature,
         { from: auth.from, refundTo: auth.refundTo, salt: auth.salt, validAfter: auth.validAfter, validBefore: auth.validBefore, signature: auth.signature },
       ]),
 
     refund: ({ terms, merchantSignature, funder }) => write(relayer, router, paymentRouterAbi, "refund", [terms, merchantSignature, funder]),
 
-    createPlan: ({ terms, merchantSignature, consentSignature, permit }) =>
-      write(relayer, router, paymentRouterAbi, "createPlan", [terms, merchantSignature, consentSignature, { value: permit.value, deadline: permit.deadline, ...v(permit.signature) }]),
+    createPlan: ({ terms, merchantSignature, consentSignature, consentDeadline, permit }) =>
+      write(relayer, router, paymentRouterAbi, "createPlan", [
+        v2 ? withPlanDefaults(terms) : planV1Message(terms),
+        merchantSignature,
+        { deadline: consentDeadline, signature: consentSignature },
+        { value: permit.value, deadline: permit.deadline, ...v(permit.signature) },
+      ]),
 
     collectInstallment: (planId, index) => write(relayer, router, paymentRouterAbi, "collectInstallment", [planId], String(index ?? 0)),
 
     cancelPlan: ({ message, signature }) => write(relayer, router, paymentRouterAbi, "cancelPlan", [message, signature]),
 
-    registerMerchant: ({ message, metadataURI, signature }) => write(relayer, registry, merchantRegistryAbi, "registerWithSig", [message, metadataURI, signature]),
+    registerMerchant: ({ message, signature }) => write(relayer, registry, merchantRegistryAbi, "registerWithSig", [message, signature]),
 
     registryAction: ({ request: r, signature }) => {
       const base = { merchantId: r.merchantId, nonce: BigInt(r.nonce), deadline: BigInt(r.deadline) };
@@ -178,13 +185,31 @@ export function createViemChain(options: ViemChainOptions): ChainAdapter {
         return write(relayer, registry, merchantRegistryAbi, "setSignerWithSig", [{ ...base, signer: r.signer, expiresAt: BigInt(r.expiresAt), enabled: r.enabled }, signature]);
       }
       if (r.action === "set_split") {
-        return write(relayer, registry, merchantRegistryAbi, "setSplitProfileWithSig", [{ ...base, profileId: r.profileId, splitHash: r.splitHash }, r.recipients, r.bps, signature]);
+        // The contract recomputes splitHash = keccak256(abi.encode(recipients, bps)) from the arrays.
+        return write(relayer, registry, merchantRegistryAbi, "setSplitProfileWithSig", [{ ...base, profileId: r.profileId, recipients: r.recipients, bps: r.bps }, signature]);
       }
       return write(relayer, registry, merchantRegistryAbi, "queuePayoutChangeWithSig", [{ ...base, newPayout: r.newPayout }, signature]);
     },
 
+    executePayoutChange: (merchantId) => write(relayer, registry, merchantRegistryAbi, "executePayoutChange", [merchantId]),
+    markDelinquent: (planId) => write(relayer, router, paymentRouterAbi, "markDelinquent", [planId]),
     revokeDomain: ({ merchantId, domainHash }) => write(admin, registry, merchantRegistryAbi, "revokeDomain", [merchantId, domainHash]),
     attestDomain: ({ merchantId, domainHash, expiresAt }) => write(admin, registry, merchantRegistryAbi, "attestDomain", [merchantId, domainHash, expiresAt]),
+
+    ...(network.contracts.points ? {
+      async pointsOf(wallet: Address) {
+        const points = network.contracts.points!;
+        const read = (functionName: "balanceOf" | "lifetimeEarned" | "lifetimeRedeemed") => publicClient.readContract({ address: points, abi: payKitPointsAbi, functionName, args: [wallet] });
+        const [balance, lifetimeEarned, lifetimeRedeemed] = await Promise.all([read("balanceOf"), read("lifetimeEarned"), read("lifetimeRedeemed")]);
+        return { balance, lifetimeEarned, lifetimeRedeemed };
+      },
+    } : {}),
+
+    keys: {
+      payment: (merchantId, localPaymentId) => publicClient.readContract({ address: router, abi: paymentRouterAbi, functionName: "paymentKeyOf", args: [merchantId, localPaymentId] }),
+      plan: (merchantId, localPlanId) => publicClient.readContract({ address: router, abi: paymentRouterAbi, functionName: "planKeyOf", args: [merchantId, localPlanId] }),
+      installment: (planKey, index) => publicClient.readContract({ address: router, abi: paymentRouterAbi, functionName: "installmentPaymentId", args: [planKey, BigInt(index)] }),
+    },
 
     async waitForReceipt(hash) {
       const entry = Object.values(journal).find((j) => j.hash === hash || j.hashes?.includes(hash));
@@ -249,7 +274,7 @@ export function createViemChain(options: ViemChainOptions): ChainAdapter {
       const head = await publicClient.getBlock({ blockTag: "finalized" });
       if (head.number === null || from > head.number) return { nextBlock: from, events: [] };
       const to = from + 1999n < head.number ? from + 1999n : head.number;
-      const addresses = [router, registry, ...(network.contracts.treasury ? [network.contracts.treasury] : [])];
+      const addresses = [router, registry, ...(network.contracts.treasury ? [network.contracts.treasury] : []), ...(network.contracts.points ? [network.contracts.points] : [])];
       return { nextBlock: to + 1n, events: await scanEvents(publicClient, addresses, from, to) };
     },
     ownerNonce: (owner) => publicClient.readContract({ address: registry, abi: merchantRegistryAbi, functionName: "ownerNonces", args: [owner] }),

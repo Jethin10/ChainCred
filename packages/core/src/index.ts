@@ -9,3 +9,4 @@ export * from "./routes.ts";
 export * from "./http.ts";
 export * from "./abi.ts";
 export * from "./convert.ts";
+export * from "./loyalty.ts";

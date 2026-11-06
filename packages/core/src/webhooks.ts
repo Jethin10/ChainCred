@@ -22,6 +22,7 @@ export const WEBHOOK_EVENTS = [
   "plan.completed",
   "merchant.domain_verified",
   "merchant.domain_revoked",
+  "merchant.payout_changed",
 ] as const;
 
 export type WebhookEventType = (typeof WEBHOOK_EVENTS)[number];
@@ -47,6 +48,7 @@ export interface WebhookEventDataMap {
   "plan.completed": Plan;
   "merchant.domain_verified": Merchant;
   "merchant.domain_revoked": Merchant;
+  "merchant.payout_changed": Merchant;
 }
 
 export interface WebhookEvent<T extends WebhookEventType = WebhookEventType> {

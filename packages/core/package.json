@@ -15,7 +15,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --conditions=source --test test/core.test.ts",
+    "test": "node --conditions=source --test test/core.test.ts test/contracts.test.ts",
     "test:live": "node --conditions=source --test test/live.test.ts"
   },
   "dependencies": {

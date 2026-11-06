@@ -1,7 +1,8 @@
-import { canonicalJson, paymentRouterAbi, merchantRegistryAbi, feeTreasuryAbi } from '@paykit/core';
+import { canonicalJson, paymentRouterV2Abi, merchantRegistryAbi, feeTreasuryAbi, payKitPointsAbi } from '@paykit/core';
 import { decodeEventLog, keccak256, stringToBytes, type Address, type Hex, type PublicClient } from 'viem';
 export interface ChainEvent { chainId: number; blockNumber: string; blockHash: Hex; transactionHash: Hex; transactionIndex: number; logIndex: number; address: Address; eventName: string; args: Record<string, unknown>; }
-const abi = [...paymentRouterAbi, ...merchantRegistryAbi, ...feeTreasuryAbi];
+// V2 is a superset of v1's events (PaymentSettled keeps v1's signature). Points adds the loyalty ledger.
+const abi = [...paymentRouterV2Abi, ...merchantRegistryAbi, ...feeTreasuryAbi, ...payKitPointsAbi];
 export function ledgerHash(events: ChainEvent[]): Hex {
   const ordered = [...events].sort((a, b) => BigInt(a.blockNumber) < BigInt(b.blockNumber) ? -1 : BigInt(a.blockNumber) > BigInt(b.blockNumber) ? 1 : a.transactionIndex - b.transactionIndex || a.logIndex - b.logIndex);
   return keccak256(stringToBytes(canonicalJson(ordered)));

@@ -14,6 +14,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { getAddress, isAddress, isAddressEqual, type Address, type Chain } from "viem";
 import { usePayKit } from "./context.tsx";
 import {
+  useCancelPlan,
   useMerchantAccount,
   useMerchantDomains,
   useMerchantInvoices,
@@ -449,6 +450,9 @@ export function RefundsTable() {
 
 export function PlansTable() {
   const plans = useMerchantPlans();
+  const cancel = useCancelPlan();
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
   return (
     <Panel>
       <h3 className="pk-panel__title">Installment plans</h3>
@@ -463,6 +467,7 @@ export function PlansTable() {
                   <th scope="col">Progress</th>
                   <th scope="col">Next due</th>
                   <th scope="col">Status</th>
+                  <th scope="col"><span className="pk-sr">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -483,6 +488,18 @@ export function PlansTable() {
                         {p.status === "delinquent" ? "Overdue" : p.status === "completed" ? "Paid off" : p.status === "active" ? "Active" : "Cancelled"}
                       </Tag>
                     </td>
+                    <td className="pk-table__actions">
+                      {(p.status === "active" || p.status === "delinquent") && (
+                        <button type="button" className="pk-link pk-link--danger" disabled={cancelling === p.planId} onClick={() => {
+                          if (!window.confirm("Stop future payments on this plan? Collected payments stay paid.")) return;
+                          setCancelling(p.planId);
+                          setError(null);
+                          void cancel(p.planId).catch(setError).finally(() => setCancelling(null));
+                        }}>
+                          {cancelling === p.planId ? "Cancelling…" : "Cancel plan"}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -490,6 +507,7 @@ export function PlansTable() {
           </div>
         )}
       </QueryView>
+      <ErrorNotice error={error} />
     </Panel>
   );
 }
@@ -931,7 +949,13 @@ export function DomainSettings() {
                   <span className="pk-row__main">
                     <span className="pk-row__title">{d.domain}</span>
                   </span>
-                  <Tag tone={d.status === "verified" ? "good" : d.status === "failed" ? "bad" : "progress"}>{d.status === "verified" ? "Verified" : d.status === "failed" ? "Not found" : "Waiting"}</Tag>
+                  <span className="pk-row__side">
+                    <Tag tone={d.status === "verified" ? "good" : d.status === "failed" ? "bad" : "progress"}>{d.status === "verified" ? "Verified" : d.status === "failed" ? "Not found" : "Waiting"}</Tag>
+                    <button type="button" className="pk-link pk-link--danger" onClick={() => {
+                      if (d.status === "verified" && !window.confirm(`Remove ${d.domain}? Your verified badge for it is revoked onchain.`)) return;
+                      void client.merchant.domains.remove(d.domain).then(() => { domains.refetch(); invalidate(); }).catch(setError);
+                    }}>Remove</button>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -960,6 +984,11 @@ export function PayoutSettings() {
       <p className="pk-panel__lead">
         Every payment goes straight to <AddressText value={m.payout} />. Your website can't change this; only your owner wallet can.
       </p>
+      {m.pendingPayout && (
+        <StateMessage kind="info" title={Date.parse(m.pendingPayout.executableAt) > Date.now() ? "Payout change scheduled" : "Payout change applying"}>
+          Payments switch to <AddressText value={m.pendingPayout.address} /> {Date.parse(m.pendingPayout.executableAt) > Date.now() ? <>on {formatDate(m.pendingPayout.executableAt, true)}, after the safety delay.</> : <>now: PayKit is submitting it onchain.</>}
+        </StateMessage>
+      )}
       <form
         className="pk-stack"
         onSubmit={(e) => {

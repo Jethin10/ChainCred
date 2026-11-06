@@ -139,6 +139,12 @@ export const zSignedQuote = z.object({
   payer: zAddress,
   splitProfileId: z.number().int().nonnegative(),
   validUntil: z.string().regex(/^\d+$/),
+  /** PaymentRouterV2 fields. Absent means zero. */
+  discount: zAmount.optional(),
+  pointsEarned: z.string().regex(/^\d+$/).optional(),
+  campaignId: zHex32.optional(),
+  pointsRedeemed: z.string().regex(/^\d+$/).optional(),
+  rewardId: zHex32.optional(),
   merchantSignature: zHex,
   /** EIP-712 digest the server computed. The client recomputes and compares it. */
   quoteHash: zHex32,
@@ -167,6 +173,8 @@ export const zCheckoutSession = z.object({
   router: zAddress,
   chainId: z.number().int(),
   expiresAt: zTime,
+  /** The reward applied with points, if any. The quote's discount and pointsRedeemed reflect it. */
+  reward: z.object({ id: zHex32, name: z.string(), pointsCost: z.string(), discount: zAmount }).nullable().optional(),
 });
 export type CheckoutSession = z.infer<typeof zCheckoutSession>;
 
@@ -219,6 +227,12 @@ export const zPayment = z.object({
   externalOrderId: z.string().nullable().optional(),
   metadata: z.record(z.string(), z.string()).optional(),
   blockHash: zHex32.nullable().optional(),
+  /** USDT base units knocked off by a points reward (PaymentRouterV2). Counts toward the invoice. */
+  discount: zAmount.optional(),
+  /** Points minted to the payer by this payment. */
+  pointsEarned: z.string().regex(/^\d+$/).optional(),
+  /** Points burned from the payer for `discount`. */
+  pointsRedeemed: z.string().regex(/^\d+$/).optional(),
 });
 export type Payment = z.infer<typeof zPayment>;
 
@@ -284,6 +298,10 @@ export const zSignedPlanTerms = z.object({
   splitProfileId: z.number().int(),
   kind: z.number().int(),
   validUntil: z.string().regex(/^\d+$/),
+  /** PaymentRouterV2 fields. Absent means zero. */
+  pointsPerCharge: z.string().regex(/^\d+$/).optional(),
+  campaignId: zHex32.optional(),
+  downPaymentPoints: z.string().regex(/^\d+$/).optional(),
   merchantSignature: zHex,
   termsHash: zHex32,
 });
@@ -382,6 +400,8 @@ export const zRegistrationRequest = z.object({
   pendingPayout: z.object({ address: zAddress, executableAt: zTime }).nullable().optional(),
   maxFeeBps: z.number().int(),
   metadataHash: zHex32,
+  /** Signed as part of RegisterMerchant, so it is fixed before the owner signs. */
+  metadataURI: z.string().default(""),
   nonce: z.string().regex(/^\d+$/),
   deadline: z.string().regex(/^\d+$/),
   registry: zAddress,
@@ -497,7 +517,15 @@ export type PlatformStatus = z.infer<typeof zPlatformStatus>;
 export const zPublicConfig = z.object({
   network: z.enum(["whitechain-testnet", "whitechain-mainnet"]),
   chainId: z.number().int(),
-  contracts: z.object({ registry: zAddress, router: zAddress, treasury: zAddress }),
+  contracts: z.object({
+    registry: zAddress,
+    router: zAddress,
+    treasury: zAddress,
+    /** PayKitPoints, when the router is V2. */
+    points: zAddress.optional(),
+    /** EIP-712 domain version of the router ("2" = PaymentRouterV2). */
+    routerVersion: z.enum(["1", "2"]).optional(),
+  }),
   usdt: zAddress,
   feeSchedule: z.object({ bps: z.number().int(), minFee: zAmount, maxFee: zAmount }),
 });

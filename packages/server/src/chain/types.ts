@@ -28,14 +28,33 @@ export interface ChainAdapter {
     terms: PlanTermsMessage;
     merchantSignature: Hex;
     consentSignature: Hex;
+    /** Deadline the payer signed in PlanConsent; sent as PayerConsent{deadline, signature}. */
+    consentDeadline: bigint;
     permit: { value: bigint; deadline: bigint; signature: Hex };
   }): Promise<Hex>;
   collectInstallment(planId: Hex, index?: number): Promise<Hex>;
   cancelPlan(args: { message: CancelPlanMessage; signature: Hex }): Promise<Hex>;
-  registerMerchant(args: { message: RegisterMerchantMessage; metadataURI: string; signature: Hex }): Promise<Hex>;
+  registerMerchant(args: { message: RegisterMerchantMessage; signature: Hex }): Promise<Hex>;
   registryAction(args: { request: RegistryActionRequest; signature: Hex }): Promise<Hex>;
   revokeDomain?(args: { merchantId: Hex; domainHash: Hex }): Promise<Hex>;
+  /** MerchantRegistry.executePayoutChange: permissionless once the payout delay has passed. */
+  executePayoutChange?(merchantId: Hex): Promise<Hex>;
+  /** PaymentRouter.markDelinquent: permissionless once an installment is past its grace period. */
+  markDelinquent?(planId: Hex): Promise<Hex>;
   attestDomain(args: { merchantId: Hex; domainHash: Hex; expiresAt: bigint }): Promise<Hex>;
+
+  /**
+   * The router's canonical storage keys. PaymentRouter stores payments under
+   * paymentKeyOf(merchantId, quote.paymentId) and plans under planKeyOf(merchantId, terms.planId),
+   * using tag constants from libraries/PayKitTypes.sol. Events, refunds, cancellations and
+   * collections all use these keys. The real adapter asks the deployed router (pure functions);
+   * without it the server uses the local IDs unchanged (simulated chain, tests).
+   */
+  keys?: {
+    payment(merchantId: Hex, localPaymentId: Hex): Promise<Hex>;
+    plan(merchantId: Hex, localPlanId: Hex): Promise<Hex>;
+    installment(planKey: Hex, index: number): Promise<Hex>;
+  };
 
   waitForReceipt(hash: Hex): Promise<{ success: boolean; blockNumber: bigint; blockHash?: Hex; transactionHash?: Hex; error?: string }>;
   refillState?(): Promise<RefillState>;
@@ -52,6 +71,8 @@ export interface ChainAdapter {
   permitNonce(owner: Address): Promise<bigint>;
   /** PaymentRouter.committed(payer, token): USDT already promised to active plans. */
   committed(payer: Address): Promise<bigint>;
+  /** PayKitPoints balances, when the points contract is deployed. */
+  pointsOf?(wallet: Address): Promise<{ balance: bigint; lifetimeEarned: bigint; lifetimeRedeemed: bigint }>;
   /** Whether the relay wallet has enough WBT to keep sponsoring gas. */
   sponsorship(): Promise<{ ok: boolean; reason: string | null }>;
 }

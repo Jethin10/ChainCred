@@ -14,10 +14,14 @@ export const routes = {
   directory: () => "/v1/directory",
   merchant: (slug: string) => `/v1/merchants/${e(slug)}`,
   merchantProducts: (slug: string) => `/v1/merchants/${e(slug)}/products`,
+  /** Public loyalty program: earn rate and rewards. */
+  merchantLoyalty: (slug: string) => `/v1/merchants/${e(slug)}/loyalty`,
   invoicePublic: (id: string) => `/v1/invoices/${e(id)}/public`,
   checkoutSessions: () => "/v1/checkout/sessions",
   checkoutSession: (id: string) => `/v1/checkout/sessions/${e(id)}`,
   checkoutAuthorize: (id: string) => `/v1/checkout/sessions/${e(id)}/authorize`,
+  /** Apply (or remove) a points reward: re-quotes the session with a discount. */
+  checkoutReward: (id: string) => `/v1/checkout/sessions/${e(id)}/reward`,
   payment: (paymentId: string) => `/v1/payments/${e(paymentId)}`,
   planSessions: () => "/v1/plans/sessions",
   planAuthorize: (id: string) => `/v1/plans/sessions/${e(id)}/authorize`,
@@ -32,17 +36,24 @@ export const routes = {
   myPayments: () => "/v1/me/payments",
   myPlans: () => "/v1/me/plans",
   myRefunds: () => "/v1/me/refunds",
+  myPoints: () => "/v1/me/points",
+  /** Public points balance of any wallet (PayKitPoints balances are public onchain). */
+  pointsOf: (address: string) => `/v1/points/${e(address)}`,
 
   // Merchant dashboard (owner-wallet session) and server SDK (secret key) share these
   merchantSignup: () => "/v1/portal/merchants",
   merchantSignupSignature: (draftId: string) => `/v1/portal/merchants/drafts/${e(draftId)}/signature`,
   myMerchant: () => "/v1/portal/merchant",
   merchantStats: () => "/v1/portal/merchant/stats",
+  /** The signed-in merchant's loyalty program (GET, PATCH). */
+  portalLoyalty: () => "/v1/portal/merchant/loyalty",
   merchantPayments: () => "/v1/portal/merchant/payments",
   merchantPlans: () => "/v1/portal/merchant/plans",
   merchantRefunds: () => "/v1/portal/merchant/refunds",
   merchantDomains: () => "/v1/portal/merchant/domains",
   merchantDomainCheck: (domain: string) => `/v1/portal/merchant/domains/${e(domain)}/check`,
+  /** DELETE: stop using a domain and revoke its onchain attestation. */
+  merchantDomain: (domain: string) => `/v1/portal/merchant/domains/${e(domain)}`,
   merchantApiKeys: () => "/v1/portal/merchant/api-keys",
   merchantApiKey: (id: string) => `/v1/portal/merchant/api-keys/${e(id)}`,
   merchantSigners: () => "/v1/portal/merchant/signers",

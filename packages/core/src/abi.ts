@@ -1,9 +1,14 @@
 import { parseAbi } from "viem";
 
 /**
- * Contract interfaces the SDK and server call. These mirror plan.md §8 and are the
- * spec the contracts must implement. When the contracts land, regenerate from their
- * build artifacts and diff against this file.
+ * Contract interfaces the SDK and server call, transcribed from the contract sources:
+ * MerchantRegistry.sol, PaymentRouter.sol (v1), PaymentRouterV2.sol, FeeTreasury.sol and
+ * PayKitPoints.sol. Function names, getters, events and errors are exact.
+ *
+ * The router's calldata STRUCTS (PaymentQuote, PlanTerms, PayerConsent, PayerAuth, ...) are
+ * declared in libraries/PayKitTypes.sol and PayKitTypesV2.sol, which were not provided. Their
+ * layouts below follow plan.md §9.2 plus the V2 fields in Settlement order. Regenerate this file
+ * from the build artifacts once the libraries are available, and run `npm run contracts:check`.
  */
 
 export const usdtAbi = parseAbi([
@@ -18,30 +23,42 @@ export const usdtAbi = parseAbi([
   "function isBlocked(address account) view returns (bool)",
   "function receiveWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, bytes signature)",
   "function cancelAuthorization(address authorizer, bytes32 nonce, bytes signature)",
-  "function permit(address owner_, address spender, uint256 value, uint256 deadline, bytes signature)",
+  // The router calls the v/r/s form (IUSDT3009), as does the testnet TetherTokenV2 (plan.md §3).
+  "function permit(address owner_, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)",
   "event Transfer(address indexed from, address indexed to, uint256 value)",
   "event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)",
 ]);
 
-export const paymentRouterAbi = parseAbi([
-  "struct PaymentQuote { bytes32 merchantId; bytes32 invoiceId; bytes32 invoiceDigest; bytes32 paymentId; address token; uint256 invoiceTotal; uint256 gross; uint256 fee; address payer; uint32 splitProfileId; uint64 validUntil; }",
+// ─────────────────────────────── PaymentRouter (shared parts) ───────────────────────────────
+
+const routerShared = [
   "struct PayerAuth { address from; address refundTo; bytes32 salt; uint256 validAfter; uint256 validBefore; bytes signature; }",
   "struct RefundTerms { bytes32 paymentId; bytes32 refundId; uint256 amount; uint256 fee; address funder; uint64 validUntil; }",
   "struct FunderAuth { uint256 validAfter; uint256 validBefore; bytes signature; }",
-  "struct PlanTerms { bytes32 merchantId; bytes32 planId; bytes32 invoiceDigest; address payer; address token; uint256 downPayment; uint256 installmentAmount; uint256 feePerInstallment; uint256 downPaymentFee; uint16 count; uint32 period; uint64 firstDue; uint32 grace; uint32 splitProfileId; uint8 kind; uint64 validUntil; }",
+  "struct PayerConsent { uint64 deadline; bytes signature; }",
   "struct PermitData { uint256 value; uint256 deadline; uint8 v; bytes32 r; bytes32 s; }",
   "struct CancelPlan { bytes32 planId; address signer; uint64 deadline; }",
-  "function pay(PaymentQuote q, bytes merchantSig, PayerAuth a) returns (bytes32 paymentId)",
   "function refund(RefundTerms t, bytes merchantSig, FunderAuth f) returns (uint128 cumulativeRefunded)",
-  "function createPlan(PlanTerms t, bytes merchantSig, bytes payerConsentSig, PermitData permit) returns (bytes32 planId)",
   "function collectInstallment(bytes32 planId) returns (bytes32 paymentId)",
   "function markDelinquent(bytes32 planId)",
   "function cancelPlan(CancelPlan c, bytes sig)",
   "function invoices(bytes32 invoiceKey) view returns (uint128 total, uint128 paid, uint128 refunded)",
-  "function payments(bytes32 paymentId) view returns (bytes32 merchantId, bytes32 invoiceKey, bytes32 planId, address payer, address refundTo, address token, uint128 gross, uint128 fee, uint128 refunded, uint32 splitProfileId, uint64 settledAt)",
+  "function usedRefundIds(bytes32 refundId) view returns (bool)",
   "function committed(address payer, address token) view returns (uint256)",
+  "function allowedToken(address token) view returns (bool)",
   "function feeSchedule(address token) view returns (uint16 bps, uint96 minFee, uint96 maxFee)",
+  "function protocolFee(address token, uint256 gross) view returns (uint256 fee)",
+  "function invoiceKeyOf(bytes32 merchantId, bytes32 invoiceId) pure returns (bytes32)",
+  "function paymentKeyOf(bytes32 merchantId, bytes32 localPaymentId) pure returns (bytes32)",
+  "function planKeyOf(bytes32 merchantId, bytes32 localPlanId) pure returns (bytes32)",
+  "function installmentPaymentId(bytes32 planId, uint256 index) pure returns (bytes32)",
+  "function refundDigest(RefundTerms t) view returns (bytes32)",
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
+  "function registry() view returns (address)",
+  "function treasury() view returns (address)",
+  "function owner() view returns (address)",
   "function paused() view returns (bool)",
+  "function PLAN_ACTIVE() view returns (uint8)",
   "event PaymentSettled(bytes32 indexed paymentId, bytes32 indexed merchantId, bytes32 indexed invoiceKey, bytes32 planId, address payer, address refundTo, address token, uint256 gross, uint256 fee, uint256 net, uint32 splitProfileId, bytes32 quoteHash, uint8 kind)",
   "event SplitPaid(bytes32 indexed paymentId, address indexed recipient, uint256 amount)",
   "event InvoiceProgress(bytes32 indexed invoiceKey, uint256 total, uint256 paid, uint256 refunded)",
@@ -52,39 +69,223 @@ export const paymentRouterAbi = parseAbi([
   "event PlanCancelled(bytes32 indexed planId, address by)",
   "event PlanCompleted(bytes32 indexed planId)",
   "event FeeScheduleSet(address indexed token, uint16 bps, uint96 minFee, uint96 maxFee)",
+  "event AllowedTokenSet(address indexed token, bool allowed)",
+  "error TokenNotAllowed()",
+  "error MerchantInactive()",
+  "error QuoteExpired()",
+  "error PayerMismatch()",
+  "error InvalidMerchantSignature()",
+  "error InvalidPayerSignature()",
+  "error PaymentAlreadySettled()",
+  "error InvoiceTotalMismatch()",
+  "error InvoiceOverpaid()",
+  "error FeeBelowProtocolFloor()",
+  "error FeeAboveMerchantCap()",
+  "error FeeExceedsGross()",
+  "error ZeroAmount()",
+  "error UnknownPayment()",
+  "error RefundIdUsed()",
+  "error RefundExceedsPayment()",
+  "error RefundExpired()",
+  "error PlanExists()",
+  "error InvalidPlan()",
+  "error PlanNotActive()",
+  "error InstallmentNotDue()",
+  "error PlanComplete()",
+  "error InsufficientAllowance()",
+  "error NotDelinquentYet()",
+  "error InvalidCancelSigner()",
+  "error SignatureExpired()",
+  "error InvalidFeeSchedule()",
+  "error BalanceInvariant()",
+  "error InvalidAddress()",
+] as const;
+
+/** The original PaymentRouter (EIP-712 domain "PayKit Router" version "1"). */
+export const paymentRouterV1Abi = parseAbi([
+  ...routerShared,
+  "struct PaymentQuote { bytes32 merchantId; bytes32 invoiceId; bytes32 invoiceDigest; bytes32 paymentId; address token; uint256 invoiceTotal; uint256 gross; uint256 fee; address payer; uint32 splitProfileId; uint64 validUntil; }",
+  "struct PlanTerms { bytes32 merchantId; bytes32 planId; bytes32 invoiceDigest; address payer; address token; uint256 downPayment; uint256 installmentAmount; uint256 feePerInstallment; uint256 downPaymentFee; uint16 count; uint32 period; uint64 firstDue; uint32 grace; uint32 splitProfileId; uint8 kind; uint64 validUntil; }",
+  "function pay(PaymentQuote q, bytes merchantSig, PayerAuth a) returns (bytes32 paymentId)",
+  "function createPlan(PlanTerms t, bytes merchantSig, PayerConsent consent, PermitData permit) returns (bytes32 planId)",
+  "function quoteDigest(PaymentQuote q) view returns (bytes32)",
+  "function planDigest(PlanTerms t) view returns (bytes32)",
+  "function payments(bytes32 paymentId) view returns (bytes32 merchantId, bytes32 invoiceKey, bytes32 planId, address payer, address refundTo, address token, uint128 gross, uint128 fee, uint128 refunded, uint32 splitProfileId, uint64 settledAt)",
+  "function plans(bytes32 planId) view returns (bytes32 merchantId, address payer, address token, uint128 installmentAmount, uint128 feePerInstallment, uint64 firstDue, uint32 period, uint32 grace, uint16 count, uint16 collected, uint32 splitProfileId, uint8 status, bytes32 termsHash)",
 ]);
+
+/** PaymentRouterV2: v1 plus universal points and merchant-funded discounts (domain version "2"). */
+export const paymentRouterV2Abi = parseAbi([
+  ...routerShared,
+  "struct PaymentQuote { bytes32 merchantId; bytes32 invoiceId; bytes32 invoiceDigest; bytes32 paymentId; address token; uint256 invoiceTotal; uint256 gross; uint256 fee; address payer; uint32 splitProfileId; uint64 validUntil; uint256 discount; uint256 pointsEarned; bytes32 campaignId; uint256 pointsRedeemed; bytes32 rewardId; }",
+  "struct PlanTerms { bytes32 merchantId; bytes32 planId; bytes32 invoiceDigest; address payer; address token; uint256 downPayment; uint256 installmentAmount; uint256 feePerInstallment; uint256 downPaymentFee; uint16 count; uint32 period; uint64 firstDue; uint32 grace; uint32 splitProfileId; uint8 kind; uint64 validUntil; uint256 pointsPerCharge; bytes32 campaignId; uint256 downPaymentPoints; }",
+  "function pay(PaymentQuote q, bytes merchantSig, PayerAuth a) returns (bytes32 paymentId)",
+  "function createPlan(PlanTerms t, bytes merchantSig, PayerConsent consent, PermitData permit) returns (bytes32 planId)",
+  "function quoteDigest(PaymentQuote q) view returns (bytes32)",
+  "function planDigest(PlanTerms t) view returns (bytes32)",
+  "function points() view returns (address)",
+  "function payments(bytes32 paymentId) view returns (bytes32 merchantId, bytes32 invoiceKey, bytes32 planId, address payer, address refundTo, address token, uint128 gross, uint128 fee, uint128 refunded, uint32 splitProfileId, uint64 settledAt, uint128 discount)",
+  "function plans(bytes32 planId) view returns (bytes32 merchantId, address payer, address token, uint128 installmentAmount, uint128 feePerInstallment, uint64 firstDue, uint32 period, uint32 grace, uint16 count, uint16 collected, uint32 splitProfileId, uint8 status, bytes32 termsHash, uint128 pointsPerCharge, bytes32 campaignId)",
+  "event DiscountApplied(bytes32 indexed paymentId, bytes32 indexed rewardId, uint256 discount, uint256 pointsRedeemed)",
+]);
+
+/** The router ABI the SDK targets by default (V2). */
+export const paymentRouterAbi = paymentRouterV2Abi;
+
+/** PaymentKind as emitted in PaymentSettled (plan.md §8: OneTime, Installment, DownPayment). */
+export const PAYMENT_KIND = { OneTime: 0, Installment: 1, DownPayment: 2 } as const;
+
+// ─────────────────────────────── MerchantRegistry (exact) ───────────────────────────────
 
 export const merchantRegistryAbi = parseAbi([
-  "struct RegisterMerchant { address owner; address payout; uint16 maxFeeBps; bytes32 metadataHash; uint256 nonce; uint64 deadline; }",
+  "struct Merchant { address owner; address payout; uint16 maxFeeBps; uint8 status; uint64 createdAt; bytes32 metadataHash; string metadataURI; }",
+  "struct RegisterMerchant { address owner; address payout; uint16 maxFeeBps; bytes32 metadataHash; string metadataURI; uint256 nonce; uint64 deadline; }",
   "struct SetSigner { bytes32 merchantId; address signer; uint64 expiresAt; bool enabled; uint256 nonce; uint64 deadline; }",
-  "struct SetSplitProfile { bytes32 merchantId; uint32 profileId; bytes32 splitHash; uint256 nonce; uint64 deadline; }",
   "struct QueuePayout { bytes32 merchantId; address newPayout; uint256 nonce; uint64 deadline; }",
-  "function registerWithSig(RegisterMerchant m, string metadataURI, bytes sig) returns (bytes32 merchantId)",
-  "function setSignerWithSig(SetSigner m, bytes sig)",
-  "function setSplitProfileWithSig(SetSplitProfile m, address[] recipients, uint16[] bps, bytes sig)",
-  "function queuePayoutChangeWithSig(QueuePayout m, bytes sig)",
-  "function attestDomain(bytes32 merchantId, bytes32 domainHash, uint64 expiresAt)",
-  "function revokeDomain(bytes32 merchantId, bytes32 domainHash)",
+  "struct SetSplitRequest { bytes32 merchantId; uint32 profileId; address[] recipients; uint16[] bps; uint256 nonce; uint64 deadline; }",
+  "struct SetMetadata { bytes32 merchantId; bytes32 metadataHash; string metadataURI; uint256 nonce; uint64 deadline; }",
+  "function register(address payout, uint16 maxFeeBps, bytes32 metadataHash, string metadataURI) returns (bytes32)",
+  "function registerWithSig(RegisterMerchant m, bytes sig) returns (bytes32)",
+  "function predictMerchantId(address owner_) view returns (bytes32)",
+  "function setSigner(bytes32 id, address signer, uint64 expiresAt, bool enabled)",
+  "function setSignerWithSig(SetSigner s, bytes sig)",
+  "function queuePayoutChange(bytes32 id, address newPayout)",
+  "function queuePayoutChangeWithSig(QueuePayout q, bytes sig)",
+  "function executePayoutChange(bytes32 id)",
+  "function setSplitProfile(bytes32 id, uint32 profileId, address[] recipients, uint16[] bps)",
+  "function setSplitProfileWithSig(SetSplitRequest s, bytes sig)",
+  "function setMetadata(bytes32 id, bytes32 metadataHash, string metadataURI)",
+  "function setMetadataWithSig(SetMetadata s, bytes sig)",
+  "function setMaxFeeBps(bytes32 id, uint16 maxFeeBps)",
+  "function transferMerchantOwnership(bytes32 id, address newOwner)",
+  "function acceptMerchantOwnership(bytes32 id)",
+  "function attestDomain(bytes32 id, bytes32 domainHash, uint64 expiresAt)",
+  "function revokeDomain(bytes32 id, bytes32 domainHash)",
+  "function setStatus(bytes32 id, uint8 status)",
+  "function setAttestor(address attestor, bool enabled)",
+  "function setPayoutChangeDelay(uint64 delay)",
+  "function getMerchant(bytes32 id) view returns (Merchant)",
+  "function isActive(bytes32 id) view returns (bool)",
+  "function isSigner(bytes32 id, address s) view returns (bool)",
+  "function isAuthorized(bytes32 id, address account) view returns (bool)",
+  "function merchantOwner(bytes32 id) view returns (address)",
+  "function maxFeeBpsOf(bytes32 id) view returns (uint16)",
+  "function getSplit(bytes32 id, uint32 profileId) view returns (address[] recipients, uint16[] bps)",
+  "function isDomainVerified(bytes32 id, bytes32 domainHash) view returns (bool)",
+  "function signers(bytes32 id, address signer) view returns (uint64 expiresAt, bool enabled)",
+  "function domains(bytes32 id, bytes32 domainHash) view returns (uint64 verifiedAt, uint64 expiresAt, address attestor)",
+  "function pendingPayout(bytes32 id) view returns (address newPayout, uint64 executableAt)",
+  "function pendingMerchantOwner(bytes32 id) view returns (address)",
   "function ownerNonces(address owner) view returns (uint256)",
-  "function merchants(bytes32 merchantId) view returns (address owner, address payout, uint16 maxFeeBps, uint8 status, uint64 createdAt, bytes32 metadataHash, string metadataURI)",
-  "function isActive(bytes32 merchantId) view returns (bool)",
-  "function isSigner(bytes32 merchantId, address signer) view returns (bool)",
-  "function getSplit(bytes32 merchantId, uint32 profileId) view returns (address[] recipients, uint16[] bps)",
-  "function isDomainVerified(bytes32 merchantId, bytes32 domainHash) view returns (bool)",
+  "function isAttestor(address account) view returns (bool)",
+  "function payoutChangeDelay() view returns (uint64)",
+  "function REGISTER_TYPEHASH() view returns (bytes32)",
+  "function SET_SIGNER_TYPEHASH() view returns (bytes32)",
+  "function QUEUE_PAYOUT_TYPEHASH() view returns (bytes32)",
+  "function SET_SPLIT_TYPEHASH() view returns (bytes32)",
+  "function SET_METADATA_TYPEHASH() view returns (bytes32)",
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
   "event MerchantRegistered(bytes32 indexed merchantId, address indexed owner, address payout, uint16 maxFeeBps, bytes32 metadataHash, string metadataURI)",
   "event SignerSet(bytes32 indexed merchantId, address indexed signer, uint64 expiresAt, bool enabled)",
+  "event PayoutChangeQueued(bytes32 indexed merchantId, address newPayout, uint64 executableAt)",
   "event PayoutChanged(bytes32 indexed merchantId, address oldPayout, address newPayout)",
   "event SplitProfileSet(bytes32 indexed merchantId, uint32 indexed profileId, address[] recipients, uint16[] bps)",
+  "event MetadataUpdated(bytes32 indexed merchantId, bytes32 metadataHash, string metadataURI)",
+  "event MaxFeeBpsSet(bytes32 indexed merchantId, uint16 maxFeeBps)",
   "event DomainAttested(bytes32 indexed merchantId, bytes32 indexed domainHash, uint64 expiresAt, address attestor)",
   "event DomainRevoked(bytes32 indexed merchantId, bytes32 indexed domainHash)",
+  "event MerchantStatusChanged(bytes32 indexed merchantId, uint8 status)",
+  "event MerchantOwnershipTransferStarted(bytes32 indexed merchantId, address newOwner)",
+  "event MerchantOwnershipTransferred(bytes32 indexed merchantId, address oldOwner, address newOwner)",
+  "event AttestorSet(address indexed attestor, bool enabled)",
+  "event PayoutChangeDelaySet(uint64 delay)",
+  "error NotMerchantOwner()",
+  "error UnknownMerchant()",
+  "error MerchantExists()",
+  "error InvalidAddress()",
+  "error InvalidFeeBps()",
+  "error InvalidSplit()",
+  "error InvalidStatus()",
+  "error SignatureExpired()",
+  "error InvalidNonce()",
+  "error InvalidSignature()",
+  "error NoPendingPayout()",
+  "error PayoutChangeNotReady()",
+  "error NotAttestor()",
+  "error NotPendingOwner()",
+  "error InvalidExpiry()",
 ]);
 
+/** MerchantRegistry status codes. */
+export const MERCHANT_STATUS = { None: 0, Active: 1, Suspended: 2 } as const;
+
+// ─────────────────────────────── FeeTreasury (exact) ───────────────────────────────
+
 export const feeTreasuryAbi = parseAbi([
+  "struct RefillLimits { uint128 maxUsdtPerRun; uint128 maxUsdtPerDay; uint128 minWbtPerUsdt; uint32 maxDeadlineWindow; }",
+  "function usdt() view returns (address)",
+  "function wwbt() view returns (address)",
+  "function swapRouter() view returns (address)",
+  "function poolFee() view returns (uint24)",
   "function limits() view returns (uint128 maxUsdtPerRun, uint128 maxUsdtPerDay, uint128 minWbtPerUsdt, uint32 maxDeadlineWindow)",
+  "function isRelayer(address account) view returns (bool)",
   "function spentToday() view returns (uint256)",
   "function dayStart() view returns (uint64)",
   "function reservedUsdt() view returns (uint256)",
+  "function runCount() view returns (uint256)",
+  "function availableFees() view returns (uint256)",
   "function refill(uint256 usdtIn, uint256 minWbtOut, uint256 deadline) returns (uint256 wbtOut)",
-  "function isRelayer(address account) view returns (bool)",
-  "event Refill(bytes32 indexed runId, uint256 usdtIn, uint256 wbtOut, address recipient, uint256 minWbtOut, uint256 timestamp)",
+  "function setLimits(RefillLimits l)",
+  "function setRelayer(address relayer, bool enabled)",
+  "function setReservedUsdt(uint256 amount)",
+  "function withdraw(address to, uint256 amount)",
+  "event Refill(uint256 indexed runId, uint256 usdtIn, uint256 wbtOut, address indexed recipient, uint256 minWbtOut, uint256 timestamp)",
+  "event LimitsSet(uint128 maxUsdtPerRun, uint128 maxUsdtPerDay, uint128 minWbtPerUsdt, uint32 maxDeadlineWindow)",
+  "event RelayerSet(address indexed relayer, bool enabled)",
+  "event ReservedUsdtSet(uint256 amount)",
+  "event Withdrawn(address indexed to, uint256 amount)",
+  "error NotRelayer()",
+  "error LimitsNotSet()",
+  "error ZeroAmount()",
+  "error AboveRunCap()",
+  "error AboveDailyCap()",
+  "error BadDeadline()",
+  "error BelowPriceFloor()",
+  "error InsufficientFees()",
+  "error SlippageExceeded()",
+  "error NativeTransferFailed()",
+  "error OnlyWWBT()",
+  "error AboveWithdrawable()",
+  "error InvalidAddress()",
+]);
+
+// ─────────────────────────────── PayKitPoints (exact) ───────────────────────────────
+
+/** Universal, non-transferable loyalty points. Only the router mints and burns. */
+export const payKitPointsAbi = parseAbi([
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+  "function balanceOf(address wallet) view returns (uint256)",
+  "function totalSupply() view returns (uint256)",
+  "function lifetimeEarned(address wallet) view returns (uint256)",
+  "function lifetimeRedeemed(address wallet) view returns (uint256)",
+  "function paymentPoints(bytes32 paymentId) view returns (address wallet, uint128 earned, uint128 redeemed, uint128 earnedReversed, uint128 redeemedRestored)",
+  "function router() view returns (address)",
+  "function maxPointsPerUsdt() view returns (uint256)",
+  "function owner() view returns (address)",
+  "function setRouter(address router_)",
+  "function setMaxPointsPerUsdt(uint256 value)",
+  "event Transfer(address indexed from, address indexed to, uint256 value)",
+  "event PointsEarned(address indexed wallet, bytes32 indexed merchantId, bytes32 indexed paymentId, bytes32 campaignId, uint256 amount)",
+  "event PointsRedeemed(address indexed wallet, bytes32 indexed merchantId, bytes32 indexed paymentId, bytes32 rewardId, uint256 amount)",
+  "event PointsReversed(address indexed wallet, bytes32 indexed paymentId, uint256 earnedRemoved, uint256 redeemedRestored, uint256 shortfall)",
+  "event RouterSet(address router)",
+  "event MaxPointsPerUsdtSet(uint256 value)",
+  "error NotRouter()",
+  "error NonTransferable()",
+  "error EarnRateTooHigh()",
+  "error InsufficientPoints()",
+  "error WalletMismatch()",
+  "error InvalidAddress()",
 ]);

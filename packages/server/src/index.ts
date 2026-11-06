@@ -2,4 +2,4 @@ export { createPayKitApi, emptyDb, HttpError, type PayKitApi, type PayKitApiOpti
 export { createSimulatedChain } from "./chain/simulated.ts";
 export { createViemChain, type ViemChainOptions } from "./chain/viem.ts";
 export type { ChainAdapter } from "./chain/types.ts";
-export { seedDemo } from "./seed.ts";
+export { seedDemo, seedDemoLoyalty } from "./seed.ts";

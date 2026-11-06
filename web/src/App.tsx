@@ -7,6 +7,7 @@ import {
   InstallmentPlanPicker,
   InvoiceCreator,
   InvoiceView,
+  LoyaltySettings,
   MerchantGate,
   MerchantGrid,
   PaymentHistory,
@@ -15,6 +16,7 @@ import {
   PayoutSettings,
   PlanList,
   PlansTable,
+  PointsCard,
   ProductManager,
   RefundList,
   RefundsTable,
@@ -242,6 +244,7 @@ function InvoicePage({ backend }: { backend: Backend }) {
 function MyPage() {
   return (
     <section className="page">
+      <PointsCard />
       <div className="columns">
         <section className="pk-panel">
           <h2 className="pk-panel__title">Coming up</h2>
@@ -288,6 +291,7 @@ function MerchantDashboard() {
         <PlansTable />
         <RefundsTable />
       </div>
+      <LoyaltySettings />
       <p className="eyebrow eyebrow--ink">Settings</p>
       <div className="columns">
         <PayoutSettings />

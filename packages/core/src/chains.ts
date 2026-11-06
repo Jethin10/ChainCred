@@ -40,7 +40,17 @@ export interface PayKitContracts {
   registry?: Address;
   router?: Address;
   treasury?: Address;
+  /** PayKitPoints (universal loyalty points). Only with PaymentRouterV2. */
+  points?: Address;
+  /**
+   * EIP-712 domain version of the deployed router: "2" for PaymentRouterV2 (points and discounts),
+   * "1" for the original PaymentRouter. Defaults to "2".
+   */
+  routerVersion?: RouterVersion;
 }
+
+export type RouterVersion = "1" | "2";
+export type ContractName = "registry" | "router" | "treasury" | "points";
 
 export interface NetworkConfig {
   key: NetworkKey;
@@ -87,15 +97,21 @@ export function resolveNetwork(
   const base = NETWORKS[key];
   if (!base) throw new PayKitError("config_invalid", `Unknown network "${key}"`);
   const merged: PayKitContracts = { ...base.contracts };
-  for (const name of ["registry", "router", "treasury"] as const) {
+  for (const name of ["registry", "router", "treasury", "points"] as const) {
     const value = contracts[name];
     if (value) merged[name] = getAddress(value);
   }
+  if (contracts.routerVersion) merged.routerVersion = contracts.routerVersion;
   return { ...base, contracts: merged };
 }
 
+/** The router's EIP-712 domain version ("2" unless configured otherwise). */
+export function routerVersionOf(network: NetworkConfig): RouterVersion {
+  return network.contracts.routerVersion ?? "2";
+}
+
 /** Returns a required contract address or throws a clear configuration error. */
-export function requireContract(network: NetworkConfig, name: keyof PayKitContracts): Address {
+export function requireContract(network: NetworkConfig, name: ContractName): Address {
   const address = network.contracts[name];
   if (!address) {
     throw new PayKitError(

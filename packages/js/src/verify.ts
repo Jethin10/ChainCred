@@ -49,7 +49,17 @@ export async function verifyCheckoutSession(
   if (quote.invoiceDigest !== session.invoice.digest) mismatch("invoice contents differ");
   if (quote.invoiceTotal !== BigInt(session.invoice.total)) mismatch("invoice total differs");
   if (quote.gross <= 0n) mismatch("amount is zero");
-  if (quote.gross + BigInt(session.invoice.paid) > quote.invoiceTotal) mismatch("amount exceeds what is still due");
+  // The router credits gross + discount toward the invoice (PaymentRouterV2).
+  const discount = quote.discount ?? 0n;
+  if (quote.gross + discount + BigInt(session.invoice.paid) > quote.invoiceTotal) mismatch("amount exceeds what is still due");
+  // Points may only be burned for the reward the checkout shows the customer.
+  const reward = session.reward ?? null;
+  const redeemed = quote.pointsRedeemed ?? 0n;
+  if (reward) {
+    if (redeemed !== BigInt(reward.pointsCost) || discount !== BigInt(reward.discount) || (quote.rewardId ?? "").toLowerCase() !== reward.id.toLowerCase()) mismatch("the reward differs from what is shown");
+  } else if (redeemed > 0n || discount > 0n) {
+    mismatch("points would be spent without a reward");
+  }
   if (quote.fee > quote.gross) mismatch("fee exceeds amount");
   if (!isAddressEqual(quote.payer, zeroAddress) && !isAddressEqual(quote.payer, payer)) {
     throw new PayKitError("forbidden", "This invoice is assigned to a different wallet");

@@ -33,6 +33,14 @@ import {
   zMerchant,
   zMerchantSignupInput,
   zMerchantStats,
+  zLoyaltyProgram,
+  zMerchantLoyalty,
+  zPointsSummary,
+  zPointsBalance,
+  type PointsBalance,
+  type LoyaltyProgram,
+  type LoyaltyProgramUpdate,
+  type PointsSummary,
   zPage,
   zPayment,
   zPlan,
@@ -156,6 +164,7 @@ function parse<T extends z.ZodType>(schema: T, value: unknown, what: string): z.
  * Browser client. Every method that moves money verifies what the server sent,
  * asks the wallet for a gasless signature, and hands it to the relay node.
  */
+
 export class PayKitClient {
   readonly options: PayKitClientOptions;
   private readonly http: HttpClient;
@@ -222,6 +231,10 @@ export class PayKitClient {
     get: async (slug: string): Promise<Merchant> => parse(zMerchant, await this.http.get(routes.merchant(slug)), "merchant"),
     products: async (slug: string): Promise<Product[]> =>
       parse(zPage(zProduct), await this.http.get(routes.merchantProducts(slug)), "products").data,
+    /** Any wallet's PayKit points balance (public, like the onchain token balance). */
+    points: async (address: Address): Promise<PointsBalance> => parse(zPointsBalance, await this.http.get(routes.pointsOf(address)), "points balance"),
+    /** The shop's loyalty program: earn rate and the rewards points can buy. */
+    loyalty: async (slug: string): Promise<LoyaltyProgram> => parse(zLoyaltyProgram, await this.http.get(routes.merchantLoyalty(slug)), "loyalty program"),
   };
 
   invoices = {
@@ -249,6 +262,13 @@ export class PayKitClient {
 
     getSession: async (id: string): Promise<CheckoutSession> =>
       parse(zCheckoutSession, await this.http.get(routes.checkoutSession(id)), "checkout session"),
+
+    /**
+     * Spends points on a reward (or removes it with `rewardId: null`). The server re-signs the quote
+     * with the discount; the new `quote.gross` is what the customer pays. Needs PaymentRouterV2.
+     */
+    applyReward: async (sessionId: string, rewardId: Hex | null, payer: Address): Promise<CheckoutSession> =>
+      parse(zCheckoutSession, await this.http.post(routes.checkoutReward(sessionId), { rewardId, payer }), "checkout session"),
 
     /**
      * Verifies the session, asks the wallet for one gasless USDT authorization and
@@ -456,6 +476,11 @@ export class PayKitClient {
       this.requireSession();
       return parse(zPage(zRefund), await this.http.get(routes.myRefunds(), { query }), "refunds");
     },
+    /** Universal PayKit points: balance (from PayKitPoints when deployed) and history. */
+    points: async (): Promise<PointsSummary> => {
+      this.requireSession();
+      return parse(zPointsSummary, await this.http.get(routes.myPoints()), "points");
+    },
   };
 
   // ---------- merchant dashboard ----------
@@ -544,6 +569,7 @@ export class PayKitClient {
           payout: getAddress(request.payout),
           maxFeeBps: request.maxFeeBps,
           metadataHash: request.metadataHash as Hex,
+          metadataURI: request.metadataURI,
           nonce: BigInt(request.nonce),
           deadline: BigInt(request.deadline),
         }),
@@ -568,6 +594,14 @@ export class PayKitClient {
       }
     },
     stats: (query: { from?: string; to?: string } = {}): Promise<MerchantStats> => this.mget(zMerchantStats, routes.merchantStats(), "stats", query),
+    loyalty: {
+      /** Your loyalty program. `available` is false until the API runs PaymentRouterV2 with PayKitPoints. */
+      get: (): Promise<LoyaltyProgram & { available: boolean }> => this.mget(zMerchantLoyalty, routes.portalLoyalty(), "loyalty program"),
+      update: async (update: LoyaltyProgramUpdate): Promise<LoyaltyProgram & { available: boolean }> => {
+        this.requireMerchantAccess();
+        return parse(zMerchantLoyalty, await this.merchantHttp.patch(routes.portalLoyalty(), update), "loyalty program");
+      },
+    },
     payments: (query: { status?: "pending" | "settled" | "all"; cursor?: string; limit?: number } = {}): Promise<Page<Payment>> =>
       this.mget(zPage(zPayment), routes.merchantPayments(), "payments", query),
     plans: (query: { status?: "active" | "delinquent" | "all"; cursor?: string } = {}): Promise<Page<Plan>> =>
@@ -646,6 +680,11 @@ export class PayKitClient {
       start: (domain: string, method: "dns" | "wellknown" = "wellknown"): Promise<DomainChallenge> =>
         this.mpost(zDomainChallenge, routes.merchantDomains(), { domain, method }, "domain challenge"),
       check: (domain: string): Promise<DomainChallenge> => this.mpost(zDomainChallenge, routes.merchantDomainCheck(domain), {}, "domain challenge"),
+      /** Removes a domain. A verified one loses its badge and its onchain attestation is revoked. */
+      remove: async (domain: string): Promise<void> => {
+        this.requireMerchantAccess();
+        await this.merchantHttp.delete(routes.merchantDomain(domain));
+      },
       /**
        * Signs the /.well-known/paykit.json body with the owner wallet and returns the exact
        * file contents to upload. The signature stops anyone faking the file.
