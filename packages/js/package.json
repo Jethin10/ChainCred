@@ -1,0 +1,30 @@
+{
+  "name": "@paykit/js",
+  "version": "0.1.0",
+  "description": "Browser client for PayKit: checkout, installment plans, wallet login and dashboards. Works with any EIP-1193 wallet.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --conditions=source --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@paykit/core": "0.1.0",
+    "viem": "^2.47.6",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@paykit/testing": "0.1.0"
+  }
+}

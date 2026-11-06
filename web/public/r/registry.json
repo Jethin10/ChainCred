@@ -1,0 +1,41 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "paykit",
+  "homepage": "http://localhost:5174",
+  "items": [
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "paykit-checkout",
+      "type": "registry:component",
+      "title": "Custom checkout",
+      "description": "Copy and customize the UI. PayKit hooks retain signing and payment logic.",
+      "dependencies": [
+        "@paykit/react@0.1.0"
+      ],
+      "files": [
+        {
+          "path": "components/paykit/checkout.tsx",
+          "type": "registry:component",
+          "content": "\"use client\";\r\nimport { useCheckout, errorMessage } from '@paykit/react';\r\nexport function CustomCheckout({ sessionId, amount, className, onPaid }: {\r\n  sessionId: string; amount: string; className?: string; onPaid?: (paymentId: string) => void;\r\n}) {\r\n  const checkout = useCheckout();\r\n  return <div className={className}>\r\n    <button disabled={checkout.busy} onClick={() => {\r\n      checkout.pay({ sessionId }, { expectedAmount: amount }).then((payment) => onPaid?.(payment.paymentId)).catch(() => {});\r\n    }}>{checkout.busy ? 'Processing payment…' : 'Pay with USDT'}</button>\r\n    {checkout.error != null && <p role=\"alert\">{errorMessage(checkout.error)}</p>}\r\n    {checkout.payment && <p aria-live=\"polite\">{checkout.payment.status}</p>}\r\n  </div>;\r\n}\r\n"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "paykit-payment-status",
+      "type": "registry:component",
+      "title": "Payment status",
+      "description": "Copy and customize the UI. PayKit hooks retain signing and payment logic.",
+      "dependencies": [
+        "@paykit/react@0.1.0"
+      ],
+      "files": [
+        {
+          "path": "components/paykit/payment-status.tsx",
+          "type": "registry:component",
+          "content": "\"use client\";\r\nimport { usePayment, errorMessage } from '@paykit/react';\r\nexport function CustomPaymentStatus({ paymentId, className }: { paymentId: string; className?: string }) {\r\n  const { data, loading, error, refetch } = usePayment(paymentId);\r\n  return <div className={className} aria-live=\"polite\">\r\n    {error != null ? <><p role=\"alert\">{errorMessage(error)}</p><button onClick={refetch}>Try again</button></>\r\n      : !data ? <p>{loading ? 'Checking payment…' : 'Payment unavailable'}</p>\r\n      : <><p>Payment {data.status}</p>{data.explorerUrl && <a href={data.explorerUrl} target=\"_blank\" rel=\"noreferrer\">View transaction</a>}</>}\r\n  </div>;\r\n}\r\n"
+        }
+      ]
+    }
+  ]
+}

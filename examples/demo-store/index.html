@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mumbai Chai Co.</title>
+    <style>
+      body { margin: 0; font-family: Georgia, 'Times New Roman', serif; background: #fbf7f0; color: #2b2118; }
+      main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; display: grid; gap: 20px; }
+      header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+      h1 { margin: 0; font-size: 2rem; }
+      nav button { font: inherit; background: none; border: 1px solid #c9b79c; border-radius: 999px; padding: 6px 14px; margin-left: 6px; cursor: pointer; }
+      nav button[aria-pressed="true"] { background: #2b2118; color: #fbf7f0; }
+      .shop { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); align-items: start; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

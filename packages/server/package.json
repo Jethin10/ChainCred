@@ -1,0 +1,40 @@
+{
+  "name": "@paykit/server",
+  "version": "0.1.0",
+  "description": "PayKit API server: quotes, relaying signed payments to the PayKit contracts, finality tracking, installments, domain checks and webhooks.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "source": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --conditions=source --test test/*.test.ts",
+    "start": "node --conditions=source --env-file-if-exists=.env src/main.ts",
+    "demo": "node --conditions=source src/main.ts --demo"
+  },
+  "dependencies": {
+    "@paykit/core": "0.1.0",
+    "viem": "^2.47.6",
+    "@paykit/observer": "0.1.0"
+  },
+  "devDependencies": {
+    "@paykit/js": "0.1.0",
+    "@paykit/node": "0.1.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

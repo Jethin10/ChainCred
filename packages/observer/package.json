@@ -1,0 +1,31 @@
+{
+  "name": "@paykit/observer",
+  "version": "0.1.0",
+  "description": "Independent finalized PayKit event ledger reconstruction.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "paykit-observer": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --conditions=source --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@paykit/core": "0.1.0",
+    "viem": "^2.47.6"
+  }
+}

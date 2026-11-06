@@ -1,0 +1,26 @@
+{
+  "name": "paykit-next-store",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 5176",
+    "build": "next build --webpack",
+    "start": "next start --hostname 127.0.0.1 --port 5176"
+  },
+  "dependencies": {
+    "@paykit/react": "0.1.0",
+    "@paykit/node": "0.1.0",
+    "@paykit/next": "0.1.0",
+    "next": "16.4.5",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "@paykit/core": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  }
+}

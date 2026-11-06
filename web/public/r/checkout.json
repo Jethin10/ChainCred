@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "paykit-checkout",
+  "type": "registry:component",
+  "title": "Custom checkout",
+  "description": "Copy and customize the UI. PayKit hooks retain signing and payment logic.",
+  "dependencies": [
+    "@paykit/react@0.1.0"
+  ],
+  "files": [
+    {
+      "path": "components/paykit/checkout.tsx",
+      "type": "registry:component",
+      "content": "\"use client\";\r\nimport { useCheckout, errorMessage } from '@paykit/react';\r\nexport function CustomCheckout({ sessionId, amount, className, onPaid }: {\r\n  sessionId: string; amount: string; className?: string; onPaid?: (paymentId: string) => void;\r\n}) {\r\n  const checkout = useCheckout();\r\n  return <div className={className}>\r\n    <button disabled={checkout.busy} onClick={() => {\r\n      checkout.pay({ sessionId }, { expectedAmount: amount }).then((payment) => onPaid?.(payment.paymentId)).catch(() => {});\r\n    }}>{checkout.busy ? 'Processing payment…' : 'Pay with USDT'}</button>\r\n    {checkout.error != null && <p role=\"alert\">{errorMessage(checkout.error)}</p>}\r\n    {checkout.payment && <p aria-live=\"polite\">{checkout.payment.status}</p>}\r\n  </div>;\r\n}\r\n"
+    }
+  ]
+}
