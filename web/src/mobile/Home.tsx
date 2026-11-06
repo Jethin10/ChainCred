@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { api, COMPANIES, connectWallet, errorText, hasWallet, isMobileWallet, knownAccount, short, type Activity, type MarketReward, type PointsWallet } from '../live/server'
 import { BrandMark } from '../live/BrandMark'
+import { PixelSky } from '../theme/pixels'
 import { Icon, type IconName } from './icons'
 import { Sheet } from './Sheet'
 import { useMobile } from './context'
@@ -25,6 +26,32 @@ function dayLabel(iso?: string | null) {
   const d = new Date(iso), today = new Date()
   const diff = Math.round((new Date(today.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000)
   return diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+}
+
+function greeting() {
+  const h = new Date().getHours()
+  return h < 5 ? 'Up late' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+}
+
+/** Counts up to the value with an ease-out, so a new balance lands instead of jumping. */
+function useCountUp(target: number) {
+  const [value, setValue] = useState(0)
+  const from = useRef(0)
+  useEffect(() => {
+    const start = from.current
+    if (start === target || matchMedia('(prefers-reduced-motion: reduce)').matches) { from.current = target; queueMicrotask(() => setValue(target)); return }
+    const anim = { raf: 0 }
+    const t0 = performance.now()
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / 900), e = 1 - Math.pow(1 - p, 3)
+      const v = Math.round(start + (target - start) * e)
+      from.current = v; setValue(v)
+      if (p < 1) anim.raf = requestAnimationFrame(tick)
+    }
+    anim.raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(anim.raf)
+  }, [target])
+  return value
 }
 
 export function Home() {
@@ -69,6 +96,8 @@ export function Home() {
   const rows = useMemo(() => (sample ? SAMPLE : activity ?? []), [sample, activity])
   const live = !!address || sample
   const balance = sample ? 210 : points?.balance ?? null
+  const [today] = useState(() => ({ date: new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }), hello: greeting() }))
+  const shown = useCountUp(live ? balance ?? 0 : 0)
   const [monthStart] = useState(() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime() })
   const month = useMemo(() => {
     const inMonth = rows.filter((p) => p.settledAt && new Date(p.settledAt).getTime() >= monthStart)
@@ -87,17 +116,24 @@ export function Home() {
     { icon: 'wallet', label: live ? 'Account' : 'Connect', run: () => { setError(''); setSheet('wallet') } },
   ]
 
-  return <div className="m-home">
-    <section className="m-card" aria-label="Points and spending">
-      <span className="m-card__dither" aria-hidden="true" />
-      <div className="m-card__top">
-        <span className="m-pixel">PayKit points</span>
-        <button className="m-card__acct" onClick={() => setSheet('wallet')}><i data-on={live} />{sample ? 'Sample' : address ? short(address) : 'Not connected'}</button>
+  return <div className="m-home m-rise">
+    <header className="m-hello">
+      <p className="m-label">{today.date}</p>
+      <h2>{today.hello}<em>.</em></h2>
+    </header>
+
+    <section className="m-sky" aria-label="Points and spending">
+      <PixelSky seed={3} cell={14} clearCenter={false} />
+      <div className="m-ticket">
+        <div className="m-ticket__top">
+          <span className="m-label">PayKit points</span>
+          <button className="m-chip" onClick={() => setSheet('wallet')}><i data-on={live} />{sample ? 'Sample wallet' : address ? short(address) : 'Not connected'}</button>
+        </div>
+        <p className="m-ticket__balance" aria-label={`${live ? balance ?? 0 : 0} points`}>{live && balance === null ? '—' : shown.toLocaleString()}<small>PKP</small></p>
+        {live
+          ? <p className="m-ticket__sub"><b>{money(month.total)} USDT</b> spent this month · {month.count} {month.count === 1 ? 'payment' : 'payments'}</p>
+          : <div className="m-ticket__cta"><button className="m-cta" onClick={() => setSheet('wallet')}><Icon name="wallet" size={18} />Connect MetaMask</button><button className="m-textlink" onClick={() => setSample(true)}>See a sample</button></div>}
       </div>
-      <p className="m-card__balance">{live ? (balance ?? '—').toLocaleString() : '0'}<small>PKP</small></p>
-      {live
-        ? <p className="m-card__sub">{money(month.total)} USDT this month · {month.count} {month.count === 1 ? 'payment' : 'payments'}</p>
-        : <div className="m-card__cta"><button onClick={() => setSheet('wallet')}><Icon name="wallet" size={18} />Connect MetaMask</button><button className="m-link-light" onClick={() => setSample(true)}>See a sample</button></div>}
     </section>
 
     <nav className="m-actions" aria-label="Quick actions">
@@ -108,18 +144,18 @@ export function Home() {
     {error && !sheet && <p className="m-banner m-banner--bad" role="alert">{error}{address && <button onClick={() => void load(address)}>Retry</button>}</p>}
 
     {rewards.length > 0 && <section className="m-section" aria-label="Spend your points">
-      <header className="m-section__head"><h2>Spend points</h2><a href="#shops">All shops</a></header>
+      <header className="m-section__head"><div><p className="m-label">Rewards</p><h2>Spend points</h2></div><a href="#shops">All shops <Icon name="arrow" size={15} /></a></header>
       <div className="m-rewards">{rewards.slice(0, 4).map((r) => {
         const have = live ? balance ?? 0 : 0
         const pct = Math.min(100, Math.round((have / r.pointsCost) * 100))
-        return <a key={r.id} className="m-reward" href="#shops"><span className="m-reward__head"><BrandMark name={r.merchant.name} /><small>{r.pointsCost} pts</small></span><b>{r.name}</b><span>{r.merchant.name}</span><div className="m-reward__bar" aria-label={`${pct}% of the points needed`}><i style={{ width: `${pct}%` }} /></div><small>{have >= r.pointsCost ? 'Ready to use' : `${Math.max(0, r.pointsCost - have)} pts to go`}</small></a>
+        return <a key={r.id} className="m-reward" href="#shops"><span className="m-reward__head"><BrandMark name={r.merchant.name} /><small>{r.pointsCost} pts</small></span><b>{r.name}</b><span>{r.merchant.name}</span><div className="m-blocks" role="img" aria-label={`${pct}% of the points needed`}>{Array.from({ length: 10 }, (_, k) => <i key={k} data-on={k < Math.round(pct / 10)} style={{ '--k': k } as CSSProperties} />)}</div><small>{have >= r.pointsCost ? 'Ready to use' : `${Math.max(0, r.pointsCost - have)} pts to go`}</small></a>
       })}</div>
     </section>}
 
     <section className="m-section" aria-label="Payments">
-      <header className="m-section__head"><h2>Payments</h2>{address && !sample && <button aria-label="Refresh" disabled={loading} onClick={() => void load(address)}><Icon name="refresh" size={17} /></button>}</header>
+      <header className="m-section__head"><div><p className="m-label">Activity</p><h2>Payments</h2></div>{address && !sample && <button aria-label="Refresh" disabled={loading} onClick={() => void load(address)}><Icon name="refresh" size={17} /></button>}</header>
       {groups.length ? groups.map(([day, list]) => <div key={day} className="m-day">
-        <p className="m-day__label">{day}</p>
+        <p className="m-day__label m-label">{day}</p>
         <ul className="m-list">{list.map((p) => {
           const href = p.invoice ? `#pay/${encodeURIComponent(p.invoice.id)}` : p.txUrl
           const body = <><BrandMark name={p.merchant.name || 'Merchant'} /><span className="m-row__main"><b>{p.merchant.name || 'Merchant'}</b><span>{p.invoice?.description || p.reference || 'Payment'}</span></span><span className="m-row__amt"><b>−{money(p.gross)}</b>{Number(p.refunded) > 0 ? <small className="m-muted">Refunded {money(p.refunded)}</small> : p.pointsEarned > 0 && <small>+{p.pointsEarned} pts</small>}</span></>

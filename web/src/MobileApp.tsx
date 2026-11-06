@@ -74,7 +74,7 @@ export default function MobileApp() {
   const meta = page === 'pay' ? PAY_META : PAGES.find((p) => p.key === page)!
   const target = page === 'pay' ? payTarget() : null
 
-  const title = page === 'wallet' ? 'Home' : page === 'merchant' ? 'Business' : page === 'pay' ? (target?.kind === 'plan' ? 'Subscribe' : 'Pay') : meta.label
+  const title = page === 'wallet' ? 'PayKit' : page === 'merchant' ? 'Business' : page === 'pay' ? (target?.kind === 'plan' ? 'Subscribe' : 'Pay') : meta.label
 
   return (
     <PayKitProvider client={backend.client} wallet={wallet} theme="light">
@@ -107,10 +107,12 @@ export default function MobileApp() {
 function AppBar({ title, back }: { title: string; back: boolean }) {
   return (
     <header className="m-bar">
-      {back
-        ? <a className="m-bar__back" href="#wallet" aria-label="Back to home"><Icon name="chevron" size={18} /></a>
-        : <a className="m-bar__mark" href="#wallet" aria-label="PayKit home"><Mark /></a>}
-      <h1>{title}</h1>
+      <div className="m-bar__pill">
+        {back
+          ? <a className="m-bar__back" href="#wallet" aria-label="Back to home"><Icon name="chevron" size={18} /></a>
+          : <a className="m-bar__mark" href="#wallet" aria-label="PayKit home"><Mark /></a>}
+        <h1>{title}</h1>
+      </div>
       <span className="m-bar__net"><i />Whitechain</span>
     </header>
   )

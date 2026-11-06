@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { MobileContext, useMobile } from './context'
 import { Mark, PixelSky } from '../theme/pixels'
 import { deviceCredential, deviceError, enrollDevice, removeDeviceCredential, supportsDeviceUnlock, unlockDevice, type DeviceCredential } from './biometric'
@@ -122,9 +122,11 @@ export function MobileChrome({ page }: { page: string }) {
     return () => window.removeEventListener('hashchange', route)
   }, [scan, settings])
   const nav: Array<{ page: string; label: string; icon: IconName }> = [{ page: 'wallet', label: 'Home', icon: 'wallet' }, { page: 'shops', label: 'Shops', icon: 'shops' }]
+  const slot = ({ wallet: 0, shops: 1, merchant: 3 } as Record<string, number | undefined>)[page]
   return <>
     <div className="mobile-desktop-tools"><button onClick={mobile.scan}><Icon name="scan" size={18} /> Scan QR</button><button onClick={mobile.settings}><Icon name="settings" size={18} /> App & device</button></div>
     <nav className="mobile-nav" aria-label="Mobile navigation">
+      <span className="mobile-nav__glide" aria-hidden="true" hidden={slot === undefined} style={{ '--i': slot ?? 0 } as CSSProperties} />
       {nav.map((item) => <a key={item.page} href={`#${item.page}`} aria-current={page === item.page ? 'page' : undefined}><Icon name={item.icon} /><span>{item.label}</span></a>)}
       <button className="mobile-nav__scan" onClick={mobile.scan} aria-label="Scan a payment QR"><span><Icon name="scan" size={26} /></span><b>Scan</b></button>
       <a href="#merchant" aria-current={page === 'merchant' ? 'page' : undefined}><Icon name="business" /><span>Business</span></a>
