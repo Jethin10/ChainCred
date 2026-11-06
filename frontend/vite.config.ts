@@ -6,13 +6,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite'
 import { rewrites, type Rewrite } from './copy/rewrites.ts'
 import { perf } from './copy/perf.ts'
+import { community } from './copy/community.ts'
+import { footer } from './copy/footer.ts'
 import { handleApi } from './copy/api.ts'
 
 const root = path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1'))
 const publicDir = path.join(root, 'public')
 const distDir = path.join(root, 'dist')
 
-const allRewrites: Rewrite[] = [...rewrites, ...perf]
+const allRewrites: Rewrite[] = [...rewrites, ...perf, ...community, ...footer]
 const rewrittenFiles = [...new Set(allRewrites.map((r) => r.file))]
 
 /** Applies the copy and performance rewrites to a bundle. Throws if one no longer matches. */
