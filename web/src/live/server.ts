@@ -207,7 +207,7 @@ export async function signMessage(account: string, message: string): Promise<str
   const eth = provider()
   if (!eth) throw new ServerError('MetaMask not found.')
   const hex = '0x' + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, '0')).join('')
-  return ask<string>(eth, 'personal_sign', [hex, account], 5 * MINUTE)
+  return ask<string>(eth, 'personal_sign', [hex, account], 2 * MINUTE)
 }
 
 const DOMAIN_FIELDS: Array<[string, string]> = [['name', 'string'], ['version', 'string'], ['chainId', 'uint256'], ['verifyingContract', 'address'], ['salt', 'bytes32']]
@@ -240,6 +240,7 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 export function errorText(e: unknown): string {
   const code = (e as { code?: number }).code
   if (code === 4001) return 'You declined the request in your wallet. Nothing was signed.'
+  if (code === -32002) return 'MetaMask already has this request waiting. Click the MetaMask icon in your browser toolbar to approve it.'
   console.error('[paykit] payment error', e)
   if (e instanceof Error) return e.message
   // Wallets reject with plain objects: { code, message, data }.

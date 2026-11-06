@@ -38,12 +38,16 @@ export function MerchantLive() {
   const [view, setView] = useState<View>({ kind: 'loading' })
   const [fresh, setFresh] = useState<Onboarded | null>(null)
   const [signing, setSigning] = useState(false)
+  const [slow, setSlow] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const autoTried = useRef(new Set<string>())
 
   const signIn = useCallback(async (address: string) => {
     setSigning(true)
+    setSlow(false)
     setError(null)
+    // If MetaMask hasn't shown the request after a few seconds, say where to find it and unlock the button.
+    const hint = window.setTimeout(() => setSlow(true), 12_000)
     try {
       const time = new Date().toISOString()
       const signature = await signMessage(address, loginMessage(address, time))
@@ -53,7 +57,9 @@ export function MerchantLive() {
     } catch (e) {
       setError(errorText(e))
     } finally {
+      window.clearTimeout(hint)
       setSigning(false)
+      setSlow(false)
     }
   }, [])
 
@@ -85,9 +91,9 @@ export function MerchantLive() {
     void (async () => {
       await sleep(150) // let EIP-6963 wallets announce themselves
       const account = await knownAccount()
-      if (alive) await resolve(account, true)
+      if (alive) await resolve(account, false)
     })()
-    const off = onAccountsChanged((account) => { setFresh(null); setError(null); void resolve(account, true) })
+    const off = onAccountsChanged((account) => { setFresh(null); setError(null); void resolve(account, false) })
     return () => { alive = false; off() }
   }, [resolve])
 
@@ -101,7 +107,7 @@ export function MerchantLive() {
     const account = await knownAccount()
     if (account) autoTried.current.delete(getAddress(account))
     setError('Your sign-in expired. Sign once more to continue.')
-    await resolve(account, true)
+    await resolve(account, false)
   }
 
   if (fresh) {
@@ -116,17 +122,17 @@ export function MerchantLive() {
 
   return (
     <div className="onb">
-      <WalletGate view={view} signing={signing} error={error} onConnect={connect} onSignIn={signIn} />
+      <WalletGate view={view} signing={signing} slow={slow} error={error} onConnect={connect} onSignIn={signIn} onUnstick={() => { setSigning(false); setSlow(false) }} />
       {view.kind !== 'returning' && <Wizard payout={view.kind === 'new' ? view.address : null} onDone={(r) => { if (r.session) saveSession(r.session); setFresh(r) }} />}
       <Vision />
     </div>
   )
 }
 
-function WalletGate({ view, signing, error, onConnect, onSignIn }: {
+function WalletGate({ view, signing, slow, error, onConnect, onSignIn, onUnstick }: {
   view: Extract<View, { kind: 'signed-out' | 'new' | 'returning' }>
-  signing: boolean; error: string | null
-  onConnect: () => void; onSignIn: (address: string) => void
+  signing: boolean; slow: boolean; error: string | null
+  onConnect: () => void; onSignIn: (address: string) => void; onUnstick: () => void
 }) {
   return (
     <section className="onb-gate pk-panel" aria-label="Merchant sign-in">
@@ -145,9 +151,11 @@ function WalletGate({ view, signing, error, onConnect, onSignIn }: {
         <div className="onb-gate__row">
           <div>
             <b>Welcome back, {view.name}</b>
-            <span className="pk-muted">{signing ? 'Approve the sign-in in MetaMask. It is free and moves no money.' : `Signed in as ${short(view.address)}. Sign once to open your console; it stays open on this device for a week.`}</span>
+            <span className="pk-muted">{!signing ? `${short(view.address)} connected. Sign once to open your console; it stays open on this device for a week.` : slow ? 'Not seeing it? Click the MetaMask icon in your browser toolbar: the sign-in is waiting there. It is free and moves no money.' : 'Approve the sign-in in MetaMask. It is free and moves no money.'}</span>
           </div>
-          <button type="button" className="pk-button pk-button--primary" disabled={signing} onClick={() => onSignIn(view.address)}>{signing ? 'Waiting for MetaMask…' : 'Open my console'}</button>
+          {signing && slow
+            ? <button type="button" className="pk-button pk-button--secondary" onClick={onUnstick}>Start over</button>
+            : <button type="button" className="pk-button pk-button--primary" disabled={signing} onClick={() => onSignIn(view.address)}>{signing ? 'Waiting for MetaMask…' : 'Open my console'}</button>}
         </div>
       )}
       {error && <p className="onb-error" role="alert">{error}</p>}
