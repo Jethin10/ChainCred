@@ -25,7 +25,7 @@ function readChoice(): Source | null {
 
 async function probe(): Promise<boolean> {
   try {
-    const r = await fetch(`${API_URL}/v1/status`, { signal: AbortSignal.timeout(1500) })
+    const r = await fetch(`${API_URL}/v1/status`, { signal: AbortSignal.timeout(6000) })
     if (!r.ok) return false
     const body = (await r.json()) as { chainId?: unknown }
     return typeof body.chainId === 'number'

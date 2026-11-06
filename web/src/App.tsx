@@ -113,7 +113,7 @@ export default function App() {
           </div>
         )}
         <main className="app__main" key={`${page}:${backend.source}:${target?.id ?? ''}`}>
-          {page === 'components' && <ComponentsPage />}
+          {page === 'components' && <ComponentsPage liveClient={backend.source === 'live' ? backend.client : null} />}
           {page === 'shops' && <ShopsPage />}
           {page === 'invoice' && <InvoicePage backend={backend} />}
           {page === 'me' && <MyPage />}

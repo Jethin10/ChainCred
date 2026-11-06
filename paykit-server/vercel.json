@@ -3,7 +3,7 @@
   "regions": ["sin1"],
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }],
   "functions": {
-    "api/index.js": { "includeFiles": "{contracts-bundle,src}/**", "maxDuration": 60 }
+    "api/index.js": { "includeFiles": "{contracts-bundle,src,sdk/dist}/**", "maxDuration": 60 }
   },
   "crons": [{ "path": "/api/cron", "schedule": "0 3 * * *" }]
 }

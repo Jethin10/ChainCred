@@ -12,7 +12,8 @@
     "gen-secrets": "node scripts/gen-secrets.js",
     "demo:subscription": "node scripts/demo-subscription.js",
     "demo:points": "node scripts/demo-points.js",
-    "bundle-contracts": "node scripts/bundle-contracts.js"
+    "bundle-contracts": "node scripts/bundle-contracts.js",
+    "bundle-sdk": "cd .. && npx vite build --config paykit-server/sdk/vite.config.mjs"
   },
   "engines": {
     "node": ">=20"
