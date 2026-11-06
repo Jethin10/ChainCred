@@ -2,6 +2,30 @@
 
 USDT commerce SDK for Whitechain. Merchants keep their existing website and order system. Customers authorize payments without buying WBT for gas; the PayKit service submits transactions.
 
+## Live
+
+| What | URL |
+|---|---|
+| Landing page (`frontend/`) | https://paykit-landing-one.vercel.app |
+| App and SDK gallery (`web/`) | https://paykit-app.vercel.app |
+| PayKit server (`paykit-server/`, Whitechain testnet) | https://paykit-server.vercel.app/health |
+
+Invoices and plans created on the server link to the app's hosted pages: `#pay/<invoiceId>` pays real
+test USDT with one wallet signature, `#pay/subscribe/<planId>` starts a plan. The rest of the app runs
+its demo in the browser.
+
+Redeploy (Vercel CLI, logged in): `paykit-server` with `vercel deploy --prod`; the two sites are built
+locally and shipped prebuilt:
+
+```sh
+# app
+cd web && VITE_PAYKIT_SITE_URL=https://paykit-landing-one.vercel.app npm run build
+node -e "const f=require('fs');f.rmSync('.vercel/output',{recursive:true,force:true});f.cpSync('dist','.vercel/output/static',{recursive:true});f.writeFileSync('.vercel/output/config.json','{\"version\":3}')"
+vercel deploy --prebuilt --prod
+# landing
+cd frontend && VITE_PAYKIT_APP_URL=https://paykit-app.vercel.app npm run build && node scripts/vercel-output.mjs && vercel deploy --prebuilt --prod
+```
+
 ## Start here
 
 - [Merchant integration and customization](packages/README.md)
