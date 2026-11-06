@@ -22,13 +22,24 @@
     <style>
       html, body, #root { height: 100%; margin: 0; }
       html { background: #fff; }
+      /* Navbar: the same pill as the PayKit app (white, soft shadow, pixel mark, black pill on hover). */
+      .left .pill { background: rgb(255 255 255 / .92) !important; border-radius: 10px !important; padding: 6px !important; gap: 2px !important;
+        backdrop-filter: blur(10px); box-shadow: 0 1px 0 rgb(0 0 0 / .04), 0 8px 30px rgb(0 60 120 / .12) !important; }
+      .left .pill a.home { display: flex !important; align-items: center; gap: 8px; padding: 6px 14px 6px 10px !important; color: #0a0a0a; font-weight: 600; font-size: 1rem; text-decoration: none; }
+      .left .pill a.home .pk-mark { width: 22px; height: 22px; image-rendering: pixelated; flex: none; transition: transform .4s cubic-bezier(.3, 1.6, .5, 1); }
+      .left .pill a.home:hover .pk-mark { transform: rotate(-12deg) scale(1.15); }
+      .left .pill a.home .pk-word { display: inline !important; }
+      .left .pill .links { margin: 0 !important; }
+      .left .pill .links ul { display: flex; gap: 2px !important; margin: 0; padding: 0; }
+      .left .pill .links a { display: block; padding: 8px 14px !important; border-radius: 10px; font-size: .95rem !important; color: #3b3f45 !important; text-decoration: none; white-space: nowrap; transition: color .2s, background-color .2s; }
+      .left .pill .links a:hover, .left .pill .links a:focus-visible { background: #0a0a0a !important; color: #fff !important; }
     </style>
     <script>
       // Links to /app/<page> (and any route other than the landing page)
       // open the PayKit app. Runs in the capture phase, before the page's own router sees the click.
       ;(function () {
         var APP = '__PAYKIT_APP_URL__'
-        var PAGES = { components: 1, shops: 1, invoice: 1, me: 1, merchant: 1 }
+        var PAGES = { components: 1, shops: 1, wallet: 1, invoice: 1, me: 1, merchant: 1 }
         function target(href) {
           var u
           try { u = new URL(href, location.href) } catch (e) { return null }

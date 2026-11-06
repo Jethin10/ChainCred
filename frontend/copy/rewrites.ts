@@ -44,10 +44,16 @@ export const rewrites: Rewrite[] = [
 
   // ── Nav, footer links and the main call to action ───────────────────────
   { file: VA, from: `Ge={name:"Andreas",`, to: `Ge={name:"PayKit",` },
+  // Navbar brand: the app's pixel PayKit mark and the wordmark (same as the app's navbar), not the horse.
+  {
+    file: VA,
+    from: 't?k.jsx(F4,{size:22,beatMs:t}):k.jsx(Mi,{size:22}),!s&&k.jsx("span",{children:Ge.name})',
+    to: 'k.jsxs("svg",{className:"pk-mark",viewBox:"0 0 8 8",width:22,height:22,"aria-hidden":!0,shapeRendering:"crispEdges",children:[k.jsx("path",{d:"M2 0h4v1h1v1h1v4h-1v1h-1v1h-4v-1h-1v-1h-1v-4h1v-1h1z",fill:"#0a0a0a"}),k.jsx("path",{d:"M3 2h2v1h1v1h-1v1h-1v1h-1z",fill:"#7ccfff"})]}),k.jsx("span",{className:"pk-word",children:Ge.name})',
+  },
   {
     file: VA,
     from: `links:[{label:"Work",href:"#work",note:"Case studies, each naming a call"},{label:"About",href:"#about",route:"/about",note:"The story and four values"},{label:"Writing",href:"#writing",route:"/notes",note:"Taste notes"},{label:"Play",href:"#play",route:"/play",note:"Experiments and tools"}],email:{label:"Email",href:\`mailto:\${Nn}\`},action:{label:"Book a call",href:"https://i.cal.com/andreas/design-chat"},socials:[{label:"LinkedIn",href:"https://www.linkedin.com/in/andreaskruszakin/"},{label:"X",href:"https://x.com/andreaskruszaki"},{label:"GitHub",href:"https://github.com/andreaskruszakin"},{label:"Instagram",href:"https://www.instagram.com/andreas_kruszakin/"}]}`,
-    to: `links:[{label:"Product",href:"/app/components",route:"/app/components",note:${q('The SDK: copyable React components')}},{label:"Shops",href:"/app/shops",route:"/app/shops",note:${q('Verified merchants, paid in USDT')}},{label:"Payments",href:"/app/me",route:"/app/me",note:${q('Receipts, refunds and plans')}},{label:"Merchant",href:"/app/merchant",route:"/app/merchant",note:${q('Sign up and get paid')}}],email:{label:"Invoice",href:"/app/invoice"},action:{label:"Open the app",href:"/app/shops"},socials:[{label:"Shops",href:"/app/shops"},{label:"Invoice",href:"/app/invoice"},{label:"Payments",href:"/app/me"},{label:"Merchant",href:"/app/merchant"}]}`,
+    to: `links:[{label:"SDK",href:"/app/components",route:"/app/components",note:${q('The SDK: copyable React components')}},{label:"Shops",href:"/app/shops",route:"/app/shops",note:${q('Verified merchants, paid in USDT')}},{label:"Wallet",href:"/app/wallet",route:"/app/wallet",note:${q('Your invoices, receipts and points')}},{label:"Merchant",href:"/app/merchant",route:"/app/merchant",note:${q('Sign up and get paid')}}],email:{label:"Invoice",href:"/app/invoice"},action:{label:"Open the app",href:"/app/shops"},socials:[{label:"Shops",href:"/app/shops"},{label:"Invoice",href:"/app/invoice"},{label:"Payments",href:"/app/me"},{label:"Merchant",href:"/app/merchant"}]}`,
   },
   {
     file: VC,
