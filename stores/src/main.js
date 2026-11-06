@@ -1,11 +1,14 @@
 import "./style.css";
 import { STORES, priceCart } from "./catalog.mjs";
+import { openCheckout } from "../../packages/embed/src/index.js";
 
 const store = STORES[import.meta.env.VITE_STORE] ?? STORES["kettle-leaf"];
 const PAYKIT_SERVER = (import.meta.env.VITE_PAYKIT_SERVER_URL || "https://paykit-server.vercel.app").replace(/\/$/, "");
 const PAYKIT_APP = (import.meta.env.VITE_PAYKIT_APP_URL || "https://paykit-app.vercel.app").replace(/\/$/, "");
 const OTHER = Object.values(STORES).find((s) => s.slug !== store.slug);
 const OTHER_URL = import.meta.env.VITE_OTHER_STORE_URL || "";
+// Default to the presentation flow; set false explicitly to enable USDT settlement.
+const DEMO_MODE = import.meta.env.VITE_PAYKIT_DEMO_MODE !== "false";
 
 document.documentElement.dataset.theme = store.theme;
 document.title = store.name;
@@ -15,6 +18,7 @@ const CART_KEY = `cart:${store.slug}`;
 const ORDERS_KEY = `orders:${store.slug}`;
 const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
+const updateOrder = (ref, patch) => write(ORDERS_KEY, read(ORDERS_KEY, []).map((o) => o.reference === ref ? { ...o, ...patch } : o));
 let cart = read(CART_KEY, []);
 let drawer = false;
 let checkout = false;
@@ -158,7 +162,7 @@ function checkoutModal() {
       <div class="row total"><span>Total</span><b>${money(t.total)}</b></div>
       ${error ? `<p class="error" role="alert">${esc(error)}</p>` : ""}
       <button class="btn btn--primary btn--block" type="submit" ${busy ? "disabled" : ""}>${busy ? "Creating your invoice…" : "Place order"}</button>
-      <p class="fine">With PayKit you finish on the PayKit site, then come straight back here.</p>
+      <p class="fine">With PayKit you pay right here: MetaMask asks for one signature and you never leave this page.</p>
     </form>
   </div>`;
 }
@@ -176,15 +180,15 @@ function orderPage(ref) {
   if (!o) return `${header()}<section class="orders"><h1>Order not found</h1><p class="lead"><a href="#shop">Back to the shop</a></p></section>${footer()}`;
   return `${header()}<section class="order">
     <p class="eyebrow">Order ${esc(o.reference)}</p>
-    <h1 id="order-title">${o.method === "cod" ? "Order placed. Pay on delivery." : "Waiting for your payment…"}</h1>
+    <h1 id="order-title">${o.method === "cod" ? "Order placed. Pay on delivery." : o.status === "paid" ? "Paid. Your order is on its way." : "Waiting for your payment…"}</h1>
     <div class="order__grid">
       <ul class="lines lines--static">${o.lines.map((l) => `<li><div class="lines__art">${art(store.products.find((p) => p.id === l.id))}</div><div class="lines__main"><b>${esc(l.name)}</b><span>${l.qty} × ${money(l.unit)}</span></div><b class="lines__total">${money(l.total)}</b></li>`).join("")}</ul>
       <aside class="order__side">
         <div class="row"><span>Total</span><b>${money(o.total)}</b></div>
         <div class="row"><span>Payment</span><span>${o.method === "paykit" ? "PayKit · USDT" : "Cash on delivery"}</span></div>
         <div class="row"><span>Deliver to</span><span>${esc(o.address || "-")}</span></div>
-        <div id="order-status" class="status">${o.method === "paykit" ? `<span class="pill">Checking payment…</span>` : `<span class="pill pill--ok">Confirmed</span>`}</div>
-        ${o.method === "paykit" ? `<a class="btn btn--block" id="order-pay" href="${o.payUrl}">Open invoice on PayKit</a>` : ""}
+        <div id="order-status" class="status">${o.method === "paykit" ? o.status === "paid" ? paidStatus(o) : `<span class="pill">Checking payment…</span>` : `<span class="pill pill--ok">Confirmed</span>`}</div>
+        ${o.method === "paykit" ? `<button type="button" class="btn btn--block" id="order-pay" data-action="pay" data-id="${esc(o.reference)}" hidden>Pay now with PayKit</button>` : ""}
       </aside>
     </div>
   </section>${footer()}`;
@@ -193,7 +197,9 @@ function orderPage(ref) {
 // ── render + events ──
 const app = document.getElementById("app");
 let poll = 0;
+let renderVersion = 0;
 function render() {
+  renderVersion++;
   const h = location.hash.replace(/^#/, "");
   clearInterval(poll);
   let page;
@@ -209,23 +215,47 @@ function followOrder(ref) {
   const orders = read(ORDERS_KEY, []);
   const o = orders.find((x) => x.reference === ref);
   if (!o || o.method !== "paykit") return;
+  if (o.demo) {
+    const el = document.getElementById("order-status");
+    if (el) el.innerHTML = o.status === "paid" ? paidStatus(o) : `<span class="pill">Not paid yet</span>`;
+    const pay = document.getElementById("order-pay");
+    if (pay) pay.hidden = o.status === "paid";
+    return;
+  }
+  const version = renderVersion;
   const check = async () => {
     try {
-      const inv = await (await fetch(`${PAYKIT_SERVER}/v1/public/invoices/${o.invoiceId}`)).json();
-      const paid = inv.status === "paid";
+      const response = await fetch(`${PAYKIT_SERVER}/v1/public/invoices/${encodeURIComponent(o.invoiceId)}`);
+      if (!response.ok) throw new Error("Could not check payment");
+      const inv = await response.json();
+      if (version !== renderVersion) return;
+      const paid = inv.status === "paid" || read(ORDERS_KEY, []).find((x) => x.reference === ref)?.status === "paid";
       const el = document.getElementById("order-status");
       if (!el) return;
       document.getElementById("order-title").textContent = paid ? "Paid. Your order is on its way." : "Waiting for your payment…";
+      const latest = read(ORDERS_KEY, []).find((x) => x.reference === ref) || o;
+      const saved = { ...latest, paymentId: inv.paymentIds?.at(-1) || latest.paymentId };
       el.innerHTML = paid
-        ? `<span class="pill pill--ok">Paid on Whitechain</span><a class="link" href="${PAYKIT_APP}/#wallet" target="_blank" rel="noreferrer">See the receipt and your points in PayKit →</a>`
+        ? paidStatus(saved)
         : `<span class="pill">Not paid yet</span>`;
       const pay = document.getElementById("order-pay");
       if (pay) pay.hidden = paid;
-      if (paid) { clearInterval(poll); o.status = "paid"; write(ORDERS_KEY, orders); }
-    } catch { /* retry on the next tick */ }
+      if (paid) { clearInterval(poll); updateOrder(ref, { status: "paid", paymentId: saved.paymentId }); }
+    } catch {
+      if (version !== renderVersion || o.status === "paid") return;
+      const el = document.getElementById("order-status");
+      if (el) el.textContent = "Could not check payment. Retrying…";
+      const pay = document.getElementById("order-pay");
+      if (pay) pay.hidden = false;
+    }
   };
   check();
   poll = window.setInterval(check, 4000);
+}
+
+function paidStatus(o) {
+  if (o.demo) return `<span class="pill pill--ok">Payment complete</span><span>Receipt saved · ${esc(o.reference)} · ${money(o.total)}</span>`;
+  return `<span class="pill pill--ok">Paid on Whitechain</span>${o.paymentId ? `<a class="link" href="${PAYKIT_SERVER}/v1/public/receipts/${encodeURIComponent(o.paymentId)}" target="_blank" rel="noreferrer">View saved receipt</a>` : ""}<a class="link" href="${PAYKIT_APP}/#wallet" target="_blank" rel="noreferrer">See your invoice and points in PayKit →</a>`;
 }
 
 app.addEventListener("click", (e) => {
@@ -240,12 +270,14 @@ app.addEventListener("click", (e) => {
   if (a === "close-cart") drawer = false;
   if (a === "checkout") { drawer = false; checkout = true; error = ""; }
   if (a === "close-checkout") { checkout = false; }
+  if (a === "pay") { payOrder(id); return; }
   render();
 });
 
 app.addEventListener("submit", async (e) => {
   if (e.target.id !== "checkout") return;
   e.preventDefault();
+  if (busy || !cart.length) return;
   const f = new FormData(e.target);
   const method = f.get("method");
   const t = totals();
@@ -257,16 +289,57 @@ app.addEventListener("submit", async (e) => {
   }
   busy = true; error = ""; render();
   try {
+    if (DEMO_MODE) {
+      const reference = `${store.refPrefix}-${Date.now().toString(36).toUpperCase()}`;
+      write(ORDERS_KEY, [{ ...base, reference, invoiceId: `local_${reference}`, status: "awaiting_payment", demo: true }, ...read(ORDERS_KEY, [])]);
+      cart = []; saveCart(); busy = false; checkout = false;
+      location.hash = `order/${reference}`;
+      payOrder(reference);
+      return;
+    }
     const r = await fetch("/api/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: cart, name: f.get("name") }) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "Checkout failed");
     write(ORDERS_KEY, [{ ...base, reference: j.reference, invoiceId: j.invoiceId, payUrl: j.payUrl, total: j.total, lines: j.lines, status: "awaiting_payment" }, ...read(ORDERS_KEY, [])]);
-    cart = []; saveCart();
-    location.href = j.payUrl;
+    cart = []; saveCart(); busy = false; checkout = false;
+    location.hash = `order/${j.reference}`;
+    payOrder(j.reference);
   } catch (err) {
     busy = false; error = err.message; render();
   }
 });
+
+// Pays the order right here on the shop page through PayKit's embeddable checkout. No redirect:
+// the invoice and receipt still live on PayKit, so they show up in the customer's PayKit wallet too.
+let paying = false;
+async function payOrder(ref) {
+  const orders = read(ORDERS_KEY, []);
+  const o = orders.find((x) => x.reference === ref);
+  if (!o?.invoiceId || paying) return;
+  paying = true;
+  let paymentError = "";
+  try {
+    const ink = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim();
+    const useDemo = DEMO_MODE || o.demo === true;
+    const savePayment = (result) => updateOrder(ref, { status: "paid", paymentId: result.paymentId, txUrl: result.txUrl, ...(useDemo ? { demo: true } : {}) });
+    const result = await openCheckout({ invoiceId: o.invoiceId, server: PAYKIT_SERVER, accent: ink || undefined, walletUrl: `${PAYKIT_APP}/#wallet`, onPaid: savePayment,
+      demo: useDemo,
+      ...(useDemo ? { demoInvoice: { id: o.invoiceId, amount: o.total, amountDue: o.total, reference: o.reference, description: o.lines.map((l) => `${l.qty} × ${l.name}`).join(", "), merchant: { name: store.name } } } : {}),
+    });
+    if (result.status === "paid") {
+      savePayment(result);
+    }
+  } catch (err) {
+    paymentError = err.message || "Could not open checkout. Try again.";
+  } finally {
+    paying = false;
+    if (location.hash === `#order/${ref}`) render(); else location.hash = `order/${ref}`;
+    if (paymentError) {
+      const el = document.getElementById("order-status");
+      if (el) el.textContent = paymentError;
+    }
+  }
+}
 
 window.addEventListener("hashchange", () => { checkout = false; render(); });
 render();

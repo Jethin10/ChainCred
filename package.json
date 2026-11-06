@@ -17,7 +17,7 @@
     "contracts:test": "npm --prefix contracts run test",
     "sdk:build": "npm run build -w @paykit/core -w @paykit/observer -w @paykit/server -w @paykit/testing -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/react -w @paykit/mcp",
     "sdk:typecheck": "npm run typecheck -w @paykit/core -w @paykit/observer -w @paykit/server -w @paykit/testing -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/react -w @paykit/mcp",
-    "sdk:test": "npm test -w @paykit/core -w @paykit/observer -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/server -w @paykit/react -w @paykit/mcp",
+    "sdk:test": "npm test -w @paykit/core -w @paykit/observer -w @paykit/js -w @paykit/node -w @paykit/next -w @paykit/server -w @paykit/react -w @paykit/mcp -w @paykit/embed",
     "demo": "npm run dev --workspace demo-store",
     "server": "npm start -w @paykit/server",
     "server:demo": "npm run demo -w @paykit/server",
