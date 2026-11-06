@@ -23,13 +23,14 @@ export class ServerError extends Error {
   }
 }
 
-export async function api<T>(path: string, init?: { method?: string; body?: unknown; key?: string }): Promise<T> {
+export async function api<T>(path: string, init?: { method?: string; body?: unknown; key?: string; signal?: AbortSignal }): Promise<T> {
   let res: Response
   try {
     res = await fetch(`${SERVER_URL}${path}`, {
       method: init?.method ?? 'GET',
       headers: { ...(init?.body !== undefined ? { 'content-type': 'application/json' } : {}), ...(init?.key ? { authorization: `Bearer ${init.key}` } : {}) },
       body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+      signal: init?.signal,
     })
   } catch {
     throw new ServerError('Could not reach the PayKit server. Check your connection and try again.')

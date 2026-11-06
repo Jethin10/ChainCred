@@ -1,4 +1,4 @@
-export type IconName = 'wallet' | 'shops' | 'scan' | 'settings' | 'fingerprint' | 'close' | 'download' | 'arrow' | 'shield' | 'camera' | 'image' | 'flash' | 'check' | 'code' | 'business'
+export type IconName = 'wallet' | 'shops' | 'scan' | 'settings' | 'fingerprint' | 'close' | 'download' | 'arrow' | 'shield' | 'camera' | 'image' | 'flash' | 'check' | 'code' | 'business' | 'search' | 'receipt' | 'refresh' | 'chevron' | 'spark' | 'external' | 'copy'
 const paths: Record<IconName, string> = {
   wallet: 'M20 8V5H5a2 2 0 0 0 0 4h15v11H5a3 3 0 0 1-3-3V7m18 5h-5v4h5',
   shops: 'M3 10v10h18V10M2 10l2-7h16l2 7M2 10q3 4 5 0 3 4 5 0 3 4 5 0 3 4 5 0M9 20v-6h6v6',
@@ -11,6 +11,13 @@ const paths: Record<IconName, string> = {
   image: 'M3 3h18v18H3ZM3 17l6-6 4 4 3-3 5 5M16 7h.01', flash: 'm13 2-9 12h7l-1 8 10-13h-8Z',
   check: 'm5 12 4 4L19 6', code: 'm8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18',
   business: 'M3 8h18v13H3ZM8 8V3h8v5M3 13h18M10 13v3h4v-3',
+  search: 'M10.5 3a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15Zm5.5 13 5 5',
+  receipt: 'M5 3h14v18l-3-2-4 2-4-2-3 2ZM8 8h8M8 12h5',
+  refresh: 'M20 8a8 8 0 1 0 0 8M20 3v5h-5',
+  chevron: 'm9 5 7 7-7 7',
+  spark: 'm12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z',
+  external: 'M14 3h7v7m0-7L10 14M10 3H3v18h18v-7',
+  copy: 'M8 8h13v13H8ZM16 8V3H3v13h5',
 }
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test:mobile": "node --test test/mobile.test.mjs",
+    "test:mobile": "node --test test/*.test.mjs",
     "dev": "vite --host 127.0.0.1 --port 5174 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
