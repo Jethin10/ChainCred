@@ -1,6 +1,6 @@
 /* The customer redesign applies only below the mobile breakpoint. */
 @media (max-width: 760px) {
-/* PayKit customer app: quiet surfaces, precise numbers, a little pixel sky. */
+/* ChainCred customer app: quiet surfaces, precise numbers, a little pixel sky. */
 .app:not(.app--components) { background: #f8fafc; min-height: 100dvh; }
 .app .topbar { max-width: 1180px; width: 100%; margin: 0 auto; padding: 22px 30px; gap: 20px; }
 .app .navpill { background: transparent; box-shadow: none; backdrop-filter: none; padding: 5px; gap: 4px; }

@@ -1,10 +1,10 @@
-# PayKit
+# ChainCred
 
-Gasless USDT checkout and loyalty for shops on Whitechain. A merchant drops PayKit into an existing
+Gasless USDT checkout and loyalty for shops on Whitechain. A merchant drops ChainCred into an existing
 store in about 20 lines. The customer pays in USDT with one MetaMask signature and never needs WBT for
 gas. The sale settles on Whitechain straight into the merchant's own wallet. After the first payment,
-PayKit handles refunds, subscriptions and instalments, signed webhooks, an accountant's CSV export, and
-loyalty points the customer can spend at any PayKit shop.
+ChainCred handles refunds, subscriptions and instalments, signed webhooks, an accountant's CSV export, and
+loyalty points the customer can spend at any ChainCred shop.
 
 **Live:** [website](https://paykit-landing-one.vercel.app) · [app (PWA)](https://paykit-landing-one.vercel.app/app/) ·
 demo shops [Kettle & Leaf](https://kettle-and-leaf-five.vercel.app) and [Paper Lantern Books](https://paper-lantern-books.vercel.app) ·
@@ -18,13 +18,13 @@ USDT settling on Whitechain can.**
 
 - **Final and self-custodied.** The router pays the merchant's registered payout wallet in the same
   transaction as the customer's payment. There is no acquirer, no payout delay, no rolling reserve and no chargeback window.
-- **Small and cross-border.** Whitechain is an L2, so fees are tiny. PayKit takes 1% (0.05 USDT minimum),
+- **Small and cross-border.** Whitechain is an L2, so fees are tiny. ChainCred takes 1% (0.05 USDT minimum),
   so a 2.50 USDT sale is worth taking, and any customer with USDT can pay without card networks or currency conversion.
 - **Enforced by the contract, not by us.** `PaymentRouterV2` checks the merchant's signed quote, the amount,
   the fee cap and the payer's EIP-3009 signature. It can only send a refund back to the original payment's
   refund address, and never more than was paid. Receipts are read straight from the chain.
 - **One signature, no gas.** USDT on Whitechain supports EIP-3009 (`receiveWithAuthorization`). The customer
-  signs, and the PayKit relayer submits and pays the WBT. The fee treasury swaps USDT fees to WBT to refill the relayer.
+  signs, and the ChainCred relayer submits and pays the WBT. The fee treasury swaps USDT fees to WBT to refill the relayer.
 - **Loyalty that travels.** Points earned at one shop are spendable as a discount at another. The router
   applies the discount in the same settlement, so no shop has to trust another's private ledger.
 
@@ -34,7 +34,7 @@ Payments in the main flow use Whitechain's test USDT, [`0xcedfB56113143d55b2358b
 
 | What | Explorer |
 |---|---|
-| **Shop checkout, main flow**: a Kettle & Leaf order paid in the store's in-page PayKit checkout, through `PaymentRouterV2`. The customer pays 2.50 USDT: 2.45 USDT to the shop, 0.05 USDT fee, +25 loyalty points. | [`0xa16314b1…6fb20a`](https://explorer.testnet.whitechain.io/tx/0xa16314b1bbb6c38715a766399743ef172ac9db84c9d4de7fffa4c18d956fb20a) |
+| **Shop checkout, main flow**: a Kettle & Leaf order paid in the store's in-page ChainCred checkout, through `PaymentRouterV2`. The customer pays 2.50 USDT: 2.45 USDT to the shop, 0.05 USDT fee, +25 loyalty points. | [`0xa16314b1…6fb20a`](https://explorer.testnet.whitechain.io/tx/0xa16314b1bbb6c38715a766399743ef172ac9db84c9d4de7fffa4c18d956fb20a) |
 | First payment through the original router (2 USDT) | [`0x4550d2f8…681635`](https://explorer.testnet.whitechain.io/tx/0x4550d2f892ed5c41c9a278431b516d677583e126251d2600f1b6770d9f681635) |
 | Refund of that payment, back to the payer's refund address | [`0xe47ba3db…28c049`](https://explorer.testnet.whitechain.io/tx/0xe47ba3dbd8b132fe3389e1e2f294bea8edfbb654336f1d81fad5ad673a28c049) |
 
@@ -60,7 +60,7 @@ Points, campaigns and rewards live on **Arkiv** (Rabdi testnet, chain `7794095`)
 |---|---|
 | `0x1661f882554304e6E1ECE61780595D99e45d1fb6` | Tee Shop: its campaign and the points lots it issued |
 | `0xB1128c8f5E25c5E5e5206Cd782de8365C29b6fD0` | Jeans Co: its rewards and the points spends it accepted |
-| `0x80FB0aa1FEAa89A0EBE4fb9E48B7514f57173d23` | PayKit funder: sends test gas (tGLM) to shop accounts, owns no entities |
+| `0x80FB0aa1FEAa89A0EBE4fb9E48B7514f57173d23` | ChainCred funder: sends test gas (tGLM) to shop accounts, owns no entities |
 
 **One query to run.** This returns one customer's points lots, each with its owner, expiry and fields:
 
@@ -79,7 +79,7 @@ Arkiv docs for judges:
 ## Architecture
 
 ```
- Shop website (any stack)                    PayKit                                   Whitechain (1874)
+ Shop website (any stack)                    ChainCred                                   Whitechain (1874)
  ─────────────────────────                   ──────                                   ─────────────────
  server: usepaykit ── POST /v1/invoices ──▶  paykit-server (Vercel, Express)           MerchantRegistry
  browser: openCheckout({ invoiceId }) ──────▶  · prices nothing; reads the invoice      PaymentRouterV2 ── USDT ──▶ merchant payout wallet
@@ -88,7 +88,7 @@ Arkiv docs for judges:
                                               · relayer submits pay() and pays WBT ──▶
  webhook endpoint ◀── signed invoice.paid ──  · observer reads PaymentSettled ◀──────
                                               · Postgres (Neon): invoices, quotes,
- PayKit app / PWA (customer + merchant)        payments, refunds, plans, points
+ ChainCred app / PWA (customer + merchant)        payments, refunds, plans, points
    wallet: receipts, points, refunds ◀──────  · public receipts are re-checked
    merchant console: invoices, campaigns,       against the chain
    API keys, wallet sign-in
@@ -109,9 +109,9 @@ Arkiv docs for judges:
 
 1. The shop's server creates an invoice with its merchant key. The price comes from the shop's own order data.
 2. The shop's page calls `openCheckout({ invoiceId })`. The customer connects MetaMask, which switches to Whitechain, and picks a points reward if they have one.
-3. PayKit returns a quote signed by the merchant's signer key, and EIP-3009 typed data for the exact USDT amount.
+3. ChainCred returns a quote signed by the merchant's signer key, and EIP-3009 typed data for the exact USDT amount.
 4. The customer signs once in MetaMask. The relayer submits `PaymentRouterV2.pay`, and the router moves USDT to the merchant's payout wallet, takes the fee, applies the discount and records points.
-5. The observer reads `PaymentSettled`. PayKit marks the invoice paid and sends a signed `invoice.paid` webhook. The customer's receipt shows the explorer link.
+5. The observer reads `PaymentSettled`. ChainCred marks the invoice paid and sends a signed `invoice.paid` webhook. The customer's receipt shows the explorer link.
 6. Later: the merchant refunds, which goes back to the payer onchain. Plans collect instalments with a permit. Accountants download `exports/payments.csv`.
 
 ## Setup
@@ -138,7 +138,7 @@ npm run frontend                                          # http://localhost:517
 
 ## The SDK
 
-PayKit's SDK is what a merchant adds to their own app. The main package is **[`usepaykit`](https://www.npmjs.com/package/usepaykit)** on npm (source in [`packages/paykit`](packages/paykit/README.md)). It has no dependencies, ships TypeScript types, and runs on Node 18+, Bun, Deno and edge runtimes.
+ChainCred's SDK is what a merchant adds to their own app. The main package is **[`usepaykit`](https://www.npmjs.com/package/usepaykit)** on npm (source in [`packages/paykit`](packages/paykit/README.md)). It has no dependencies, ships TypeScript types, and runs on Node 18+, Bun, Deno and edge runtimes.
 
 | Import | Runs in | What it gives you |
 |---|---|---|
@@ -157,20 +157,20 @@ This command:
 
 - Installs the [`usepaykit`](packages/paykit/README.md) npm package.
 - Finds your coding agents: Claude Code, Cursor, VS Code/Copilot, Codex, Windsurf, Gemini CLI.
-- Installs a PayKit skill or rule for each agent.
-- Registers the PayKit MCP server.
+- Installs a ChainCred skill or rule for each agent.
+- Registers the ChainCred MCP server.
 - Adds `PAYKIT_*` placeholders to `.env.example`.
 
-Then ask your agent: *"Add PayKit checkout to this app."* The agent guide is [`packages/paykit/AGENTS.md`](packages/paykit/AGENTS.md): drag it into any chat, or run `npx usepaykit agents`.
+Then ask your agent: *"Add ChainCred checkout to this app."* The agent guide is [`packages/paykit/AGENTS.md`](packages/paykit/AGENTS.md): drag it into any chat, or run `npx usepaykit agents`.
 
 ### Use it in about 20 lines
 
-The demo shops in [`stores/`](stores/) are separate apps that integrate PayKit exactly like this.
+The demo shops in [`stores/`](stores/) are separate apps that integrate ChainCred exactly like this.
 
 ```js
 // server: create the invoice from your own order (never trust a price from the browser)
-import { PayKit, verifyWebhook } from "usepaykit";
-const paykit = new PayKit();                       // PAYKIT_API_KEY from env
+import { ChainCred, verifyWebhook } from "usepaykit";
+const paykit = new ChainCred();                       // PAYKIT_API_KEY from env
 app.post("/api/checkout", async (req, res) => {
   const order = await createOrder(req.body);       // your code
   const invoice = await paykit.invoices.create({ amount: order.total, reference: order.id });
@@ -195,8 +195,8 @@ React apps can use the [components](#react-components) instead.
 ### Server API
 
 ```js
-import { PayKit } from "usepaykit";
-const paykit = new PayKit({ apiKey: process.env.PAYKIT_API_KEY }); // serverUrl defaults to the live server
+import { ChainCred } from "usepaykit";
+const paykit = new ChainCred({ apiKey: process.env.PAYKIT_API_KEY }); // serverUrl defaults to the live server
 ```
 
 | Namespace | Methods |
@@ -226,7 +226,7 @@ The checkout does the rest:
 3. It asks for one gasless USDT signature.
 4. It waits until the router has settled the payment onchain.
 
-The invoice and receipt stay on PayKit, so the customer also sees them in the PayKit wallet. Options: `invoiceId`, `server`, `accent`, `walletUrl`, `onPaid`. You can also skip the code entirely and send the customer to the invoice's hosted `payUrl`.
+The invoice and receipt stay on ChainCred, so the customer also sees them in the ChainCred wallet. Options: `invoiceId`, `server`, `accent`, `walletUrl`, `onPaid`. You can also skip the code entirely and send the customer to the invoice's hosted `payUrl`.
 
 ### Webhooks
 
@@ -257,18 +257,18 @@ The CLI reads `PAYKIT_API_KEY` from the environment, `.env` or `.env.local`. Add
 
 ### For AI coding agents
 
-`npx usepaykit init` installs PayKit for whichever agents a project uses:
+`npx usepaykit init` installs ChainCred for whichever agents a project uses:
 
 - **Agents covered:** Claude Code, Cursor, VS Code/Copilot, Codex, Windsurf and Gemini CLI.
 - **Instructions:** it writes [`AGENTS.md`](packages/paykit/AGENTS.md) as `PAYKIT.md`, plus a skill or rule per agent.
-- **MCP server:** it registers PayKit's MCP server, which gives the agent these tools:
+- **MCP server:** it registers ChainCred's MCP server, which gives the agent these tools:
   - `paykit_guide` and `paykit_doctor`
   - `paykit_get_merchant`
   - `paykit_create_invoice`, `paykit_get_invoice` and `paykit_list_invoices`
   - `paykit_list_payments`
   - `paykit_set_webhook` and `paykit_send_test_webhook`
 
-Then ask the agent: *"Add PayKit checkout to this app."* The API key always stays in `.env`; it is never written into config files.
+Then ask the agent: *"Add ChainCred checkout to this app."* The API key always stays in `.env`; it is never written into config files.
 
 ### React components
 
@@ -281,20 +281,20 @@ The [component gallery](https://paykit-landing-one.vercel.app/app/#components) p
 
 ## Mobile app (PWA)
 
-**Android installer:** download **PayKit-Android.apk** from
+**Android installer:** download **ChainCred-Android.apk** from
 [GitHub Releases](https://github.com/Jethin10/PayKit/releases/latest), open it
 on your phone, allow installation from that download source when Android asks,
-then tap **Install**. It adds PayKit to your home screen and runs the live PWA.
+then tap **Install**. It adds ChainCred to your home screen and runs the live PWA.
 
-The PayKit mobile app is in [`web/`](web/), with a home-screen app manifest,
+The ChainCred mobile app is in [`web/`](web/), with a home-screen app manifest,
 offline app shell, fingerprint/face/device-PIN unlock, and a QR scanner.
 It shares the website's pixel artwork and typography.
 
-You can also install directly from the [PayKit app](https://paykit-landing-one.vercel.app/app/#settings):
+You can also install directly from the [ChainCred app](https://paykit-landing-one.vercel.app/app/#settings):
 
-| Device | Install PayKit |
+| Device | Install ChainCred |
 |---|---|
-| Android | Open the app in Chrome, then **Settings → Install PayKit**, or use Chrome's **Install app** menu. |
+| Android | Open the app in Chrome, then **Settings → Install ChainCred**, or use Chrome's **Install app** menu. |
 | iPhone / iPad | Open the app in Safari, tap **Share → Add to Home Screen**. |
 | Desktop | Open the app in Chrome or Edge and choose **Install app** in the browser menu. |
 
@@ -326,7 +326,7 @@ unlock rather than a numeric IP address.
 |---|---|
 | Website: landing page (`frontend/`) | https://paykit-landing-one.vercel.app |
 | Same website: app and SDK gallery (`web/`) | https://paykit-landing-one.vercel.app/app/ |
-| PayKit server (`paykit-server/`, Whitechain testnet) | https://paykit-server.vercel.app/health |
+| ChainCred server (`paykit-server/`, Whitechain testnet) | https://paykit-server.vercel.app/health |
 | Demo company: Kettle & Leaf (`stores/`) | https://kettle-and-leaf-five.vercel.app |
 | Demo company: Paper Lantern Books (`stores/`) | https://paper-lantern-books.vercel.app |
 
@@ -336,9 +336,9 @@ against the same server: `paykit-server` also hosts the SDK API (`packages/serve
 `npm run bundle-sdk` in `paykit-server`), with demo shops and simulated settlement for the preview
 wallets, its state kept in Neon.
 
-The two demo companies are their own websites: checkout creates a PayKit invoice with the store's
-merchant key (server-side), and the customer pays it in PayKit's checkout dialog on the store's own
-page with MetaMask. Points earned at one store can be spent at the other; the Wallet page on the PayKit
+The two demo companies are their own websites: checkout creates a ChainCred invoice with the store's
+merchant key (server-side), and the customer pays it in ChainCred's checkout dialog on the store's own
+page with MetaMask. Points earned at one store can be spent at the other; the Wallet page on the ChainCred
 site lists every invoice, receipt and point across stores. Build one with
 `node stores/build.mjs <kettle-leaf|paper-lantern> [other store url]`, then `vercel deploy --prebuilt --prod`
 from `stores/out/<slug>` (the project needs `STORE` and `STORE_API_KEY`).
@@ -361,7 +361,7 @@ cd .. && node scripts/redirect-old-app.mjs && cd web && vercel deploy --prebuilt
 
 ## How we used AI
 
-PayKit was built by our team of three at ETHGlobal Mumbai with AI coding agents (Claude Code and OpenAI Codex) doing much of the typing:
+ChainCred was built by our team of three at ETHGlobal Mumbai with AI coding agents (Claude Code and OpenAI Codex) doing much of the typing:
 - **Code:** the SDK, server, app, contract integration and tests.
 - **Media:** the landing page media, the recorded product clips and the in-house motion clips.
 - **Docs:** documentation drafts.

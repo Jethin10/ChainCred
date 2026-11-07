@@ -32,7 +32,7 @@ const session = await paykit.checkout.createSession({
 
 const ACCENTS: Array<[string, string]> = [['Ink', '#0a0a0a'], ['Sky', '#0077d9'], ['Chai', '#a3541d'], ['Mint', '#0f7a5a'], ['Berry', '#b4235a']]
 
-// Clients that talk to the live PayKit API: poll gently and keep what the server already has.
+// Clients that talk to the live ChainCred API: poll gently and keep what the server already has.
 const liveClients = new WeakSet<PayKitClient>()
 const poll = (client: PayKitClient) => (liveClients.has(client) ? 750 : 25)
 
@@ -53,7 +53,7 @@ function earnPreviewPoints(client: PayKitClient) {
 
 function idFromHash() { return catalog.find((item) => item.id === location.hash.split('/')[1])?.id ?? 'checkout' }
 
-/** `liveClient`: the app's client for the live PayKit API. Without it, previews run on an in-browser mock. */
+/** `liveClient`: the app's client for the live ChainCred API. Without it, previews run on an in-browser mock. */
 export default function ComponentsPage({ liveClient }: { liveClient?: PayKitClient | null }) {
   const [client] = useState(() => {
     if (liveClient) { liveClients.add(liveClient); return liveClient }
@@ -191,9 +191,9 @@ function ComponentWorkbench({ client }: { client: PayKitClient }) {
 
       {tab === 'install' && <div id="component-install" role="tabpanel" className="docs-install">
         <h2>Add it to your existing React app</h2>
-        <p>From this PayKit checkout, run the installer with your app’s directory. It installs local SDK packages and copies the component and stylesheet. No npm publication is required.</p>
-        <CodeBlock source={installCommand} label="From the PayKit repository" />
-        <p className="docs-footnote">Use Node 24. Run <code>npm ci</code> and <code>npm run sdk:build</code> in PayKit first. Existing customized files are preserved unless you pass <code>--force</code>.</p>
+        <p>From this ChainCred checkout, run the installer with your app’s directory. It installs local SDK packages and copies the component and stylesheet. No npm publication is required.</p>
+        <CodeBlock source={installCommand} label="From the ChainCred repository" />
+        <p className="docs-footnote">Use Node 24. Run <code>npm ci</code> and <code>npm run sdk:build</code> in ChainCred first. Existing customized files are preserved unless you pass <code>--force</code>.</p>
         <h2>Wrap your components once</h2><CodeBlock source={providerSource} label="Provider.tsx" />
         <h2>Use the component</h2><CodeBlock source={usage} label="Your page" />
         {['checkout', 'installment-plan'].includes(selected.id) && <><h2>Keep order pricing on your server</h2><CodeBlock source={backendSource} label="Existing merchant backend" /></>}
@@ -201,7 +201,7 @@ function ComponentWorkbench({ client }: { client: PayKitClient }) {
       </div>}
 
       <section className="docs-props"><h2>Props</h2><div className="docs-props__scroll"><table><thead><tr><th scope="col">Prop</th><th scope="col">Type</th><th scope="col">Details</th></tr></thead><tbody>{selected.props.map((prop) => <tr key={prop.name}><th scope="row"><code>{prop.name}</code>{prop.required && <span className="docs-required">required</span>}</th><td><code>{prop.type}</code></td><td>{prop.description}</td></tr>)}</tbody></table></div></section>
-      <footer className="docs-footer"><p>Your UI is yours to edit. Payment amounts, signing, retries and finality stay in PayKit’s hooks.</p><a href="https://github.com/Jethin10/PayKit" target="_blank" rel="noreferrer">View repository</a></footer>
+      <footer className="docs-footer"><p>Your UI is yours to edit. Payment amounts, signing, retries and finality stay in ChainCred’s hooks.</p><a href="https://github.com/Jethin10/PayKit" target="_blank" rel="noreferrer">View repository</a></footer>
     </section>
   </div>
 }

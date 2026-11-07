@@ -1,12 +1,12 @@
 /**
- * PayKit copy for the landing page.
+ * ChainCred copy for the landing page.
  *
  * The page runs on prebuilt production bundles (in `public/assets`). Every word, link and
  * brand change lives here. The Vite plugin in `vite.config.ts` applies these replacements
  * when it serves or builds the bundles, and fails loudly if a `from` string is missing, so a
  * rebuilt bundle can't silently drop our copy.
  *
- * Paths starting with `/app/` are routed into the PayKit app by the script in `index.html`
+ * Paths starting with `/app/` are routed into the ChainCred app by the script in `index.html`
  * (`/app/shops` opens the app's Shops page, and so on).
  */
 
@@ -32,19 +32,19 @@ export const rewrites: Rewrite[] = [
   {
     file: SITE,
     from: `"/":{title:"Andreas Kruszakin, growth-focused design engineer in Europe",description:"I'm Andreas, a growth-focused design engineer who is design first and builds the system underneath. I make founders' products easy to get, so customers buy and investors say yes, which so far has meant £1.4M raised for Neos and $172M for Schneider Electric."`,
-    to: `"/":{title:${q('PayKit, gasless USDT checkout for Whitechain')},description:${q('PayKit is an npm SDK and payment service for Whitechain. Customers pay in USDT with one signature and never need WBT for gas, and merchants get paid straight to a verified wallet.')}`,
+    to: `"/":{title:${q('ChainCred, gasless USDT checkout for Whitechain')},description:${q('ChainCred is an npm SDK and payment service for Whitechain. Customers pay in USDT with one signature and never need WBT for gas, and merchants get paid straight to a verified wallet.')}`,
   },
 
   // ── Hero ─────────────────────────────────────────────────────────────────
   {
     file: VA,
     from: `y3={before:"Designer who ships with vision",after:{lead:"Design",rest:"Engineer who ships growth"},bio:"I'm Andreas, making precise, joyful interfaces and the tools to build them, from first sketch to production so that your team ships and your business grows."}`,
-    to: `y3={before:${q('Loyalty that ships with checkout')},after:{lead:${q('Gasless')},rest:${q('USDT checkout for shops')}},bio:${q('PayKit lets any shop take USDT on Whitechain in a few lines of React. Customers sign once, never need WBT for gas, and you get paid straight to your wallet.')}}`,
+    to: `y3={before:${q('Loyalty that ships with checkout')},after:{lead:${q('Gasless')},rest:${q('USDT checkout for shops')}},bio:${q('ChainCred lets any shop take USDT on Whitechain in a few lines of React. Customers sign once, never need WBT for gas, and you get paid straight to your wallet.')}}`,
   },
 
   // ── Nav, footer links and the main call to action ───────────────────────
-  { file: VA, from: `Ge={name:"Andreas",`, to: `Ge={name:"PayKit",` },
-  // Navbar brand: the app's pixel PayKit mark and the wordmark (same as the app's navbar), not the horse.
+  { file: VA, from: `Ge={name:"Andreas",`, to: `Ge={name:"ChainCred",` },
+  // Navbar brand: the app's pixel ChainCred mark and the wordmark (same as the app's navbar), not the horse.
   {
     file: VA,
     from: 't?k.jsx(F4,{size:22,beatMs:t}):k.jsx(Mi,{size:22}),!s&&k.jsx("span",{children:Ge.name})',
@@ -58,7 +58,7 @@ export const rewrites: Rewrite[] = [
   {
     file: VC,
     from: `signature:"Andreas Kruszakin-Liboska",email:{label:$.email.href.replace("mailto:",""),href:$.email.href}`,
-    to: `signature:${q('PayKit, USDT on Whitechain')},email:{label:${q('npm i @paykit/react')},href:"/app/components"}`,
+    to: `signature:${q('ChainCred, USDT on Whitechain')},email:{label:${q('npm i @paykit/react')},href:"/app/components"}`,
   },
   {
     file: VC,
@@ -75,7 +75,7 @@ export const rewrites: Rewrite[] = [
   {
     file: COVER,
     from: `kicker:"Schneider Electric, ADIPEC",title:"A dashboard redesign that made $172M in 3 weeks"`,
-    to: `kicker:${q('PayKit merchant dashboard')},title:${q('One dashboard for sales, refunds and installment plans')}`,
+    to: `kicker:${q('ChainCred merchant dashboard')},title:${q('One dashboard for sales, refunds and installment plans')}`,
   },
   {
     file: COVER,
@@ -89,12 +89,12 @@ export const rewrites: Rewrite[] = [
   {
     file: LANDING,
     from: `media:i.jsx(Bt,{mock:"canvas",still:!0})`,
-    to: `media:i.jsx("video",{className:"block",src:"/assets/paykit-sdk-checkout.mp4",poster:"/assets/paykit-sdk-checkout.webp",autoPlay:!0,muted:!0,loop:!0,playsInline:!0,preload:"metadata","aria-label":${q('The PayKit checkout component paying an order: press and hold, sign, relay, settle')},style:{width:"100%",height:"100%",objectFit:"cover",display:"block"}})`,
+    to: `media:i.jsx("video",{className:"block",src:"/assets/paykit-sdk-checkout.mp4",poster:"/assets/paykit-sdk-checkout.webp",autoPlay:!0,muted:!0,loop:!0,playsInline:!0,preload:"metadata","aria-label":${q('The ChainCred checkout component paying an order: press and hold, sign, relay, settle')},style:{width:"100%",height:"100%",objectFit:"cover",display:"block"}})`,
   },
   {
     file: LANDING,
     from: `media:i.jsx(Ct,{screen:"sld",look:"operator",label:IA.cover.alt})`,
-    to: `media:i.jsx("video",{className:"block",src:"/assets/paykit-dashboard.mp4",poster:"/assets/paykit-dashboard.webp",autoPlay:!0,muted:!0,loop:!0,playsInline:!0,preload:"metadata","aria-label":${q('The PayKit merchant dashboard: sales, payouts and refunds')},style:{width:"100%",height:"100%",objectFit:"cover",display:"block"}})`,
+    to: `media:i.jsx("video",{className:"block",src:"/assets/paykit-dashboard.mp4",poster:"/assets/paykit-dashboard.webp",autoPlay:!0,muted:!0,loop:!0,playsInline:!0,preload:"metadata","aria-label":${q('The ChainCred merchant dashboard: sales, payouts and refunds')},style:{width:"100%",height:"100%",objectFit:"cover",display:"block"}})`,
   },
   // A tile's last argument may be a full link (ours) instead of a post id (the template's).
   {
@@ -108,7 +108,7 @@ export const rewrites: Rewrite[] = [
     [`I("dia-folders","Changing folder icons on Dia","Interface","interface",.91,"2085261870122832233")`, 'dia-folders', 'Checkout inside the shop', 'Embed', 'interface', 'https://kettle-and-leaf-five.vercel.app'],
     [`I("radial-menu","A radial menu","Interaction","interface",1.48,"2061704114640433520")`, 'radial-menu', 'USDT, no gas needed', 'Token', 'animation', '/app/wallet'],
     [`I("ceramics","A ceramic collection","3D","animation",1.64,"2092911749708325221")`, 'ceramics', 'Points that travel between shops', 'Loyalty', 'animation', '/app/shops'],
-    [`I("idea-forest","Idea Forest, a forest for your ideas","Interface","interface",1.5,"2061346759960625152")`, 'idea-forest', 'The PayKit app, in pixels', 'Mobile', 'interface', '/app/wallet'],
+    [`I("idea-forest","Idea Forest, a forest for your ideas","Interface","interface",1.5,"2061346759960625152")`, 'idea-forest', 'The ChainCred app, in pixels', 'Mobile', 'interface', '/app/wallet'],
     [`I("fluid-cd-player","A fluid CD player","Interaction","interface",1.68,"2079167183444197800")`, 'fluid-cd-player', 'Pay anyone, anywhere', 'Network', 'animation', '/app/shops'],
     [`I("cursor-traffic-lights","What if Cursor had traffic lights?","Interface","interface",.75,"2060993935023976772")`, 'cursor-traffic-lights', 'From signature to settlement', 'EIP-3009', 'animation', '/app/components'],
     [`I("pr-elevator","What if every PR was an elevator stop?","Interaction","interface",1.53,"2072207574754062722")`, 'pr-elevator', 'One command for your coding agent', 'CLI', 'interface', 'https://www.npmjs.com/package/usepaykit'],
@@ -137,7 +137,7 @@ export const rewrites: Rewrite[] = [
     to: `$i=[{lines:${q([
       "Every payment starts like stepping into a running river.",
       "A customer wants to pay in USDT, but the chain wants WBT for gas, and most people don't hold any. That's where most checkouts lose them.",
-      "So we found the one clear way through: the customer signs once, and the PayKit relayer submits the transaction and pays the gas. That's the vision part: one token, one signature, no detours.",
+      "So we found the one clear way through: the customer signs once, and the ChainCred relayer submits the transaction and pays the gas. That's the vision part: one token, one signature, no detours.",
     ])}}`,
   },
   {
@@ -168,7 +168,7 @@ export const rewrites: Rewrite[] = [
     file: VA,
     from: `{lines:["This site is cut the same way, on Cheval, the system I built for my own work.","In November I'm heading to the US, looking for a team with a river worth crossing."]}`,
     to: `{lines:${q([
-      "PayKit is cut the same way, from the contracts up to the React components.",
+      "ChainCred is cut the same way, from the contracts up to the React components.",
       "Built at ETHGlobal Mumbai, looking for shops with a river worth crossing.",
     ])}}`,
   },
@@ -197,7 +197,7 @@ export const rewrites: Rewrite[] = [
   {
     file: VA,
     from: `M4={title:"Taste notes",dek:"One decision per note, and the reasoning that got me there.",dekV7:"Writing on design, culture, and how I view the world.",more:{label:"More writing",href:"/notes"},read:"Read the note",href:e=>\`/notes/\${e.slug}\``,
-    to: `M4={title:"Build notes",dek:${q('One decision per note, and the reasoning behind it.')},dekV7:${q('Notes on payments, gas, and how we built PayKit.')},more:{label:"Open the app",href:"/app/shops"},read:"Open the app",href:e=>"/app/shops"`,
+    to: `M4={title:"Build notes",dek:${q('One decision per note, and the reasoning behind it.')},dekV7:${q('Notes on payments, gas, and how we built ChainCred.')},more:{label:"Open the app",href:"/app/shops"},read:"Open the app",href:e=>"/app/shops"`,
   },
   ...notes(),
 
@@ -205,7 +205,7 @@ export const rewrites: Rewrite[] = [
   {
     file: VA,
     from: `items:[{question:"How did you get into design?"`,
-    to: `items:[{question:${q('What is PayKit?')}`,
+    to: `items:[{question:${q('What is ChainCred?')}`,
   },
   {
     file: VA,
@@ -219,7 +219,7 @@ export const rewrites: Rewrite[] = [
     file: VA,
     from: `{question:"What's your main thing?",answer:["Design first, then the system underneath, in code. I make founders' products easy to get, so customers buy and investors say yes.","Honestly, I'm more of a people person than a design person. Design is the best excuse I've found to get what's in someone's head out where everyone can see it, and then argue about the spacing."]}`,
     to: `{question:${q('Do my customers need WBT for gas?')},answer:${q([
-      "No. They sign the payment, and the PayKit relayer submits it and pays the gas. The network fee is covered in USDT, inside the same payment.",
+      "No. They sign the payment, and the ChainCred relayer submits it and pays the gas. The network fee is covered in USDT, inside the same payment.",
       "So the only token anyone needs is the one they're paying with, and nobody has to visit an exchange before they can check out.",
     ])}}`,
   },
@@ -246,7 +246,7 @@ export const rewrites: Rewrite[] = [
       "And if your question isn't up here, ask the cloud. It has read the docs so you don't have to.",
     ])}}`,
   },
-  { file: VA, from: `"Reading Andreas's notes"`, to: q("Reading the PayKit docs") },
+  { file: VA, from: `"Reading Andreas's notes"`, to: q("Reading the ChainCred docs") },
   {
     file: VA,
     from: `tired:\`The cloud is dizzy. Email \${Nn} and Andreas will answer this one himself.\`,keyless:\`The cloud has no key yet, so it can't think. Email \${Nn} and Andreas will answer himself.\``,
@@ -286,12 +286,12 @@ function svgFlag(body: string): string {
   return "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'>${body}</svg>`).replace(/%20/g, " ")
 }
 
-/** The note cards: same covers and layout, PayKit topics. */
+/** The note cards: same covers and layout, ChainCred topics. */
 function notes(): Rewrite[] {
   const items: Array<[from: string, to: { stamp: string; title: string; call: string; lines: [string, string]; kicker: string }]> = [
     [
       `stamp:"The cooldown",title:"Where the cooldown went",call:"Agents took the bricklaying, and the bricklaying was where my head rested between decisions. Batching the thinking gives some of that rest back.",date:"2026-11-04",cover:k4,postmark:"Seoul",tone:"dusk",legend:{layout:"split",lines:["The","cooldown"],kicker:"Culture"}`,
-      { stamp: "No gas", title: "Why your customers never need WBT", call: "They sign a payment, and the PayKit relayer submits it and pays the gas. The fee is settled in USDT, so nobody has to buy a second token first.", lines: ["No", "gas"], kicker: "Checkout" },
+      { stamp: "No gas", title: "Why your customers never need WBT", call: "They sign a payment, and the ChainCred relayer submits it and pays the gas. The fee is settled in USDT, so nobody has to buy a second token first.", lines: ["No", "gas"], kicker: "Checkout" },
     ],
     [
       `stamp:"Nouns, then verbs",title:"Why do the Mac's menus read like sentences?",call:"The first Mac named its menus with nouns and filled them with verbs, so every pick finishes a sentence. Forty-two years on the Finder still parses. Most product menus don't.",date:"2026-10-29",cover:_4,postmark:"Seoul",tone:"sage",legend:{layout:"band",lines:["Nouns,","then verbs"],kicker:"Interaction"}`,
@@ -299,7 +299,7 @@ function notes(): Rewrite[] {
     ],
     [
       `stamp:"Which exit",title:"Why does Google Maps stop at the door?",call:"Even at Oxford Circus, Google Maps draws a Tube logo and a name. Naver draws every exit, the lifts and the change of line, and routes through them: the layer AR will need.",date:"2026-10-22",cover:m4,postmark:"Seoul",tone:"dusk",legend:{layout:"masthead",lines:["Which","exit"],kicker:"Wayfinding"}`,
-      { stamp: "Verified payout", title: "Why the payout wallet is tied to a domain", call: "A merchant proves they own their site before PayKit sends USDT anywhere, so a lookalike shop can't quietly redirect the money.", lines: ["Verified", "payout"], kicker: "Merchants" },
+      { stamp: "Verified payout", title: "Why the payout wallet is tied to a domain", call: "A merchant proves they own their site before ChainCred sends USDT anywhere, so a lookalike shop can't quietly redirect the money.", lines: ["Verified", "payout"], kicker: "Merchants" },
     ],
     [
       `stamp:"Hidden system",title:"The hidden design system in album covers",call:"Line up a run of covers from one artist and the rules show. Sakepnk changes one shape per song, ziproom changes the place around the two of them, and both let you spot their records before you read a word.",date:"2026-10-20",cover:w4,postmark:"Seoul",tone:"dusk",legend:{layout:"masthead",lines:["Hidden","system"],kicker:"Culture"}`,

@@ -17,7 +17,7 @@ export function SpendingChart({ activity, connected, loading }: { activity: Acti
       <div className="chart-bars" role="group" aria-label="Payment amounts by date">
         {overview.buckets.map((bucket, index) => <button key={bucket.label} className={`chart-column ${selected === index ? 'chart-column--selected' : ''}`} aria-label={`${bucket.label}: ${bucket.value.toFixed(2)} USDT, ${bucket.count} payments`} aria-pressed={selected === index} onClick={() => setSelected(selected === index ? null : index)}><span className="chart-column__track"><i style={{ height: bucket.value ? `${Math.max(4, bucket.value / max * 100)}%` : '3px' }} /></span><span>{range === '7d' ? bucket.label.split(' ')[1] || bucket.label : bucket.label}</span></button>)}
       </div>
-      {!overview.count && <div className="chart-empty"><Icon name="receipt" size={23} /><b>{loading ? 'Bringing your activity together' : connected ? 'Your next payment starts the story' : 'A clearer picture of your payments'}</b><span>{connected ? 'Your payments will appear here.' : 'One place for every PayKit purchase.'}</span></div>}
+      {!overview.count && <div className="chart-empty"><Icon name="receipt" size={23} /><b>{loading ? 'Bringing your activity together' : connected ? 'Your next payment starts the story' : 'A clearer picture of your payments'}</b><span>{connected ? 'Your payments will appear here.' : 'One place for every ChainCred purchase.'}</span></div>}
     </div>
     <div className="chart-caption" aria-live="polite">{chosen ? <><span>{chosen.label}</span><b>{chosen.value.toFixed(2)} USDT · {chosen.count} payments</b></> : <><span><i />Settled payments</span><span>USDT on Whitechain</span></>}</div>
   </section>

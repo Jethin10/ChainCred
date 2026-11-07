@@ -4,7 +4,7 @@ import {
   type Invoice, type Offers, type Plan, type Quote, type QuoteStatus, type Receipt, type Subscribe, type Subscription,
 } from './server'
 
-/** Hosted checkout for an invoice on the live PayKit server: real USDT on Whitechain testnet. */
+/** Hosted checkout for an invoice on the live ChainCred server: real USDT on Whitechain testnet. */
 export function PayPage({ invoiceId }: { invoiceId: string }) {
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [account, setAccount] = useState<string | null>(null)
@@ -104,7 +104,7 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
           <dt>Total</dt><dd>{usdt(invoice.amount)}</dd>
           {Number(invoice.amountPaid) > 0 && <><dt>Already paid</dt><dd>{usdt(invoice.amountPaid)}</dd></>}
           {chosen && <><dt>Points discount</dt><dd className="pk-good">−{usdt(chosen.discount!)}</dd></>}
-          <dt>Network fee</dt><dd>0 WBT, PayKit pays the gas</dd>
+          <dt>Network fee</dt><dd>0 WBT, ChainCred pays the gas</dd>
           {invoice.merchant?.profile?.website && <><dt>Merchant</dt><dd><a className="pk-link" href={invoice.merchant.profile.website} target="_blank" rel="noreferrer">{invoice.merchant.profile.website.replace(/^https?:\/\//, '')}</a></dd></>}
         </dl>
 
@@ -114,7 +114,7 @@ export function PayPage({ invoiceId }: { invoiceId: string }) {
             {receipt.payment && receipt.payment.pointsEarned > 0 ? `, and you earned ${receipt.payment.pointsEarned} points` : ''}.{' '}
             {status?.txUrl && <a className="pk-link" href={status.txUrl} target="_blank" rel="noreferrer">View transaction</a>}
             {invoice.successUrl && <><br /><a className="pk-button pk-button--primary livepay__back" href={invoice.successUrl}>Back to {invoice.merchant?.name ?? 'the shop'}{returnIn !== null && returnIn > 0 ? ` (${returnIn})` : ''}</a></>}
-            <br /><a className="pk-link" href="#wallet">See it in your PayKit wallet</a>
+            <br /><a className="pk-link" href="#wallet">See it in your ChainCred wallet</a>
           </State>
         ) : due <= 0 ? (
           <State kind="info" title="This invoice is already paid." />
@@ -220,7 +220,7 @@ export function SubscribePage({ planId }: { planId: string }) {
           <dt>Scheduled charges</dt><dd>{plan.scheduledCharges}</dd>
           <dt>Total</dt><dd>{usdt(plan.total)}</dd>
           {terms && <><dt>First scheduled charge</dt><dd>{new Date(terms.firstScheduledCharge).toLocaleString()}</dd></>}
-          <dt>Network fee</dt><dd>0 WBT, PayKit pays the gas</dd>
+          <dt>Network fee</dt><dd>0 WBT, ChainCred pays the gas</dd>
         </dl>
         {step === 'done' && sub ? (
           <State kind="info" title={sub.status === 'active' ? 'Subscribed.' : `Plan ${sub.status}.`}>

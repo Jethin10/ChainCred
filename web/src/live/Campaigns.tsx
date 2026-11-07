@@ -117,7 +117,7 @@ export function Campaigns({ token, onAuthError }: { token: string; onAuthError: 
       <div className="camp__head">
         <div>
           <h3 className="pk-panel__title">Campaigns</h3>
-          <p className="pk-muted">Reward customers with PayKit points when they pay, and let them spend points with you. Run as many as you like.</p>
+          <p className="pk-muted">Reward customers with ChainCred points when they pay, and let them spend points with you. Run as many as you like.</p>
         </div>
         <button type="button" className="pk-button pk-button--primary" onClick={() => setEditing(tab === 'earn' ? { kind: 'earn', item: null } : { kind: 'spend', item: null })}>
           {tab === 'earn' ? 'New earn campaign' : 'New spend offer'}
@@ -129,7 +129,7 @@ export function Campaigns({ token, onAuthError }: { token: string; onAuthError: 
           <div><span>Points given</span><b>{fmt(summary.issued.points)}</b><small>{summary.issued.customers} customers</small></div>
           <div><span>Points spent with you</span><b>{fmt(summary.redeemedAtYou.points)}</b><small>{summary.redeemedAtYou.redemptions} orders</small></div>
           <div><span>Discounts given</span><b>{usdt(summary.redeemedAtYou.discountGiven)}</b><small>funded by you</small></div>
-          <div><span>New customers via points</span><b>{summary.redeemedAtYou.newCustomersViaPoints}</b><small>from other PayKit shops</small></div>
+          <div><span>New customers via points</span><b>{summary.redeemedAtYou.newCustomersViaPoints}</b><small>from other ChainCred shops</small></div>
         </div>
       )}
 

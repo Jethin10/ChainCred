@@ -29,7 +29,7 @@ function publicMerchant(m) {
   };
 }
 
-/** What a merchant shows customers on PayKit pages. Everything optional; unknown keys dropped. */
+/** What a merchant shows customers on ChainCred pages. Everything optional; unknown keys dropped. */
 function cleanProfile(p) {
   if (!p || typeof p !== "object") return null;
   const str = (v, max) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
@@ -43,23 +43,23 @@ function cleanProfile(p) {
 
 /** The exact text the payout wallet signs to onboard (personal_sign). */
 function onboardingMessage(name, payout, time) {
-  return `PayKit merchant onboarding
+  return `ChainCred merchant onboarding
 
 Business: ${name}
 Payout wallet: ${payout}
 Time: ${time}
 
-I control this wallet and want PayKit to send my sales to it.`;
+I control this wallet and want ChainCred to send my sales to it.`;
 }
 
 /** The exact text the payout wallet signs to open the merchant console (personal_sign). */
 function loginMessage(payout, time) {
-  return `PayKit merchant sign-in
+  return `ChainCred merchant sign-in
 
 Wallet: ${payout}
 Time: ${time}
 
-Sign in to my PayKit merchant console. This is free and moves no money.`;
+Sign in to my ChainCred merchant console. This is free and moves no money.`;
 }
 
 function createMerchantService(store, relayer, webhooks) {
@@ -116,7 +116,7 @@ function createMerchantService(store, relayer, webhooks) {
     try { signer = ethers.verifyMessage(loginMessage(payout, body.time), String(body.signature || "")); } catch { signer = null; }
     if (!signer || signer !== payout) throw new HttpError(401, "invalid_signature", "The signature must come from this wallet");
     const m = await store.findOne("merchants", { payoutAddress: payout });
-    if (!m) throw new HttpError(404, "not_a_merchant", "This wallet has no PayKit merchant account yet");
+    if (!m) throw new HttpError(404, "not_a_merchant", "This wallet has no ChainCred merchant account yet");
     return { merchant: publicMerchant(m), session: issueSession(m) };
   }
 
@@ -215,7 +215,7 @@ function createMerchantService(store, relayer, webhooks) {
 
   async function sendTestWebhook(merchant) {
     if (!merchant.webhookUrl) throw new HttpError(400, "no_webhook", "Set webhookUrl first");
-    return webhooks.enqueue(merchant, "test.ping", { message: "Hello from PayKit" });
+    return webhooks.enqueue(merchant, "test.ping", { message: "Hello from ChainCred" });
   }
 
   /**
@@ -233,7 +233,7 @@ function createMerchantService(store, relayer, webhooks) {
     let signer;
     try { signer = ethers.verifyMessage(message, String(body.signature || "")); } catch { signer = null; }
     if (!signer || signer !== payout) throw new HttpError(401, "invalid_signature", "The signature must come from the payout wallet");
-    if (await store.findOne("merchants", { payoutAddress: payout })) throw new HttpError(409, "already_onboarded", "This wallet already has a PayKit merchant account");
+    if (await store.findOne("merchants", { payoutAddress: payout })) throw new HttpError(409, "already_onboarded", "This wallet already has a ChainCred merchant account");
     const recent = (await store.find("merchants", {}, { limit: 25 })).filter((m) => Date.now() - Date.parse(m.createdAt) < 3600_000);
     if (recent.length >= 12) throw new HttpError(429, "busy", "Too many sign-ups this hour, try again soon");
     return create({ name, payoutAddress: payout, webhookUrl: body.webhookUrl, profile: body.profile });

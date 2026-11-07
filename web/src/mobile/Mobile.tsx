@@ -72,7 +72,7 @@ export function MobileProvider({ children }: { children: ReactNode }) {
     if (busy) return
     setBusy(true); setError(''); setStatus('')
     try {
-      if (action === 'enable') { setCredential(await enrollDevice()); setStatus('Device unlock is on. PayKit will lock when reopened or after a minute away.') }
+      if (action === 'enable') { setCredential(await enrollDevice()); setStatus('Device unlock is on. ChainCred will lock when reopened or after a minute away.') }
       else if (credential) {
         await unlockDevice(credential)
         if (action === 'disable') { removeDeviceCredential(); setCredential(null); setStatus('Device unlock is off.') }
@@ -84,25 +84,25 @@ export function MobileProvider({ children }: { children: ReactNode }) {
   const install = async () => {
     if (!prompt) return
     try { await prompt.prompt(); await prompt.userChoice; setPrompt(null) }
-    catch { setError('Installation did not open. Use your browser menu to add PayKit to your home screen.') }
+    catch { setError('Installation did not open. Use your browser menu to add ChainCred to your home screen.') }
   }
   const openScan = useCallback(() => setScan(true), [])
   const openSettings = useCallback(() => { setError(''); setStatus(''); setSettings(true) }, [])
   if (locked && credential) return <div className="device-lock">
     <PixelSky seed={4} />
-    <a className="device-lock__brand" href="#wallet"><Mark /><span>PayKit</span></a>
-    <div className="device-lock__body"><div className="device-lock__finger"><Icon name="fingerprint" size={66} /></div><p className="pixel">A little privacy, by design.</p><h1>Just for you.</h1><p>Unlock PayKit with your fingerprint, face, or device PIN.</p><button className="mobile-primary" disabled={busy} onClick={() => void act('unlock')}><Icon name="fingerprint" />{busy ? 'Verifying…' : 'Unlock PayKit'}</button>{error && <p className="mobile-error" role="alert">{error}</p>}<p className="device-lock__note">Your device verifies you. Your wallet stays in your control.</p><details><summary>Having trouble unlocking?</summary><p>Use your device’s PIN in the verification prompt. If the unlock key has been removed, reset this site’s data in browser settings and reconnect your wallet. This only resets PayKit on this device.</p></details></div>
+    <a className="device-lock__brand" href="#wallet"><Mark /><span>ChainCred</span></a>
+    <div className="device-lock__body"><div className="device-lock__finger"><Icon name="fingerprint" size={66} /></div><p className="pixel">A little privacy, by design.</p><h1>Just for you.</h1><p>Unlock ChainCred with your fingerprint, face, or device PIN.</p><button className="mobile-primary" disabled={busy} onClick={() => void act('unlock')}><Icon name="fingerprint" />{busy ? 'Verifying…' : 'Unlock ChainCred'}</button>{error && <p className="mobile-error" role="alert">{error}</p>}<p className="device-lock__note">Your device verifies you. Your wallet stays in your control.</p><details><summary>Having trouble unlocking?</summary><p>Use your device’s PIN in the verification prompt. If the unlock key has been removed, reset this site’s data in browser settings and reconnect your wallet. This only resets ChainCred on this device.</p></details></div>
     <span className="device-lock__footer pixel">Your wallet. Your world.</span>
   </div>
   return <MobileContext.Provider value={{ scan: openScan, settings: openSettings, installed, online }}>
     {children}
     {!online && <div className="mobile-network" role="status"><span /> You’re offline. Connect to refresh invoices or pay.</div>}
-    {update && !scan && !settings && <div className="mobile-update" role="status"><span>A fresh PayKit is ready.</span><button onClick={() => { applying.current = true; registration?.waiting?.postMessage({ type: 'SKIP_WAITING' }) }}>Update app</button><button aria-label="Dismiss update" onClick={() => setUpdate(false)}><Icon name="close" size={16} /></button></div>}
+    {update && !scan && !settings && <div className="mobile-update" role="status"><span>A fresh ChainCred is ready.</span><button onClick={() => { applying.current = true; registration?.waiting?.postMessage({ type: 'SKIP_WAITING' }) }}>Update app</button><button aria-label="Dismiss update" onClick={() => setUpdate(false)}><Icon name="close" size={16} /></button></div>}
     {scan && <Suspense fallback={<Sheet title="Scan to pay" onClose={() => setScan(false)}><p role="status">Preparing your scanner…</p></Sheet>}><Scanner onClose={() => setScan(false)} /></Suspense>}
     {settings && <Sheet title="Make it yours" onClose={() => setSettings(false)}>
-      <p className="mobile-sheet__lead">PayKit, with the comforts of home.</p>
-      <section className="device-setting device-setting--install"><span className="device-setting__icon"><Icon name="download" size={26} /></span><div><h3>{installed ? 'Right at home' : 'A home for your wallet'}</h3><p>{installed ? 'PayKit is installed on this device. Open it from your home screen, whenever you need it.' : 'Keep PayKit on your home screen. Open straight to your wallet, with more room and less browser.'}</p></div>{!installed && (prompt ? <button className="mobile-primary" onClick={() => void install()}>Install PayKit <Icon name="arrow" /></button> : <div className="install-instructions"><p><b>iPhone or iPad</b><br />Open in Safari, tap Share, then Add to Home Screen.</p><p><b>Android or desktop</b><br />Open your browser menu and choose Install app or Add to Home screen.</p></div>)}</section>
-      <section className="device-setting"><span className="device-setting__icon"><Icon name="fingerprint" size={28} /></span><div><h3>Device unlock <span className={`setting-badge ${credential ? 'setting-badge--on' : ''}`}>{credential ? 'On' : 'Off'}</span></h3><p>Use your fingerprint, face, or device PIN to open PayKit. Your biometric data stays with your device.</p></div>
+      <p className="mobile-sheet__lead">ChainCred, with the comforts of home.</p>
+      <section className="device-setting device-setting--install"><span className="device-setting__icon"><Icon name="download" size={26} /></span><div><h3>{installed ? 'Right at home' : 'A home for your wallet'}</h3><p>{installed ? 'ChainCred is installed on this device. Open it from your home screen, whenever you need it.' : 'Keep ChainCred on your home screen. Open straight to your wallet, with more room and less browser.'}</p></div>{!installed && (prompt ? <button className="mobile-primary" onClick={() => void install()}>Install ChainCred <Icon name="arrow" /></button> : <div className="install-instructions"><p><b>iPhone or iPad</b><br />Open in Safari, tap Share, then Add to Home Screen.</p><p><b>Android or desktop</b><br />Open your browser menu and choose Install app or Add to Home screen.</p></div>)}</section>
+      <section className="device-setting"><span className="device-setting__icon"><Icon name="fingerprint" size={28} /></span><div><h3>Device unlock <span className={`setting-badge ${credential ? 'setting-badge--on' : ''}`}>{credential ? 'On' : 'Off'}</span></h3><p>Use your fingerprint, face, or device PIN to open ChainCred. Your biometric data stays with your device.</p></div>
         {supported === false && !credential ? <p className="device-setting__hint">Device unlock isn’t available in this browser. Try an HTTPS connection in Safari, Chrome, or Edge on a device with a screen lock.</p> : <button className={credential ? 'mobile-secondary' : 'mobile-primary'} disabled={busy || supported === null} onClick={() => void act(credential ? 'disable' : 'enable')}><Icon name="fingerprint" />{busy ? 'Waiting for your device…' : supported === null ? 'Checking device…' : credential ? 'Turn off device unlock' : 'Enable device unlock'}</button>}
         {credential && <button className="mobile-text-button" onClick={() => { setSettings(false); setLocked(true) }}><Icon name="shield" size={18} /> Lock now</button>}
       </section>

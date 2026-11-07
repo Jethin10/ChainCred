@@ -6,7 +6,7 @@ import type { Rewrite } from "./rewrites.ts"
  */
 export const perf: Rewrite[] = [
   // The router warmed every route once the page went idle, about 1.6 MB of JavaScript for pages
-  // that redirect into the PayKit app. Only the landing page is warmed now.
+  // that redirect into the ChainCred app. Only the landing page is warmed now.
   {
     file: "site-Dg9eCcF_.js",
     from: "const q=Object.keys(Yn).filter(M=>!hi.has(M))",

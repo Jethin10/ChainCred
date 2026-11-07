@@ -1,4 +1,4 @@
-# PayKit app
+# ChainCred app
 
 The SDK showcase and app pages: SDK components (`#components`), Shops, Invoice, Payments and Merchant.
 It uses the landing page's design: pixel-dithered sky, Da Vinci italic headings, Geist text, Chicago pixel labels
@@ -6,7 +6,7 @@ and black pill buttons. The fonts are in `public/fonts`, the theme is in `src/in
 canvas and page transition are in `src/theme/pixels.tsx`.
 
 ```sh
-npm run server:demo   # PayKit API on :8787, simulated chain, demo shops
+npm run server:demo   # ChainCred API on :8787, simulated chain, demo shops
 npm run dev           # this app on :5174; /v1 is proxied to the API
 npm run frontend      # landing page on :5176; its CTAs open this app
 ```

@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "PayKit · Your wallet, every shop",
-  "short_name": "PayKit",
-  "description": "Scan to pay. Find your invoices. Take your points to every PayKit shop.",
+  "name": "ChainCred · Your wallet, every shop",
+  "short_name": "ChainCred",
+  "description": "Scan to pay. Find your invoices. Take your points to every ChainCred shop.",
   "lang": "en",
   "start_url": "./#wallet",
   "scope": "./",

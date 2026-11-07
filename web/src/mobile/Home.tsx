@@ -127,7 +127,7 @@ export function Home() {
       <PixelSky seed={3} cell={14} clearCenter={false} />
       <div className="m-ticket">
         <div className="m-ticket__top">
-          <span className="m-label">PayKit points</span>
+          <span className="m-label">ChainCred points</span>
           <button className="m-chip" onClick={() => setSheet('wallet')}><i data-on={live} />{sample ? 'Sample wallet' : address ? short(address) : 'Not connected'}</button>
         </div>
         <p className="m-ticket__balance" aria-label={`${live ? balance ?? 0 : 0} points`}>{live && balance === null ? '—' : shown.toLocaleString()}<small>PKP</small></p>

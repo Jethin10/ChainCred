@@ -60,7 +60,7 @@ export default function Scanner({ onClose }: { onClose: () => void }) {
     finally { setReading(false); if (input.current) input.current.value = '' }
   }
   return <Sheet title="Scan to pay" onClose={onClose} className="scanner-sheet">
-    <p className="mobile-sheet__lead">Point your camera at a PayKit QR. You’ll review the invoice before paying.</p>
+    <p className="mobile-sheet__lead">Point your camera at a ChainCred QR. You’ll review the invoice before paying.</p>
     {target ? <div className="scan-result">
       <span className="scan-result__check"><Icon name="check" size={30} /></span><h3>Invoice found</h3><p>Ready for a closer look.</p><code>{target.replace(/^pay\//, '')}</code>
       <button className="mobile-primary" onClick={() => { location.hash = target; onClose() }}>Review invoice <Icon name="arrow" /></button>
@@ -71,7 +71,7 @@ export default function Scanner({ onClose }: { onClose: () => void }) {
         <div className="scan-view__frame" aria-hidden="true"><i /><i /><i /><i />{ready && running && <span />}</div>
         {!running && <div className="scan-view__empty"><Icon name="scan" size={46} /><span>Your next checkout,<br />one scan away.</span><button className="scan-start" onClick={startCamera}><Icon name="camera" size={18} /> Enable camera</button></div>}
         {running && !ready && <p className="scan-view__loading" role="status">Opening camera…</p>}
-        {running && ready && <span className="scan-view__status"><i /> Looking for a PayKit QR</span>}
+        {running && ready && <span className="scan-view__status"><i /> Looking for a ChainCred QR</span>}
       </div>
       <div className="scan-tools"><button onClick={() => input.current?.click()} disabled={reading}><Icon name="image" size={19} />{reading ? 'Reading image…' : 'Upload QR image'}</button>
         {running && flash && <button aria-pressed={torch} onClick={() => void scanner.current?.toggleFlash().then(() => setTorch(scanner.current?.isFlashOn() ?? false)).catch(() => setError('Flashlight unavailable on this camera.'))}><Icon name="flash" size={18} /> Light</button>}
@@ -79,7 +79,7 @@ export default function Scanner({ onClose }: { onClose: () => void }) {
       </div>
       <input type="file" accept="image/*" ref={input} hidden onChange={(e) => void fromImage(e.target.files?.[0])} />
       <div className="scan-divider"><span>or use a payment link</span></div>
-      <form className="scan-manual" onSubmit={(e) => { e.preventDefault(); accept(manual) }}><label htmlFor="scan-link">Invoice link or ID</label><div><input id="scan-link" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Paste a PayKit link or inv_…" value={manual} onChange={(e) => setManual(e.target.value)} /><button className="mobile-icon-button" aria-label="Review pasted invoice" disabled={!manual.trim()}><Icon name="arrow" /></button></div></form>
+      <form className="scan-manual" onSubmit={(e) => { e.preventDefault(); accept(manual) }}><label htmlFor="scan-link">Invoice link or ID</label><div><input id="scan-link" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Paste a ChainCred link or inv_…" value={manual} onChange={(e) => setManual(e.target.value)} /><button className="mobile-icon-button" aria-label="Review pasted invoice" disabled={!manual.trim()}><Icon name="arrow" /></button></div></form>
     </>}
     {error && <p className="mobile-error" role="alert">{error}</p>}
     <p className="scan-privacy"><Icon name="shield" size={16} /> Your camera stays on your device.</p>

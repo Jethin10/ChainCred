@@ -43,15 +43,15 @@ type Page = 'components' | 'shops' | 'wallet' | 'merchant' | 'pay'
 
 const PAGES: Array<{ key: Page; label: string; eyebrow: string; title: string; lead: string }> = [
   { key: 'components', label: 'SDK', eyebrow: '@paykit/react', title: 'Components you own', lead: 'Copy the view, keep the payment logic in the SDK. Every preview runs a real checkout flow on simulated funds.' },
-  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Every shop that takes PayKit. Pay on their sites with one signature, and your invoices and points show up here.' },
+  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Every shop that takes ChainCred. Pay on their sites with one signature, and your invoices and points show up here.' },
   { key: 'wallet', label: 'Wallet', eyebrow: 'Your wallet', title: 'One wallet, every shop', lead: 'Invoices, receipts and points in one place. Real test USDT on Whitechain.' },
   { key: 'merchant', label: 'Merchant', eyebrow: 'For businesses', title: 'Get paid in USDT, your way', lead: 'Sign up in two minutes, brand your checkout, join the points network, and start sending invoices.' },
 ]
 
 // The landing page (frontend/) links here as /#components, /#shops, /#invoice, /#me or /#merchant;
 // #invoice and #me now open the wallet (where customers find their invoices).
-// Pay links from the live PayKit server open #pay/<invoiceId>; plan links open #pay/subscribe/<planId>.
-const PAY_META = { key: 'pay' as const, label: 'Pay', eyebrow: 'Checkout · Whitechain testnet', title: 'Pay with USDT', lead: 'Real test USDT, settled onchain. Sign once in your wallet; PayKit pays the gas.' }
+// Pay links from the live ChainCred server open #pay/<invoiceId>; plan links open #pay/subscribe/<planId>.
+const PAY_META = { key: 'pay' as const, label: 'Pay', eyebrow: 'Checkout · Whitechain testnet', title: 'Pay with USDT', lead: 'Real test USDT, settled onchain. Sign once in your wallet; ChainCred pays the gas.' }
 const pageFromHash = (): Page => {
   const head = window.location.hash.split('/')[0]
   if (head === '#pay') return 'pay'
@@ -102,7 +102,7 @@ export default function DesktopApp() {
           <div className="dock" role="group" aria-label="Preview wallet">
             <div className="dock__label">
               <span className="pixel">Wallet</span>
-              <span>{backend.source === 'live' ? 'Real requests to the live PayKit API, in test mode: orders here never move real funds.' : 'Simulated in your browser. Nothing touches a chain.'}</span>
+              <span>{backend.source === 'live' ? 'Real requests to the live ChainCred API, in test mode: orders here never move real funds.' : 'Simulated in your browser. Nothing touches a chain.'}</span>
               {backend.testMode && <span className="testmode" title="Orders here are simulated. Real USDT only moves on hosted pay links.">Test mode · no real funds</span>}
             </div>
             <div className="dock__chips" role="radiogroup" aria-label="Choose wallet">
@@ -145,7 +145,7 @@ function TopBar({ page, backend }: { page: Page; backend: Backend }) {
   return (
     <div className="topbar">
       <nav className="navpill" ref={nav} aria-label="Pages">
-        <a className="navpill__brand" href={SITE_URL} aria-label="PayKit home"><Mark /><span>PayKit</span></a>
+        <a className="navpill__brand" href={SITE_URL} aria-label="ChainCred home"><Mark /><span>ChainCred</span></a>
         {pill && <span className="navpill__glide" style={{ transform: `translateX(${pill.left}px)`, width: pill.width }} aria-hidden="true" />}
         {PAGES.map((p) => (
           <a key={p.key} href={`#${p.key}`} className="navpill__link" aria-current={page === p.key ? 'page' : undefined}>{p.label}</a>
@@ -157,7 +157,7 @@ function TopBar({ page, backend }: { page: Page; backend: Backend }) {
           className={live ? 'source source--live' : 'source'}
           onClick={() => backend.setSource(live ? 'mock' : 'live')}
           disabled={!live && !backend.reachable}
-          title={backend.reachable ? `PayKit API at ${backend.apiUrl}` : 'Start the API with npm run server:demo to go live'}
+          title={backend.reachable ? `ChainCred API at ${backend.apiUrl}` : 'Start the API with npm run server:demo to go live'}
         >
           <span className="source__dot" aria-hidden="true" />
           <span className="pixel">{live ? (backend.testMode ? 'Live · test mode' : 'Live API') : backend.reachable === null ? 'Checking' : 'Simulated'}</span>
@@ -200,7 +200,7 @@ function Footer() {
         <div>{[...words, ...words].map((w, i) => <span key={i}>{w}<i>✦</i></span>)}</div>
       </div>
       <div className="foot__row">
-        <span className="pixel">PayKit, gasless checkout</span>
+        <span className="pixel">ChainCred, gasless checkout</span>
         <nav aria-label="Footer">
           <a href={SITE_URL}>Landing</a>
           <a href="#components">SDK</a>

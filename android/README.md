@@ -1,6 +1,6 @@
-# PayKit Android installer
+# ChainCred Android installer
 
-This Android app installs PayKit on your home screen and launches the hosted
+This Android app installs ChainCred on your home screen and launches the hosted
 PWA in a Trusted Web Activity. It uses the browser's camera permissions,
 WebAuthn device unlock, and service worker rather than embedding a WebView.
 Android 7 or newer and Chrome or another compatible browser are required. The first launch needs
@@ -8,7 +8,7 @@ internet access; later launches can use the PWA's cached shell.
 
 Download `PayKit-Android.apk` from [GitHub Releases](https://github.com/Jethin10/PayKit/releases/latest).
 Open it on Android, allow installation from that download source when prompted,
-then tap Install. Open PayKit from the home screen.
+then tap Install. Open ChainCred from the home screen.
 
 ## Rebuild
 

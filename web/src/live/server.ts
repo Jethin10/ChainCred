@@ -1,4 +1,4 @@
-// Client for the live PayKit server (paykit-server on Vercel) and the browser wallet that pays on
+// Client for the live ChainCred server (paykit-server on Vercel) and the browser wallet that pays on
 // Whitechain testnet. Pay links from the server open this app at #pay/<invoiceId>, plan links at
 // #pay/subscribe/<planId>.
 
@@ -33,7 +33,7 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
       signal: init?.signal,
     })
   } catch {
-    throw new ServerError('Could not reach the PayKit server. Check your connection and try again.')
+    throw new ServerError('Could not reach the ChainCred server. Check your connection and try again.')
   }
   const text = await res.text()
   const data = text ? JSON.parse(text) : null
@@ -167,7 +167,7 @@ export async function connectWallet(): Promise<string> {
   if (!eth) {
     if (isMobileWallet()) {
       window.location.href = `https://link.metamask.io/dapp/${location.host}${location.pathname}${location.search}${location.hash}`
-      throw new ServerError('Continue in MetaMask to connect your wallet, then return to PayKit when you are done.')
+      throw new ServerError('Continue in MetaMask to connect your wallet, then return to ChainCred when you are done.')
     }
     window.open('https://metamask.io/download/', '_blank', 'noopener,noreferrer')
     throw new ServerError('Install MetaMask, then return here to connect your wallet.')
@@ -311,19 +311,19 @@ export type PointsSummary = {
 
 /** The exact text the payout wallet signs to open the console (must match paykit-server's loginMessage). */
 export const loginMessage = (payout: string, time: string) =>
-  `PayKit merchant sign-in
+  `ChainCred merchant sign-in
 
 Wallet: ${payout}
 Time: ${time}
 
-Sign in to my PayKit merchant console. This is free and moves no money.`
+Sign in to my ChainCred merchant console. This is free and moves no money.`
 
 /** The exact text the payout wallet signs (must match paykit-server's onboardingMessage). */
 export const onboardingMessage = (name: string, payout: string, time: string) =>
-  `PayKit merchant onboarding
+  `ChainCred merchant onboarding
 
 Business: ${name}
 Payout wallet: ${payout}
 Time: ${time}
 
-I control this wallet and want PayKit to send my sales to it.`
+I control this wallet and want ChainCred to send my sales to it.`

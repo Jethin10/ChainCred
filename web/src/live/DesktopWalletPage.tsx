@@ -10,16 +10,16 @@ import './desktop-shops.css'
 
 type Section = 'overview' | 'activity' | 'points'
 const SECTIONS: Array<{ key: Section; label: string; title: string; lead: string }> = [
-  { key: 'overview', label: 'Overview', title: 'Your wallet', lead: 'What you spent, what you earned, and where. Every PayKit purchase in one place, on Whitechain testnet.' },
+  { key: 'overview', label: 'Overview', title: 'Your wallet', lead: 'What you spent, what you earned, and where. Every ChainCred purchase in one place, on Whitechain testnet.' },
   { key: 'activity', label: 'Invoices & receipts', title: 'Invoices & receipts', lead: 'Every payment from this wallet, with its invoice, onchain transaction and the points it earned.' },
-  { key: 'points', label: 'Points', title: 'PayKit points', lead: 'One balance that works at every PayKit shop. Earn on each purchase, spend them for a discount anywhere.' },
+  { key: 'points', label: 'Points', title: 'ChainCred points', lead: 'One balance that works at every ChainCred shop. Earn on each purchase, spend them for a discount anywhere.' },
 ]
 const sectionFromHash = (): Section => SECTIONS.find((s) => s.key === location.hash.split('/')[1])?.key ?? 'overview'
 const money = (v: string | number) => Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '')
 const isAddress = (s: string) => /^0x[0-9a-fA-F]{40}$/.test(s.trim())
 
-/** The customer's wallet: invoices, receipts and points from every PayKit shop. Reads the live PayKit server. */
+/** The customer's wallet: invoices, receipts and points from every ChainCred shop. Reads the live ChainCred server. */
 export function WalletPage() {
   const mobile = useMobile()
   const [section, setSection] = useState(sectionFromHash)
@@ -64,7 +64,7 @@ export function WalletPage() {
         <button type="button" onClick={mobile.settings}><Icon name={mobile.installed ? 'fingerprint' : 'download'} size={17} /> App & device</button>
         <button type="button" onClick={() => { location.hash = '#shops' }}><Icon name="shops" size={17} /> Browse shops</button>
       </div>
-      <div className="docs-sidebar__note">Your keys stay in your wallet.<br />PayKit only reads public receipts.</div>
+      <div className="docs-sidebar__note">Your keys stay in your wallet.<br />ChainCred only reads public receipts.</div>
     </aside>
 
     <section className="docs-content" aria-label={meta.title}>
@@ -91,7 +91,7 @@ function ConnectPanel({ onConnect, onLookup }: { onConnect: () => void; onLookup
     <div className="docs-stage">
       <div className="wallet-connect">
         <h2>Bring your receipts together</h2>
-        <p>Connect the wallet you pay with to see every invoice, receipt and point from every PayKit shop.</p>
+        <p>Connect the wallet you pay with to see every invoice, receipt and point from every ChainCred shop.</p>
         <button type="button" className="wallet-btn wallet-btn--block" onClick={onConnect}>{hasWallet() ? 'Connect MetaMask' : isMobileWallet() ? 'Open MetaMask' : 'Install MetaMask'}</button>
         <span className="wallet-connect__or">or look one up</span>
         <form className="wallet-form" onSubmit={(e) => { e.preventDefault(); if (isAddress(lookup)) onLookup(lookup.trim()) }}>
@@ -115,8 +115,8 @@ function Overview({ activity, points, loading }: { activity: Activity[] | null; 
   return <>
     <div className="docs-panel">
       <div className="wallet-stats">
-        <div className="wallet-stat"><span>Paid with PayKit</span><b>{money(paid)}<small>USDT</small></b><em>{list.length} payments across {shops} {shops === 1 ? 'shop' : 'shops'}</em></div>
-        <div className="wallet-stat"><span>Points balance</span><b>{points ? points.balance.toLocaleString() : '…'}<small>PKP</small></b><em>Spend them at any PayKit shop</em></div>
+        <div className="wallet-stat"><span>Paid with ChainCred</span><b>{money(paid)}<small>USDT</small></b><em>{list.length} payments across {shops} {shops === 1 ? 'shop' : 'shops'}</em></div>
+        <div className="wallet-stat"><span>Points balance</span><b>{points ? points.balance.toLocaleString() : '…'}<small>PKP</small></b><em>Spend them at any ChainCred shop</em></div>
         <div className="wallet-stat"><span>Lifetime</span><b>+{points?.lifetimeEarned ?? 0}<small>earned</small></b><em>{points?.lifetimeRedeemed ?? 0} PKP spent on discounts</em></div>
       </div>
       <div className="docs-demo-bar"><span><i /> Spending · after refunds</span>
@@ -140,7 +140,7 @@ function Overview({ activity, points, loading }: { activity: Activity[] | null; 
 
 function ActivityList({ activity, loading }: { activity: Activity[] | null; loading: boolean }) {
   if (activity === null) return <div className="wallet-empty" role="status">{loading ? 'Loading your payments…' : ''}</div>
-  if (!activity.length) return <div className="wallet-empty"><Icon name="receipt" size={26} /><b>Nothing paid from this wallet yet</b><span>Shop at any store in <a href="#shops">Shops</a> and pay with PayKit. The invoice shows up here.</span></div>
+  if (!activity.length) return <div className="wallet-empty"><Icon name="receipt" size={26} /><b>Nothing paid from this wallet yet</b><span>Shop at any store in <a href="#shops">Shops</a> and pay with ChainCred. The invoice shows up here.</span></div>
   return <ul className="wallet-list">
     {activity.map((a) => <li key={a.id} className="wallet-row">
       <span className="wallet-row__icon"><Icon name="receipt" size={19} /></span>
@@ -163,11 +163,11 @@ function PointsView({ points, wallet }: { points: PointsWallet | null; wallet: s
     <ArkivPoints wallet={wallet} />
     <div className="docs-panel">
       <div className="wallet-stats">
-        <div className="wallet-stat"><span>Balance</span><b>{points ? points.balance.toLocaleString() : '…'}<small>PKP</small></b><em>Usable at every PayKit shop</em></div>
+        <div className="wallet-stat"><span>Balance</span><b>{points ? points.balance.toLocaleString() : '…'}<small>PKP</small></b><em>Usable at every ChainCred shop</em></div>
         <div className="wallet-stat"><span>Earned</span><b>{points?.lifetimeEarned ?? 0}<small>PKP</small></b><em>From your purchases</em></div>
         <div className="wallet-stat"><span>Spent</span><b>{points?.lifetimeRedeemed ?? 0}<small>PKP</small></b><em>On discounts at checkout</em></div>
       </div>
-      {!points?.history.length ? <div className="wallet-empty"><Icon name="spark" size={26} /><b>No points yet</b><span>Every PayKit purchase earns points. <a href="#shops">Find a shop</a>.</span></div>
+      {!points?.history.length ? <div className="wallet-empty"><Icon name="spark" size={26} /><b>No points yet</b><span>Every ChainCred purchase earns points. <a href="#shops">Find a shop</a>.</span></div>
         : <ul className="wallet-list">{points.history.map((h, i) => <li key={i} className="wallet-row">
           <span className="wallet-row__icon"><Icon name="spark" size={18} /></span>
           <div className="wallet-row__main"><b>{h.type === 'earn' ? 'Earned' : h.type === 'redeem' ? 'Spent' : 'Reversed'}</b><span>{[h.merchantName, when(h.at)].filter(Boolean).join(' · ')}</span></div>

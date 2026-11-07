@@ -41,15 +41,15 @@ type Page = 'components' | 'shops' | 'wallet' | 'merchant' | 'pay'
 
 const PAGES: Array<{ key: Page; label: string; eyebrow: string; title: string; lead: string }> = [
   { key: 'components', label: 'SDK', eyebrow: '@paykit/react', title: 'Components you own', lead: 'Copy the view, keep the payment logic in the SDK. Every preview runs a real checkout flow on simulated funds.' },
-  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Companies with PayKit at checkout. Pay with one signature, never need gas, and earn points you can spend at any of them.' },
-  { key: 'wallet', label: 'Wallet', eyebrow: 'Your invoices', title: 'One wallet, every shop', lead: 'Invoices, receipts and points from every company that takes PayKit. Real test USDT on Whitechain.' },
+  { key: 'shops', label: 'Shops', eyebrow: 'Directory', title: 'Shops that take USDT', lead: 'Companies with ChainCred at checkout. Pay with one signature, never need gas, and earn points you can spend at any of them.' },
+  { key: 'wallet', label: 'Wallet', eyebrow: 'Your invoices', title: 'One wallet, every shop', lead: 'Invoices, receipts and points from every company that takes ChainCred. Real test USDT on Whitechain.' },
   { key: 'merchant', label: 'Merchant', eyebrow: 'For businesses', title: 'Get paid in USDT, your way', lead: 'Sign up in two minutes, brand your checkout, join the points network, and start sending invoices.' },
 ]
 
 // The landing page (frontend/) links here as /#components, /#shops, /#invoice, /#me or /#merchant;
 // #invoice and #me now open the wallet (where customers find their invoices).
-// Pay links from the live PayKit server open #pay/<invoiceId>; plan links open #pay/subscribe/<planId>.
-const PAY_META = { key: 'pay' as const, label: 'Pay', eyebrow: 'Checkout · Whitechain testnet', title: 'Pay with USDT', lead: 'Real test USDT, settled onchain. Sign once in your wallet; PayKit pays the gas.' }
+// Pay links from the live ChainCred server open #pay/<invoiceId>; plan links open #pay/subscribe/<planId>.
+const PAY_META = { key: 'pay' as const, label: 'Pay', eyebrow: 'Checkout · Whitechain testnet', title: 'Pay with USDT', lead: 'Real test USDT, settled onchain. Sign once in your wallet; ChainCred pays the gas.' }
 const pageFromHash = (): Page => {
   const head = window.location.hash.split('/')[0]
   if (head === '#pay') return 'pay'
@@ -74,7 +74,7 @@ export default function MobileApp() {
   const meta = page === 'pay' ? PAY_META : PAGES.find((p) => p.key === page)!
   const target = page === 'pay' ? payTarget() : null
 
-  const title = page === 'wallet' ? 'PayKit' : page === 'merchant' ? 'Business' : page === 'pay' ? (target?.kind === 'plan' ? 'Subscribe' : 'Pay') : meta.label
+  const title = page === 'wallet' ? 'ChainCred' : page === 'merchant' ? 'Business' : page === 'pay' ? (target?.kind === 'plan' ? 'Subscribe' : 'Pay') : meta.label
 
   return (
     <PayKitProvider client={backend.client} wallet={wallet} theme="light">
@@ -110,7 +110,7 @@ function AppBar({ title, back }: { title: string; back: boolean }) {
       <div className="m-bar__pill">
         {back
           ? <a className="m-bar__back" href="#wallet" aria-label="Back to home"><Icon name="chevron" size={18} /></a>
-          : <a className="m-bar__mark" href="#wallet" aria-label="PayKit home"><Mark /></a>}
+          : <a className="m-bar__mark" href="#wallet" aria-label="ChainCred home"><Mark /></a>}
         <h1>{title}</h1>
       </div>
       <span className="m-bar__net"><i />Whitechain</span>

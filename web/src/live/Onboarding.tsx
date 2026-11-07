@@ -166,9 +166,9 @@ function WalletGate({ view, signing, slow, error, onConnect, onSignIn, onUnstick
 // ── vision ──
 
 const PRINCIPLES = [
-  { title: 'Your customers never touch gas', body: 'They sign once. PayKit submits the payment and pays the network fee, so nobody needs WBT to buy from you.', icon: 'M5 12h14M13 6l6 6-6 6' },
+  { title: 'Your customers never touch gas', body: 'They sign once. ChainCred submits the payment and pays the network fee, so nobody needs WBT to buy from you.', icon: 'M5 12h14M13 6l6 6-6 6' },
   { title: 'Paid straight to your wallet', body: 'USDT settles onchain into the payout wallet you choose. No balance held by us, no withdrawal step, a receipt on Whitechain for every sale.', icon: 'M4 7h16v10H4zM4 11h16M8 15h3' },
-  { title: 'Points that travel', body: 'Customers earn universal points at every PayKit shop and can spend them at yours, so other shops send you new buyers.', icon: 'M12 4l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 9.3l5-.7z' },
+  { title: 'Points that travel', body: 'Customers earn universal points at every ChainCred shop and can spend them at yours, so other shops send you new buyers.', icon: 'M12 4l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 9.3l5-.7z' },
   { title: 'Your checkout, your brand', body: 'Your name, colour and tagline on every invoice. Use our hosted pay page, or drop the React components into your own site.', icon: 'M5 19l4-1 9-9-3-3-9 9-1 4zM14 6l3 3' },
 ]
 
@@ -178,7 +178,7 @@ function Vision() {
       <div className="onb-vision__head">
         <p className="eyebrow eyebrow--ink"><span className="eyebrow__dot" />For businesses</p>
         <h2>Take USDT like it's a card, keep every cent of the experience</h2>
-        <p className="page__lead">PayKit is payments infrastructure for Whitechain: gasless checkout for your customers, onchain settlement to your wallet, and a loyalty network shared by every shop on it. Set up takes about two minutes and costs nothing.</p>
+        <p className="page__lead">ChainCred is payments infrastructure for Whitechain: gasless checkout for your customers, onchain settlement to your wallet, and a loyalty network shared by every shop on it. Set up takes about two minutes and costs nothing.</p>
       </div>
       <div className="onb-principles">
         {PRINCIPLES.map((p) => (
@@ -192,7 +192,7 @@ function Vision() {
       <ol className="onb-how">
         <li><b>Sign up here</b><span>Your payout wallet signs once to prove it's yours. We register you onchain.</span></li>
         <li><b>Send invoices</b><span>From your server with your API key, or from the console below.</span></li>
-        <li><b>Get paid</b><span>Customers pay on PayKit and return to you. Webhooks tell your server.</span></li>
+        <li><b>Get paid</b><span>Customers pay on ChainCred and return to you. Webhooks tell your server.</span></li>
       </ol>
     </section>
   )
@@ -289,7 +289,7 @@ function Wizard({ payout, onDone }: { payout: string | null; onDone: (r: Onboard
       <div className="onb-promise">
         <div>
           <h3>Create your merchant account</h3>
-          <p>You get an API key for your server, a branded payment page, and a place in the PayKit points network. Free: one wallet signature, no gas, about two minutes.</p>
+          <p>You get an API key for your server, a branded payment page, and a place in the ChainCred points network. Free: one wallet signature, no gas, about two minutes.</p>
         </div>
         <ol className="onb-dots" aria-label="Progress">
           {STEPS.map((s, i) => <li key={s.title} data-state={i < step ? 'done' : i === step ? 'now' : 'next'}><span>{i + 1}</span>{s.title}</li>)}
@@ -352,7 +352,7 @@ function Wizard({ payout, onDone }: { payout: string | null; onDone: (r: Onboard
                 </div>
               </div>
               <div className="onb-section">
-                <label className="onb-toggle"><input type="checkbox" checked={f.pointsOn} onChange={(e) => set('pointsOn', e.target.checked)} /><span>Give customers PayKit points <span className="pk-muted">(spendable at any PayKit shop)</span></span></label>
+                <label className="onb-toggle"><input type="checkbox" checked={f.pointsOn} onChange={(e) => set('pointsOn', e.target.checked)} /><span>Give customers ChainCred points <span className="pk-muted">(spendable at any ChainCred shop)</span></span></label>
                 {f.pointsOn && (
                   <>
                     <Field label={`${f.pointsPerUsdt} points per 1 USDT spent`}>
@@ -408,7 +408,7 @@ function Preview({ f }: { f: Form }) {
         {f.tagline && <p className="onb-card__tag">{f.tagline}</p>}
         <p className="onb-card__amount">12.50 <small>USDT</small></p>
         <dl>
-          <dt>Network fee</dt><dd>0 WBT, PayKit pays</dd>
+          <dt>Network fee</dt><dd>0 WBT, ChainCred pays</dd>
           {earn > 0 && <><dt>You earn</dt><dd>+{earn} points</dd></>}
         </dl>
         {f.pointsOn && f.rewardOn && <div className="onb-card__reward"><span>{f.rewardName || 'Reward'}</span><span>{f.rewardCost} pts</span></div>}
@@ -433,7 +433,7 @@ function Welcome({ result, onOpen }: { result: Onboarded; onOpen: () => void }) 
   -d '{"amount":"12.50","reference":"ORDER-1042","description":"2x Masala chai","successUrl":"https://yourshop.com/thanks"}'`
   return (
     <section className="onb-welcome pk-panel">
-      <p className="eyebrow eyebrow--ink"><span className="eyebrow__dot" />You're on PayKit</p>
+      <p className="eyebrow eyebrow--ink"><span className="eyebrow__dot" />You're on ChainCred</p>
       <h2>Welcome, {result.merchant.name}</h2>
       <p className="pk-muted">Registered on Whitechain. {result.merchant.registerTx && <a className="pk-link" href={result.merchant.registerTx} target="_blank" rel="noreferrer">See the registration</a>}</p>
       {result.warnings.length > 0 && <div className="pk-state pk-state--info"><div className="pk-state__body">{result.warnings.join(' ')}</div></div>}
@@ -448,7 +448,7 @@ function Welcome({ result, onOpen }: { result: Onboarded; onOpen: () => void }) 
       </div>
       <p className="pk-muted">Keep both on your server. Anyone with the API key can create invoices for you. Lost it? Make a new one in the console.</p>
       <div className="onb-code"><div className="onb-code__bar"><span>Create an invoice from your server</span><button type="button" onClick={() => copy('curl', curl)}>{copied === 'curl' ? 'Copied' : 'Copy'}</button></div><pre><code>{curl}</code></pre></div>
-      <p className="pk-muted">The response has a <code>payUrl</code>: send your customer there. They pay on PayKit and come back to your <code>successUrl</code>.</p>
+      <p className="pk-muted">The response has a <code>payUrl</code>: send your customer there. They pay on ChainCred and come back to your <code>successUrl</code>.</p>
       <button type="button" className="pk-button pk-button--primary" onClick={onOpen}>Open my console</button>
     </section>
   )
@@ -511,7 +511,7 @@ function Console({ session, onSignOut, onExpired }: { session: Session; onSignOu
     <div className="onb-console" style={{ ['--brand' as string]: me?.profile?.accent ?? '#0a0a0a' }}>
       <header className="onb-console__head pk-panel">
         <div className="onb-console__brand"><span className="onb-console__swatch" />
-          <div><h2>{me?.name ?? 'Loading…'}</h2><p className="pk-muted">{[me?.profile?.category, me?.profile?.tagline].filter(Boolean).join(' · ') || 'PayKit merchant'}</p></div>
+          <div><h2>{me?.name ?? 'Loading…'}</h2><p className="pk-muted">{[me?.profile?.category, me?.profile?.tagline].filter(Boolean).join(' · ') || 'ChainCred merchant'}</p></div>
         </div>
         <div className="onb-console__stats">
           <div><span>Collected</span><b>{money(paid)}</b></div>

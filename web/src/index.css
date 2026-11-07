@@ -1,5 +1,5 @@
 /*
- * PayKit app theme. Mirrors the landing page (frontend/): pixel-dithered sky, Da Vinci italic display,
+ * ChainCred app theme. Mirrors the landing page (frontend/): pixel-dithered sky, Da Vinci italic display,
  * Geist text, Chicago pixel labels, black pill buttons. Light only, like the landing page.
  */
 
@@ -274,7 +274,7 @@ h1, h2, h3 { font-weight: 400; letter-spacing: -0.01em; line-height: 1.05; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 
-/* Live checkout (#pay/…): pays real test USDT through the PayKit server. */
+/* Live checkout (#pay/…): pays real test USDT through the ChainCred server. */
 .livepay { display: grid; gap: 14px; }
 .livepay__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .livepay__head .eyebrow { margin: 0; }
@@ -301,7 +301,7 @@ h1, h2, h3 { font-weight: 400; letter-spacing: -0.01em; line-height: 1.05; }
 .testnotice__close:hover { background: #000; }
 @keyframes testnotice-in { from { opacity: 0; transform: translate(-50%, -12px); } }
 
-/* Wallet: invoices, receipts and points across every PayKit shop. */
+/* Wallet: invoices, receipts and points across every ChainCred shop. */
 .wallet__connect { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; }
 .wallet__connect-actions { display: grid; gap: 10px; justify-items: stretch; min-width: min(100%, 360px); }
 .wallet__lookup { display: flex; gap: 8px; min-width: 0; }
@@ -335,7 +335,7 @@ h1, h2, h3 { font-weight: 400; letter-spacing: -0.01em; line-height: 1.05; }
   .receipt__chips { justify-content: flex-start; }
 }
 
-/* The companies that take PayKit (their own websites). */
+/* The companies that take ChainCred (their own websites). */
 .companies { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
 .company { display: grid; grid-template-columns: 112px minmax(0, 1fr); overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: #fff; text-decoration: none; color: var(--ink); transition: transform .25s var(--ease, ease), box-shadow .25s; }
 .company:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -22px rgb(0 40 80 / .35); }

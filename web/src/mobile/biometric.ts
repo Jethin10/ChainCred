@@ -20,8 +20,8 @@ function checkClient(data: ArrayBuffer, challenge: Uint8Array, type: string) {
 export async function enrollDevice(): Promise<DeviceCredential> {
   const challenge = crypto.getRandomValues(new Uint8Array(32))
   const credential = await navigator.credentials.create({ publicKey: {
-    challenge, rp: { name: 'PayKit', id: location.hostname },
-    user: { id: crypto.getRandomValues(new Uint8Array(32)), name: 'paykit-device', displayName: 'PayKit on this device' },
+    challenge, rp: { name: 'ChainCred', id: location.hostname },
+    user: { id: crypto.getRandomValues(new Uint8Array(32)), name: 'paykit-device', displayName: 'ChainCred on this device' },
     pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
     authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
     attestation: 'none', timeout: 60_000,
@@ -72,7 +72,7 @@ export async function unlockDevice(saved: DeviceCredential) {
 }
 export function removeDeviceCredential() { localStorage.removeItem(KEY) }
 export function deviceError(error: unknown) {
-  if (error instanceof DOMException && error.name === 'SecurityError') return 'Device unlock needs an HTTPS hostname or localhost. Open PayKit at its secure website address.'
+  if (error instanceof DOMException && error.name === 'SecurityError') return 'Device unlock needs an HTTPS hostname or localhost. Open ChainCred at its secure website address.'
   if (error instanceof DOMException && error.name === 'NotAllowedError') return 'The request was cancelled or timed out. Try again when you are ready.'
   return error instanceof Error ? error.message : 'Could not verify this device. Try again.'
 }

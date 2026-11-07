@@ -1,6 +1,6 @@
-# PayKit server
+# ChainCred server
 
-One Node process (Express + ethers v6) that turns the PayKit contracts into an API a merchant can plug in:
+One Node process (Express + ethers v6) that turns the ChainCred contracts into an API a merchant can plug in:
 payment links/invoices, gasless checkout, onchain receipts, webhooks, refunds and a CSV export.
 
 ```

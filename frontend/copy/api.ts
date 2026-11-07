@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 /**
  * Local stand-ins for the page's `/api/*` endpoints, so the landing page's
  * location line, view counts and "ask the cloud" panel work without a backend.
- * The ask endpoint streams a canned PayKit answer, then `§`, then follow-up questions split by `|`.
+ * The ask endpoint streams a canned ChainCred answer, then `§`, then follow-up questions split by `|`.
  */
 
 const SEP = '§'
@@ -11,7 +11,7 @@ const SEP = '§'
 const answers: Array<{ match: RegExp; text: string; next: string[] }> = [
   {
     match: /gas|wbt|fee/i,
-    text: 'Your customers never need WBT. They sign the payment, and the PayKit relayer submits it and pays the gas. The network fee is covered in USDT inside the same payment.',
+    text: 'Your customers never need WBT. They sign the payment, and the ChainCred relayer submits it and pays the gas. The network fee is covered in USDT inside the same payment.',
     next: ['How do refunds work?', 'Where does the money go?'],
   },
   {
@@ -22,12 +22,12 @@ const answers: Array<{ match: RegExp; text: string; next: string[] }> = [
   {
     match: /part|install|plan|subscri/i,
     text: 'Yes. A plan is agreed once onchain and each payment is collected on schedule. Customers see their upcoming payments in the app and can cancel what is left.',
-    next: ['How do I add PayKit to my shop?', 'Where does the money go?'],
+    next: ['How do I add ChainCred to my shop?', 'Where does the money go?'],
   },
   {
     match: /money|payout|wallet|merchant|domain/i,
     text: 'Straight to the merchant. USDT lands in a payout wallet that is verified against the merchant’s own domain, so a lookalike shop cannot redirect it.',
-    next: ['How do refunds work?', 'How do I add PayKit to my shop?'],
+    next: ['How do refunds work?', 'How do I add ChainCred to my shop?'],
   },
   {
     match: /react|next|npm|install|start|add|code|sdk/i,
@@ -37,8 +37,8 @@ const answers: Array<{ match: RegExp; text: string; next: string[] }> = [
 ]
 
 const fallback = {
-  text: 'PayKit is an npm SDK and payment service for Whitechain. Customers pay in USDT with one signature and no gas, and merchants get paid straight to a verified wallet. Open the app from the bar to try a payment.',
-  next: ['Do my customers need WBT?', 'How do I add PayKit to my shop?', 'Can customers pay in parts?'],
+  text: 'ChainCred is an npm SDK and payment service for Whitechain. Customers pay in USDT with one signature and no gas, and merchants get paid straight to a verified wallet. Open the app from the bar to try a payment.',
+  next: ['Do my customers need WBT?', 'How do I add ChainCred to my shop?', 'Can customers pay in parts?'],
 }
 
 function readBody(req: IncomingMessage): Promise<string> {
@@ -90,7 +90,7 @@ export function handleApi(req: IncomingMessage, res: ServerResponse): boolean {
       })
       return true
     default:
-      json(res, 404, { error: 'Not available in the local PayKit frontend.' })
+      json(res, 404, { error: 'Not available in the local ChainCred frontend.' })
       return true
   }
 }

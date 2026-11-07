@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 export type Source = 'live' | 'mock'
 export type Backend = {
   source: Source
-  /** Whether the PayKit API answered the last probe. */
+  /** Whether the ChainCred API answered the last probe. */
   reachable: boolean | null
   /** The API runs in test mode: orders placed through it never move real funds. */
   testMode: boolean
@@ -15,7 +15,7 @@ export type Backend = {
   setSource: (s: Source) => void
 }
 
-// VITE_PAYKIT_API_URL wins. Otherwise use this origin: in dev, Vite proxies /v1 to the PayKit server
+// VITE_PAYKIT_API_URL wins. Otherwise use this origin: in dev, Vite proxies /v1 to the ChainCred server
 // (`npm run server:demo`, port 8787), so the app talks to the real SDK backend with no CORS or env setup.
 const API_URL = (import.meta.env.VITE_PAYKIT_API_URL as string | undefined)?.replace(/\/$/, '') || window.location.origin
 const PK = import.meta.env.VITE_PAYKIT_PK as string | undefined
@@ -36,7 +36,7 @@ async function probe(): Promise<{ ok: boolean; testMode: boolean }> {
   }
 }
 
-/** Connects to the PayKit API when it is running, and falls back to the in-browser mock when it is not. */
+/** Connects to the ChainCred API when it is running, and falls back to the in-browser mock when it is not. */
 export function useBackend(): Backend {
   const [choice, setChoice] = useState<Source | null>(readChoice)
   const [reachable, setReachable] = useState<boolean | null>(null)

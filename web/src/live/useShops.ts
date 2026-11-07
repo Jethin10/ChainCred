@@ -42,7 +42,7 @@ export function useShops() {
               const parsed = new URL(m.profile?.website ?? '')
               if (parsed.protocol === 'https:' || parsed.protocol === 'http:') url = parsed.href
             } catch { /* A shop can register without a website. */ }
-            return { ...m, url, kind: m.profile?.category || 'Shop', blurb: m.profile?.tagline || 'Accepts USDT with PayKit.', reward: 'Pay with PayKit' }
+            return { ...m, url, kind: m.profile?.category || 'Shop', blurb: m.profile?.tagline || 'Accepts USDT with ChainCred.', reward: 'Pay with ChainCred' }
           }))
           setError('')
         }

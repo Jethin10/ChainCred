@@ -124,7 +124,7 @@ export function PixelWipe({ trigger }: { trigger: string }) {
   return <canvas ref={ref} className="wipe" aria-hidden="true" />
 }
 
-/** The PayKit mark from the landing page, as a pixel-art coin. */
+/** The ChainCred mark from the landing page, as a pixel-art coin. */
 export function Mark() {
   return <svg className="mark" viewBox="0 0 8 8" aria-hidden="true" shapeRendering="crispEdges">
     <path d="M2 0h4v1h1v1h1v4h-1v1h-1v1h-4v-1h-1v-1h-1v-4h1v-1h1z" fill="#0a0a0a" />

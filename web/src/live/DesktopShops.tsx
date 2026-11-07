@@ -17,7 +17,7 @@ const money = (v: string | number) => Number(v).toLocaleString(undefined, { mini
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '')
 
 /**
- * The shop directory: every shop that takes PayKit, its rewards, and the invoices you paid there.
+ * The shop directory: every shop that takes ChainCred, its rewards, and the invoices you paid there.
  * Nothing is paid here. Customers pay on each shop's own website; the invoice then shows up here and in the wallet.
  */
 export function ShopsDirectory() {
@@ -74,7 +74,7 @@ export function ShopsDirectory() {
 
 function AllShops({ shops, rewardOf, invoicesOf }: { shops: Shop[]; rewardOf: (s: Shop) => string; invoicesOf: (s: Shop) => Activity[] }) {
   return <>
-    <header className="docs-heading"><p className="docs-breadcrumb">Shops / All shops</p><h1>Meet the shops</h1><p>Independent shops with PayKit at checkout. Shop on their websites, pay in USDT with one signature, and every invoice lands back here.</p><span className="docs-hook">One points balance, every shop</span></header>
+    <header className="docs-heading"><p className="docs-breadcrumb">Shops / All shops</p><h1>Meet the shops</h1><p>Independent shops with ChainCred at checkout. Shop on their websites, pay in USDT with one signature, and every invoice lands back here.</p><span className="docs-hook">One points balance, every shop</span></header>
     <div className="shop-cards">
       {shops.map((s) => {
         const count = invoicesOf(s).length
@@ -108,7 +108,7 @@ function ShopDetail({ shop, tab, reward, invoices, address, loaded }: { shop: Sh
     </div>
 
     {tab === 'overview' && <div className="docs-panel" role="tabpanel">
-      <div className="docs-demo-bar"><span><i /> PayKit merchant</span><span>{host}</span></div>
+      <div className="docs-demo-bar"><span><i /> ChainCred merchant</span><span>{host}</span></div>
       <div className="docs-stage shop-shot-stage">
         {shop.url ? <a className="partner-window" href={shop.url} target="_blank" rel="noreferrer" aria-label={`Open ${shop.name}`}>
           {shopPhoto(shop) ? <img src={shopPhoto(shop)!} alt={`Inside ${shop.name}`} /> : <ShopEmblem name={shop.name} />}
@@ -116,7 +116,7 @@ function ShopDetail({ shop, tab, reward, invoices, address, loaded }: { shop: Sh
       </div>
       <ol className="partner-steps">
         <li><b>Shop on their site</b><span>Fill your cart like any online store.</span></li>
-        <li><b>Pay with PayKit</b><span>One signature in USDT. No gas needed.</span></li>
+        <li><b>Pay with ChainCred</b><span>One signature in USDT. No gas needed.</span></li>
         <li><b>Invoice lands here</b><span>With the receipt and the points you earned.</span></li>
       </ol>
     </div>}
@@ -125,7 +125,7 @@ function ShopDetail({ shop, tab, reward, invoices, address, loaded }: { shop: Sh
       <div className="docs-demo-bar"><span><i /> {address ? `Paid from ${short(address)}` : 'No wallet connected'}</span><a className="docs-link-button" href="#wallet/activity">All invoices</a></div>
       {!address ? <div className="wallet-empty"><Icon name="wallet" size={26} /><b>Connect your wallet to see your invoices</b><span>Open your <a href="#wallet">Wallet</a> and connect the account you pay with.</span></div>
         : !loaded ? <div className="wallet-empty" role="status">Loading your invoices…</div>
-          : !invoices.length ? <div className="wallet-empty"><Icon name="receipt" size={26} /><b>No invoices from {shop.name} yet</b><span>Pay this shop with PayKit. The invoice shows up here.</span></div>
+          : !invoices.length ? <div className="wallet-empty"><Icon name="receipt" size={26} /><b>No invoices from {shop.name} yet</b><span>Pay this shop with ChainCred. The invoice shows up here.</span></div>
             : <ul className="wallet-list">{invoices.map((a) => <li key={a.id} className="wallet-row">
               <span className="wallet-row__icon"><Icon name="receipt" size={19} /></span>
               <div className="wallet-row__main"><b>{a.invoice?.description ?? 'Payment'}</b><span>{[a.invoice?.reference ?? a.reference, when(a.settledAt)].filter(Boolean).join(' · ')}</span></div>

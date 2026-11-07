@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PayKit</string>
+    <string name="app_name">ChainCred</string>
     <color name="sky_paper">#F3F9FF</color>
     <string name="asset_statements">[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://paykit-app.vercel.app\"}}]</string>
 </resources>

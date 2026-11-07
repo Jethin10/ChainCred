@@ -31,9 +31,9 @@ export function ArkivPoints({ wallet, compact = false }: { wallet: string; compa
   if (failed || !data || data.backend !== 'arkiv' || !data.arkiv) return null
   const a = data.arkiv
   const lots = (data.lots ?? []).filter((l) => l.remaining > 0)
-  const status = a.error ? `Arkiv is slow right now (${a.error}). Showing PayKit's copy.`
+  const status = a.error ? `Arkiv is slow right now (${a.error}). Showing ChainCred's copy.`
     : a.pendingWrites > 0 ? `${a.pendingWrites} write${a.pendingWrites === 1 ? '' : 's'} on the way to Arkiv`
-    : a.balance === data.balance ? 'Matches Arkiv exactly' : `Arkiv shows ${a.balance ?? '…'}, PayKit shows ${data.balance}`
+    : a.balance === data.balance ? 'Matches Arkiv exactly' : `Arkiv shows ${a.balance ?? '…'}, ChainCred shows ${data.balance}`
   const copy = async () => { try { await navigator.clipboard.writeText(a.query); setCopied(true); window.setTimeout(() => setCopied(false), 1500) } catch { /* clipboard blocked */ } }
   return (
     <section className={`arkiv-points${compact ? ' arkiv-points--compact' : ''}`} aria-label="Your points on Arkiv">

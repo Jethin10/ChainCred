@@ -1,6 +1,6 @@
-# How PayKit uses Arkiv (current state)
+# How ChainCred uses Arkiv (current state)
 
-PayKit uses [Arkiv](https://arkiv.network) for one job: **the cross-shop loyalty points ledger**, together with the
+ChainCred uses [Arkiv](https://arkiv.network) for one job: **the cross-shop loyalty points ledger**, together with the
 campaigns and rewards that define how points are earned and spent. Everything else stays where it was.
 
 Network: Arkiv Rabdi testnet, chain `7794095`, explorer https://rabdi.explorer.arkiv.network.
@@ -48,7 +48,7 @@ A customer's balance is the sum of their live lots minus the spends against them
 
 ## How it works at runtime
 
-1. A customer pays through PayKit. The payment settles on Whitechain (`PaymentSettled`).
+1. A customer pays through ChainCred. The payment settles on Whitechain (`PaymentSettled`).
 2. The server records the points in Postgres right away: a lot for the issuing shop, and spends for any redeeming shop.
 3. A background queue (`arkiv_outbox`) copies those records to Arkiv: create, patch or delete. It is retried with backoff
    and is idempotent, so an Arkiv outage never blocks or loses a payment.
