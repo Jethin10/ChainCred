@@ -372,6 +372,23 @@ function createSubscriptionService(store, relayer, merchants, webhooks, points) 
     return publicSubscription(sub, await paymentsOf(sub));
   }
 
+  // A customer's own subscriptions and installment plans, each with its schedule of upcoming charges.
+  async function listForPayer(address) {
+    const payer = parseAddress(address, "address");
+    const rows = await store.find("subscriptions", { payer }, { limit: 100 });
+    const out = [];
+    for (const s of rows) {
+      if (["awaiting_signature", "expired"].includes(s.status)) continue;
+      const [merchant, plan] = await Promise.all([store.get("merchants", s.merchantId), store.get("plans", s.planId)]);
+      out.push({
+        ...publicSubscription(s, await paymentsOf(s)),
+        merchant: merchant ? { id: merchant.id, name: merchant.name } : { id: s.merchantId },
+        planName: plan ? plan.name : null,
+      });
+    }
+    return out;
+  }
+
   async function listFor(merchant, { status } = {}) {
     const filter = { merchantId: merchant.id, ...(status ? { status } : {}) };
     const rows = await store.find("subscriptions", filter, { limit: 200 });
@@ -602,6 +619,7 @@ function createSubscriptionService(store, relayer, merchants, webhooks, points) 
     getPublic,
     getFor,
     listFor,
+    listForPayer,
     cancelByMerchant,
     cancelRequest,
     cancelByPayer,

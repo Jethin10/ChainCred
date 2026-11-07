@@ -723,8 +723,23 @@ function createPaymentService(store, relayer, merchants, webhooks, points) {
     return { wallet: payer, data: out };
   }
 
+  // Invoices a shop addressed to this wallet that are not paid yet (open, partly paid or overdue).
+  async function openInvoicesFor(address) {
+    const payer = parseAddress(address, "address");
+    const rows = await store.find("invoices", { payerAddress: payer }, { limit: 100 });
+    const merchantsById = new Map();
+    const out = [];
+    for (const inv of rows) {
+      if (invoiceStatus(inv) === "paid") continue;
+      if (!merchantsById.has(inv.merchantId)) merchantsById.set(inv.merchantId, await store.get("merchants", inv.merchantId));
+      out.push(publicInvoice(inv, merchantsById.get(inv.merchantId)));
+    }
+    return out;
+  }
+
   return {
     walletActivity,
+    openInvoicesFor,
     createInvoice,
     getInvoiceFor,
     listInvoices,

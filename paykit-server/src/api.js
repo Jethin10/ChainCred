@@ -207,7 +207,18 @@ function createApi({ store, relayer, merchants, payments, subscriptions, points,
   // Wallet sign-in for the merchant console.
   app.get("/v1/public/merchants/by-wallet/:address", wrap(async (req, res) => res.json(await merchants.lookupWallet(req.params.address))));
   app.post("/v1/public/merchants/login", wrap(async (req, res) => res.json(await merchants.login(req.body || {}))));
-  app.get("/v1/public/wallets/:address/activity", wrap(async (req, res) => res.json(await payments.walletActivity(req.params.address))));
+  // payments made by the wallet (data), plus what is still to come: unpaid invoices addressed to it and its subscriptions
+  app.get(
+    "/v1/public/wallets/:address/activity",
+    wrap(async (req, res) => {
+      const [activity, invoices, subs] = await Promise.all([
+        payments.walletActivity(req.params.address),
+        payments.openInvoicesFor(req.params.address),
+        subscriptions.listForPayer(req.params.address),
+      ]);
+      res.json({ ...activity, invoices, subscriptions: subs });
+    })
+  );
   app.get("/v1/public/receipts/:paymentId", wrap(async (req, res) => res.json(await payments.getReceipt(req.params.paymentId))));
 
   // ───────────── errors ─────────────
