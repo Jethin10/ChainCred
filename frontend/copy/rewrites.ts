@@ -48,7 +48,7 @@ export const rewrites: Rewrite[] = [
   {
     file: VA,
     from: 't?k.jsx(F4,{size:22,beatMs:t}):k.jsx(Mi,{size:22}),!s&&k.jsx("span",{children:Ge.name})',
-    to: 'k.jsxs("svg",{className:"pk-mark",viewBox:"0 0 8 8",width:22,height:22,"aria-hidden":!0,shapeRendering:"crispEdges",children:[k.jsx("path",{d:"M2 0h4v1h1v1h1v4h-1v1h-1v1h-4v-1h-1v-1h-1v-4h1v-1h1z",fill:"#0a0a0a"}),k.jsx("path",{d:"M3 2h2v1h1v1h-1v1h-1v1h-1z",fill:"#7ccfff"})]}),k.jsx("span",{className:"pk-word",children:Ge.name})',
+    to: 'k.jsx("img",{className:"pk-mark",src:"/chaincred-logo.png",width:22,height:22,alt:"","aria-hidden":!0}),k.jsx("span",{className:"pk-word",children:Ge.name})',
   },
   {
     file: VA,

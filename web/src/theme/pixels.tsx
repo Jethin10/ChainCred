@@ -124,10 +124,7 @@ export function PixelWipe({ trigger }: { trigger: string }) {
   return <canvas ref={ref} className="wipe" aria-hidden="true" />
 }
 
-/** The ChainCred mark from the landing page, as a pixel-art coin. */
+/** Shared ChainCred logo for desktop, mobile and device unlock. */
 export function Mark() {
-  return <svg className="mark" viewBox="0 0 8 8" aria-hidden="true" shapeRendering="crispEdges">
-    <path d="M2 0h4v1h1v1h1v4h-1v1h-1v1h-4v-1h-1v-1h-1v-4h1v-1h1z" fill="#0a0a0a" />
-    <path d="M3 2h2v1h1v1h-1v1h-1v1h-1z" fill="#7ccfff" />
-  </svg>
+  return <img className="mark" src={`${import.meta.env.BASE_URL}chaincred-logo.png`} width={22} height={22} alt="" aria-hidden="true" />
 }
